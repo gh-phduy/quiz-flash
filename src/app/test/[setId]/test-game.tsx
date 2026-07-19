@@ -230,7 +230,7 @@ export default function TestGame({ set, cards }: TestGameProps) {
           <button onClick={() => setShowSetup(true)} className="text-muted-foreground hover:text-foreground transition cursor-pointer" title="Options">
             <Settings className="w-5 h-5" />
           </button>
-          <button onClick={() => router.push(`/flashcards/${setId}`)} className="text-muted-foreground hover:text-foreground transition cursor-pointer" title="Close test">
+          <button onClick={() => router.push(`/flashcards/${set.id}`)} className="text-muted-foreground hover:text-foreground transition cursor-pointer" title="Close test">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -480,7 +480,7 @@ export default function TestGame({ set, cards }: TestGameProps) {
         if (!open && questions.length > 0) {
           setShowSetup(false);
         } else if (!open && questions.length === 0) {
-          router.push(`/flashcards/${setId}`); // If they close it without starting, go back to flashcards
+          router.push(`/flashcards/${set.id}`); // If they close it without starting, go back to flashcards
         }
       }}>
         <DialogContent className="bg-card text-foreground border-transparent sm:max-w-[500px] p-0 overflow-hidden shadow-2xl rounded-2xl">

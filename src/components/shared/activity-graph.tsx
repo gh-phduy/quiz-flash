@@ -126,7 +126,7 @@ export function ActivityGraph({ data }: ActivityGraphProps) {
                     const isToday = isSameDay(day, today);
 
                     return (
-                      <TooltipProvider key={dIndex} delayDuration={0}>
+                      <TooltipProvider key={dIndex} delay={0}>
                         <Tooltip>
                           <TooltipTrigger render={<div />}>
                             <div 
