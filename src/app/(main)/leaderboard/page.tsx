@@ -7,19 +7,22 @@ export const revalidate = 60; // Revalidate every 60 seconds
 export default async function LeaderboardPage() {
   const supabase = await createClient();
 
-  // Lấy danh sách Top 50 user theo điểm số
-  const { data: players, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .order('points', { ascending: false })
-    .limit(50);
+  // ⚡ Song song hóa: Fetch leaderboard + current user cùng lúc
+  const [playersResult, userResult] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id, email, avatar_url, current_rank, points, words_learned, full_name')
+      .order('points', { ascending: false })
+      .limit(50),
+    supabase.auth.getUser(),
+  ]);
 
-  if (error) {
-    console.error('Error fetching leaderboard:', error);
+  const players = playersResult.data;
+  const user = userResult.data?.user;
+
+  if (playersResult.error) {
+    console.error('Error fetching leaderboard:', playersResult.error);
   }
-
-  // Get current user to highlight them
-  const { data: { user } } = await supabase.auth.getUser();
 
   const getRankColor = (rankStr: string) => {
     const r = rankStr.toLowerCase();

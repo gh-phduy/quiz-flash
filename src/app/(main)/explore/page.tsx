@@ -6,26 +6,28 @@ export const revalidate = 60; // Cache for 60 seconds
 export default async function ExplorePage() {
   const supabase = await createClient();
 
-  // Tự động đồng bộ ảnh đại diện từ Google Auth vào Profile nếu đang thiếu
-  const { data: { user } } = await supabase.auth.getUser();
+  // ⚡ Song song hóa: Fetch user + public sets cùng lúc
+  const [userResult, setsResult] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.from('sets').select('*, cards(count)').eq('is_public', true).order('created_at', { ascending: false }),
+  ]);
+
+  const user = userResult.data?.user;
+
+  // Đồng bộ avatar từ Google Auth vào Profile (chỉ khi cần, không chặn render)
   if (user && user.user_metadata?.avatar_url) {
-    await supabase
+    // Chạy fire-and-forget, không chờ kết quả
+    supabase
       .from('profiles')
       .update({ avatar_url: user.user_metadata.avatar_url })
       .eq('id', user.id)
-      .is('avatar_url', null);
+      .is('avatar_url', null)
+      .then(() => {}); // fire-and-forget
   }
 
-  // 1. Fetch public sets and count their cards
-  const { data: setsData, error: setsError } = await supabase
-    .from('sets')
-    .select('*, cards(count)')
-    .eq('is_public', true)
-    .order('created_at', { ascending: false });
+  let sets = setsResult.data || [];
 
-  let sets = setsData || [];
-
-  // 2. Fetch author profiles to display email/avatar
+  // Fetch author profiles nếu có sets
   if (sets.length > 0) {
     const userIds = [...new Set(sets.map((s: any) => s.user_id))];
     
@@ -35,7 +37,6 @@ export default async function ExplorePage() {
       .in('id', userIds);
 
     if (profiles) {
-      // 3. Merge profile data into sets
       sets = sets.map((set: any) => ({
         ...set,
         author: profiles.find((p: any) => p.id === set.user_id) || null

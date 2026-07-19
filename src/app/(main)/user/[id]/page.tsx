@@ -8,37 +8,30 @@ export default async function UserLibraryPage({ params }: { params: Promise<{ id
   const supabase = await createClient();
   const { id: userId } = await params;
 
-  // Fetch sets with card count
-  const { data: sets, error } = await supabase
-    .from('sets')
-    .select('*, cards(count)')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    console.error("Error fetching sets:", error);
-  }
-
-  // Fetch Profile Stats
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .single();
-
-  // Fetch Study Activity for Streak
+  // ⚡ Song song hóa: 4 queries chạy đồng thời thay vì tuần tự
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 365);
-  
-  const { data: activities } = await supabase
-    .from('study_activity')
-    .select('study_date, points_earned, words_learned')
-    .eq('user_id', userId)
-    .gte('study_date', thirtyDaysAgo.toISOString().split('T')[0])
-    .order('study_date', { ascending: true });
 
-  // Get current logged-in user to fetch Google Avatar and Display Name
-  const { data: { user: currentUser } } = await supabase.auth.getUser();
+  const [setsResult, profileResult, activitiesResult, userResult] = await Promise.all([
+    // 1. Fetch sets with card count
+    supabase.from('sets').select('*, cards(count)').eq('user_id', userId).order('created_at', { ascending: false }),
+    // 2. Fetch Profile Stats
+    supabase.from('profiles').select('id, email, avatar_url, current_rank, points, words_learned').eq('id', userId).single(),
+    // 3. Fetch Study Activity
+    supabase.from('study_activity').select('study_date, points_earned, words_learned').eq('user_id', userId).gte('study_date', thirtyDaysAgo.toISOString().split('T')[0]).order('study_date', { ascending: true }),
+    // 4. Get current logged-in user
+    supabase.auth.getUser(),
+  ]);
+
+  const sets = setsResult.data;
+  const profile = profileResult.data;
+  const activities = activitiesResult.data;
+  const currentUser = userResult.data?.user;
+
+  if (setsResult.error) {
+    console.error("Error fetching sets:", setsResult.error);
+  }
+
   const isOwnLibrary = currentUser?.id === userId;
   
   const avatarUrl = isOwnLibrary && currentUser?.user_metadata?.avatar_url 
