@@ -15,7 +15,7 @@ const calculateRank = (points: number): string => {
   return 'Challenger';
 };
 
-export async function recordStudyActivity(pointsToAdd: number, wordsToAdd: number = 0) {
+export async function recordStudyActivity(setId: string, pointsToAdd: number, wordsInSet: number = 0) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -24,7 +24,28 @@ export async function recordStudyActivity(pointsToAdd: number, wordsToAdd: numbe
       return { success: false, error: 'User not authenticated' };
     }
 
-    // 1. Get current profile to update points and rank
+    // 1. Check if user has already learned this set before
+    const { data: learnedSet } = await supabase
+      .from('user_learned_sets')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('set_id', setId)
+      .maybeSingle();
+
+    const isNewSet = !learnedSet;
+    const wordsToAdd = isNewSet ? wordsInSet : 0;
+
+    if (isNewSet) {
+      // Mark as learned/mastered
+      await supabase
+        .from('user_learned_sets')
+        .insert({
+          user_id: user.id,
+          set_id: setId
+        });
+    }
+
+    // 2. Get current profile to update points and rank
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('points, words_learned, current_streak, highest_streak, last_active_date')
@@ -71,7 +92,7 @@ export async function recordStudyActivity(pointsToAdd: number, wordsToAdd: numbe
         last_active_date: today,
       });
 
-    // 2. Update today's study activity
+    // 3. Update today's study activity
     
     // Check if record exists for today
     const { data: activity } = await supabase
@@ -102,7 +123,7 @@ export async function recordStudyActivity(pointsToAdd: number, wordsToAdd: numbe
         });
     }
 
-    return { success: true, newRank, newPoints: currentPoints };
+    return { success: true, newRank, newPoints: currentPoints, wordsLearnedAdded: wordsToAdd, isNewSet };
   } catch (error) {
     console.error('Error recording study activity:', error);
     return { success: false, error: 'Internal server error' };
