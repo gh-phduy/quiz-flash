@@ -43,6 +43,7 @@ export default function UserMenu({ user }: UserMenuProps) {
         <img 
           src={avatarUrl}
           alt="Avatar" 
+          referrerPolicy="no-referrer"
           className="w-full h-full object-cover"
         />
       </button>
@@ -53,7 +54,7 @@ export default function UserMenu({ user }: UserMenuProps) {
           {/* User Info */}
           <div className="p-4 flex items-center gap-3 bg-background">
             <div className="h-12 w-12 rounded-full overflow-hidden shrink-0 border border-border bg-white">
-              <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              <img src={avatarUrl} alt="Avatar" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
             </div>
             <div className="flex flex-col min-w-0">
               <span className="font-bold text-[15px] truncate">{username}</span>

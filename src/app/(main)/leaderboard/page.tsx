@@ -40,25 +40,42 @@ export default async function LeaderboardPage() {
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto py-10 px-6 font-sans">
-      <div className="flex flex-col items-center mb-12">
-        <div className="w-20 h-20 bg-card rounded-2xl flex items-center justify-center mb-6 shadow-2xl border border-white/10 ring-4 ring-[#4255ff]/20">
-          <Trophy className="w-10 h-10 text-yellow-400 drop-shadow-md" />
+    <div className="w-full max-w-5xl mx-auto py-10 px-6 font-sans relative">
+      {/* Background neon glows */}
+      <div className="absolute top-0 left-1/4 w-80 h-80 bg-[#4255ff]/5 rounded-full blur-3xl -z-10" />
+      <div className="absolute bottom-10 right-1/4 w-80 h-80 bg-[#b892ff]/5 rounded-full blur-3xl -z-10" />
+
+      {/* Hidden SVG definition for icon gradients */}
+      <svg width="0" height="0" className="absolute pointer-events-none">
+        <defs>
+          <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#b892ff" />
+            <stop offset="50%" stopColor="#6d7bff" />
+            <stop offset="100%" stopColor="#4255ff" />
+          </linearGradient>
+        </defs>
+      </svg>
+
+      <div className="flex flex-col items-center mb-12 relative z-10">
+        <div className="w-24 h-24 bg-card rounded-2xl flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(184,146,255,0.2)] border border-[#b892ff]/30 ring-4 ring-[#4255ff]/10 group transition-all duration-300 hover:scale-105">
+          <Trophy className="w-12 h-12 group-hover:scale-110 transition-transform" style={{ stroke: 'url(#logoGradient)' }} />
         </div>
-        <h1 className="text-4xl font-extrabold text-foreground tracking-tight">Global Leaderboard</h1>
-        <p className="text-muted-foreground font-semibold mt-3 max-w-lg text-center">
+        <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-[#b892ff] via-[#6d7bff] to-[#4255ff] text-transparent bg-clip-text tracking-tight drop-shadow-[0_2px_10px_rgba(184,146,255,0.25)]">
+          Global Leaderboard
+        </h1>
+        <p className="text-muted-foreground font-semibold mt-3 max-w-lg text-center tracking-wide">
           Top 50 most dedicated learners. Compete, earn points, and climb your way to Challenger rank!
         </p>
       </div>
 
-      <div className="bg-[#0a092d]/50 border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+      <div className="bg-[#0a092d]/50 border border-white/10 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-xl relative z-10">
         {/* Header */}
-        <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-card/80 border-b border-white/10 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+        <div className="grid grid-cols-12 gap-4 px-6 py-5 bg-card/40 border-b border-white/10 text-xs font-bold text-muted-foreground uppercase tracking-widest">
           <div className="col-span-1 text-center">Rank</div>
           <div className="col-span-5 md:col-span-4">Player</div>
-          <div className="col-span-3 md:col-span-3 hidden md:flex items-center gap-1"><Trophy className="w-3.5 h-3.5"/> Tier</div>
-          <div className="col-span-3 md:col-span-2 text-right flex items-center justify-end gap-1"><Star className="w-3.5 h-3.5"/> Points</div>
-          <div className="col-span-3 md:col-span-2 text-right flex items-center justify-end gap-1"><BookOpen className="w-3.5 h-3.5"/> Words</div>
+          <div className="col-span-3 md:col-span-3 hidden md:flex items-center gap-1.5"><Trophy className="w-3.5 h-3.5" style={{ stroke: 'url(#logoGradient)' }}/> Tier</div>
+          <div className="col-span-3 md:col-span-2 text-right flex items-center justify-end gap-1.5"><Star className="w-3.5 h-3.5" style={{ stroke: 'url(#logoGradient)' }}/> Points</div>
+          <div className="col-span-3 md:col-span-2 text-right flex items-center justify-end gap-1.5"><BookOpen className="w-3.5 h-3.5" style={{ stroke: 'url(#logoGradient)' }}/> Words</div>
         </div>
 
         {/* Players List */}
@@ -67,11 +84,11 @@ export default async function LeaderboardPage() {
             players.map((player, index) => {
               const isCurrentUser = user?.id === player.id;
               const rankNum = index + 1;
-              let rankBadge = <span className="text-muted-foreground font-bold text-lg">#{rankNum}</span>;
+              let rankBadge = <span className="text-muted-foreground font-bold text-lg font-mono">#{rankNum}</span>;
               
-              if (rankNum === 1) rankBadge = <Medal className="w-7 h-7 text-yellow-400 mx-auto drop-shadow-md" />;
-              else if (rankNum === 2) rankBadge = <Medal className="w-7 h-7 text-slate-300 mx-auto drop-shadow-md" />;
-              else if (rankNum === 3) rankBadge = <Medal className="w-7 h-7 text-[#cd7f32] mx-auto drop-shadow-md" />;
+              if (rankNum === 1) rankBadge = <Medal className="w-8 h-8 text-yellow-400 mx-auto drop-shadow-[0_0_10px_rgba(250,204,21,0.4)]" />;
+              else if (rankNum === 2) rankBadge = <Medal className="w-8 h-8 text-slate-300 mx-auto drop-shadow-[0_0_10px_rgba(203,213,225,0.4)]" />;
+              else if (rankNum === 3) rankBadge = <Medal className="w-8 h-8 text-[#cd7f32] mx-auto drop-shadow-[0_0_10px_rgba(205,127,50,0.4)]" />;
 
               const displayName = isCurrentUser && (user?.user_metadata?.full_name || user?.user_metadata?.name)
                 ? (user.user_metadata.full_name || user.user_metadata.name)
@@ -83,34 +100,44 @@ export default async function LeaderboardPage() {
 
               return (
                 <Link 
-                  href={`/user/${player.id}`}
+                  href={`/status/${player.id}`}
                   key={player.id}
-                  className={`grid grid-cols-12 gap-4 px-6 py-4 items-center border-b border-white/5 transition-colors hover:bg-white/5 ${
-                    isCurrentUser ? 'bg-[#4255ff]/10 hover:bg-[#4255ff]/20' : ''
+                  className={`grid grid-cols-12 gap-4 px-6 py-4.5 items-center border-b border-white/5 transition-all duration-200 hover:bg-white/5 hover:translate-x-1 ${
+                    isCurrentUser 
+                      ? 'bg-gradient-to-r from-[#4255ff]/10 to-[#b892ff]/10 border-l-[4px] border-l-[#b892ff] hover:from-[#4255ff]/15 hover:to-[#b892ff]/15' 
+                      : ''
                   }`}
                 >
                   <div className="col-span-1 text-center flex justify-center">
                     {rankBadge}
                   </div>
                   <div className="col-span-5 md:col-span-4 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-600 shrink-0 border border-border">
-                      <img src={avatar} alt={displayName} className="w-full h-full object-cover" />
+                    <div className={`w-11 h-11 rounded-full overflow-hidden bg-gray-900 shrink-0 border-2 ${
+                      isCurrentUser ? 'border-[#b892ff] shadow-[0_0_10px_rgba(184,146,255,0.3)]' : 'border-white/10'
+                    }`}>
+                      <img src={avatar} alt={displayName} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                     </div>
                     <div className="flex flex-col truncate">
-                      <span className="font-bold text-foreground truncate">{displayName}</span>
-                      {isCurrentUser && <span className="text-[10px] uppercase font-extrabold text-[#4255ff]">You</span>}
+                      <span className={`font-bold truncate ${isCurrentUser ? 'text-[#b892ff]' : 'text-foreground'}`}>
+                        {displayName}
+                      </span>
+                      {isCurrentUser && (
+                        <span className="inline-flex max-w-max px-1.5 py-0.5 bg-gradient-to-r from-[#b892ff] to-[#4255ff] text-white text-[8px] font-extrabold uppercase rounded-md mt-1 tracking-widest">
+                          You
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="col-span-3 md:col-span-3 hidden md:flex items-center">
-                    <div className={`px-2.5 py-1 rounded-md text-[10px] uppercase font-extrabold tracking-wider border bg-background/50 ${getRankColor(player.current_rank || 'Iron')}`}>
+                    <div className={`px-3 py-1 rounded-lg text-[9px] uppercase font-extrabold tracking-widest border bg-background/60 backdrop-blur-sm ${getRankColor(player.current_rank || 'Iron')}`}>
                       {player.current_rank || 'Iron'}
                     </div>
                   </div>
                   <div className="col-span-3 md:col-span-2 text-right">
-                    <span className="font-bold text-foreground font-mono">{player.points?.toLocaleString() || 0}</span>
+                    <span className="font-bold text-foreground font-mono text-base">{player.points?.toLocaleString() || 0}</span>
                   </div>
                   <div className="col-span-3 md:col-span-2 text-right">
-                    <span className="font-bold text-[#b892ff] font-mono">{player.words_learned?.toLocaleString() || 0}</span>
+                    <span className="font-bold text-[#b892ff] font-mono text-base">{player.words_learned?.toLocaleString() || 0}</span>
                   </div>
                 </Link>
               );
