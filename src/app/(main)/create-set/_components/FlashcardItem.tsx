@@ -1,5 +1,5 @@
-import React from 'react';
-import { GripHorizontal, Trash2, Image as ImageIcon } from 'lucide-react';
+import React, { useState } from 'react';
+import { GripHorizontal, Trash2, Image as ImageIcon, Search, Upload, X, Loader2 } from 'lucide-react';
 import { CardItem, FormErrors } from '@/shared/types/set';
 import { fetchWordData } from '@/lib/dictionary';
 import { useSortable } from '@dnd-kit/sortable';
@@ -14,6 +14,7 @@ interface FlashcardItemProps {
   onChange: (id: string, field: keyof CardItem, value: any) => void;
   onImageUpload: (id: string, e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveImage: (id: string) => void;
+  onExternalImageSelect?: (id: string, url: string) => void;
 }
 
 export const FlashcardItem = React.memo(function FlashcardItem({
@@ -24,8 +25,32 @@ export const FlashcardItem = React.memo(function FlashcardItem({
   onDelete,
   onChange,
   onImageUpload,
-  onRemoveImage
+  onRemoveImage,
+  onExternalImageSelect
 }: FlashcardItemProps) {
+
+  const [showImageSuggestions, setShowImageSuggestions] = useState(false);
+  const [suggestedImages, setSuggestedImages] = useState<string[]>([]);
+  const [isLoadingImages, setIsLoadingImages] = useState(false);
+
+  const handleSearchImages = async () => {
+    if (!card.term) {
+      document.getElementById(`file-input-${card.id}`)?.click();
+      return;
+    }
+    
+    setShowImageSuggestions(true);
+    setIsLoadingImages(true);
+    try {
+      const res = await fetch(`/api/images?q=${encodeURIComponent(card.term)}`);
+      const data = await res.json();
+      setSuggestedImages(data.images || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingImages(false);
+    }
+  };
 
   const handleTermBlur = async () => {
     if (!card.term) return;
@@ -156,7 +181,7 @@ export const FlashcardItem = React.memo(function FlashcardItem({
               // Trạng thái trống (Chưa có ảnh)
               <button 
                 type="button"
-                onClick={() => document.getElementById(`file-input-${card.id}`)?.click()}
+                onClick={handleSearchImages}
                 className="w-full h-full border-[2px] border-dashed border-[#939bb4]/60 rounded-lg flex flex-col items-center justify-center text-muted-foreground hover:text-foreground hover:border-white transition-all bg-background/50 hover:bg-background cursor-pointer"
               >
                 <ImageIcon className="h-5 w-5 mb-1" />
@@ -168,6 +193,59 @@ export const FlashcardItem = React.memo(function FlashcardItem({
         </div>
 
       </div>
+
+      {/* Image Suggestions Panel */}
+      {showImageSuggestions && !card.image_url && (
+        <div className="bg-[#1f2937]/50 p-4 border-t border-[#0a092d]/40 flex flex-col gap-3 rounded-b-xl animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Search className="w-4 h-4 text-blue-400" /> Image suggestions for "{card.term}"
+            </span>
+            <button 
+              onClick={() => setShowImageSuggestions(false)}
+              className="text-muted-foreground hover:text-white transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          
+          <div className="flex flex-wrap gap-4 items-center">
+            {isLoadingImages ? (
+              <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                <Loader2 className="w-4 h-4 animate-spin" /> Searching...
+              </div>
+            ) : suggestedImages.length > 0 ? (
+              suggestedImages.map((imgUrl, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    onExternalImageSelect?.(card.id, imgUrl);
+                    setShowImageSuggestions(false);
+                  }}
+                  className="w-24 h-16 rounded-md overflow-hidden border-2 border-transparent hover:border-blue-500 transition-colors shadow-sm"
+                >
+                  <img src={imgUrl} alt="suggestion" className="w-full h-full object-cover" />
+                </button>
+              ))
+            ) : (
+              <span className="text-sm text-muted-foreground">No images found.</span>
+            )}
+            
+            {/* Fallback to local upload */}
+            <div className="h-10 border-l border-[#3a466a]/50 mx-2"></div>
+            <button
+              onClick={() => {
+                document.getElementById(`file-input-${card.id}`)?.click();
+                setShowImageSuggestions(false);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-background rounded-md hover:bg-card transition-colors text-sm font-medium border border-border shadow-sm cursor-pointer"
+            >
+              <Upload className="w-4 h-4 text-muted-foreground" />
+              Upload your own
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 });

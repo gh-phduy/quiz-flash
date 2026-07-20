@@ -186,6 +186,32 @@ export default function EditSetForm({ initialSet, initialCards, initialCollabSta
     }));
   }, []);
 
+  const handleExternalImageSelect = useCallback((id: string, imageUrl: string) => {
+    setCards(prev => prev.map(card => {
+      if (card.id === id) {
+        if (card.image_url && card.image_url.startsWith('blob:')) {
+          URL.revokeObjectURL(card.image_url);
+        }
+        return { ...card, image_url: imageUrl, image_file: null };
+      }
+      return card;
+    }));
+
+    setErrors(prev => {
+      if (!prev.cards?.[id]?.image) return prev;
+      return {
+        ...prev,
+        cards: {
+          ...prev.cards,
+          [id]: {
+            ...prev.cards?.[id],
+            image: undefined
+          }
+        }
+      };
+    });
+  }, []);
+
   const handleUpdateSet = async () => {
     const result = setSchema.safeParse({ title, description, cards });
     
@@ -463,6 +489,7 @@ export default function EditSetForm({ initialSet, initialCards, initialCollabSta
                   onChange={handleCardChange}
                   onImageUpload={handleImageUpload}
                   onRemoveImage={handleRemoveImage}
+                  onExternalImageSelect={handleExternalImageSelect}
                 />
               ))}
             </div>

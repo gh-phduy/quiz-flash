@@ -197,6 +197,33 @@ export default function CreateSetPage() {
     }));
   }, []);
 
+  // Chọn ảnh từ gợi ý bên ngoài (Pexels)
+  const handleExternalImageSelect = useCallback((id: string, imageUrl: string) => {
+    setCards(prev => prev.map(card => {
+      if (card.id === id) {
+        if (card.image_url && card.image_url.startsWith('blob:')) {
+          URL.revokeObjectURL(card.image_url);
+        }
+        return { ...card, image_url: imageUrl, image_file: null };
+      }
+      return card;
+    }));
+
+    setErrors(prev => {
+      if (!prev.cards?.[id]?.image) return prev;
+      return {
+        ...prev,
+        cards: {
+          ...prev.cards,
+          [id]: {
+            ...prev.cards?.[id],
+            image: undefined
+          }
+        }
+      };
+    });
+  }, []);
+
   // Hàm xử lý lưu toàn bộ (Sẽ chạy upload sau)
   const handleCreateSet = async () => {
     const result = setSchema.safeParse({ title, description, cards });
@@ -256,7 +283,12 @@ export default function CreateSetPage() {
       const cardsToInsert = [];
       for (let i = 0; i < cards.length; i++) {
         const card = cards[i];
-        let uploadedImageUrl = null;
+        let finalImageUrl = card.image_url;
+
+        // Bỏ qua các URL blob vì nó là local preview
+        if (finalImageUrl && finalImageUrl.startsWith('blob:')) {
+            finalImageUrl = null;
+        }
 
         if (card.image_file) {
           const fileExt = card.image_file.name.split('.').pop();
@@ -269,14 +301,14 @@ export default function CreateSetPage() {
           if (uploadError) throw new Error("Lỗi tải ảnh: " + uploadError.message);
           
           const { data: { publicUrl } } = supabase.storage.from('flashcard-images').getPublicUrl(fileName);
-          uploadedImageUrl = publicUrl;
+          finalImageUrl = publicUrl;
         }
 
         cardsToInsert.push({
           set_id: setId,
           term: card.term,
           definition: card.definition,
-          image_url: uploadedImageUrl,
+          image_url: finalImageUrl,
           order_index: i,
           phonetic: card.phonetic,
           audio_url: card.audio_url
@@ -441,6 +473,7 @@ export default function CreateSetPage() {
                   onChange={handleCardChange}
                   onImageUpload={handleImageUpload}
                   onRemoveImage={handleRemoveImage}
+                  onExternalImageSelect={handleExternalImageSelect}
                 />
               ))}
             </div>
