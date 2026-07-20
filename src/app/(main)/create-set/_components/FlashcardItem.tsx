@@ -209,9 +209,9 @@ export const FlashcardItem = React.memo(function FlashcardItem({
             </button>
           </div>
           
-          <div className="flex flex-wrap gap-4 items-center">
+          <div className="flex w-full gap-4 items-stretch h-20">
             {isLoadingImages ? (
-              <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <div className="flex items-center gap-2 text-muted-foreground text-sm flex-1">
                 <Loader2 className="w-4 h-4 animate-spin" /> Searching...
               </div>
             ) : suggestedImages.length > 0 ? (
@@ -222,26 +222,24 @@ export const FlashcardItem = React.memo(function FlashcardItem({
                     onExternalImageSelect?.(card.id, imgUrl);
                     setShowImageSuggestions(false);
                   }}
-                  className="w-24 h-16 rounded-md overflow-hidden border-2 border-transparent hover:border-blue-500 transition-colors shadow-sm"
+                  className="flex-1 rounded-md overflow-hidden border-2 border-transparent hover:border-blue-500 transition-colors shadow-sm relative group bg-black/20"
                 >
-                  <img src={imgUrl} alt="suggestion" className="w-full h-full object-cover" />
+                  <img src={imgUrl} alt="suggestion" className="absolute inset-0 w-full h-full object-cover" />
                 </button>
               ))
             ) : (
-              <span className="text-sm text-muted-foreground">No images found.</span>
+              <div className="flex items-center text-sm text-muted-foreground flex-1">No images found.</div>
             )}
             
-            {/* Fallback to local upload */}
-            <div className="h-10 border-l border-[#3a466a]/50 mx-2"></div>
             <button
               onClick={() => {
                 document.getElementById(`file-input-${card.id}`)?.click();
                 setShowImageSuggestions(false);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-background rounded-md hover:bg-card transition-colors text-sm font-medium border border-border shadow-sm cursor-pointer"
+              className="flex-shrink-0 w-32 flex flex-col items-center justify-center text-muted-foreground hover:text-foreground hover:border-white transition-all bg-background/50 hover:bg-background cursor-pointer rounded-md border-[2px] border-dashed border-[#939bb4]/60 shadow-sm"
             >
-              <Upload className="w-4 h-4 text-muted-foreground" />
-              Upload your own
+              <Upload className="h-5 w-5 mb-1" />
+              <span className="text-[11px] font-bold">Upload</span>
             </button>
           </div>
         </div>
