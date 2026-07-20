@@ -4,8 +4,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Search, Layers, User, Play, Clock, BookOpen, FileText, Copy } from 'lucide-react';
+import { Search, Layers, User, Play, Clock, BookOpen, FileText, Copy, Bookmark } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { saveSetToLibrary, unsaveSetFromLibrary } from '@/actions/collaboration';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -16,16 +18,52 @@ import {
 
 interface ExploreGridProps {
   sets: any[];
+  initialSavedSetIds?: string[];
 }
 
-export default function ExploreGrid({ sets }: ExploreGridProps) {
+export default function ExploreGrid({ sets, initialSavedSetIds = [] }: ExploreGridProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [savedSets, setSavedSets] = useState<Set<string>>(new Set(initialSavedSetIds));
+  const [isLoading, setIsLoading] = useState<string | null>(null);
   const router = useRouter();
 
   const filteredSets = sets.filter(set => 
     set.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
     (set.description && set.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+
+  const handleToggleSave = async (e: React.MouseEvent, setId: string) => {
+    e.preventDefault();
+    e.stopPropagation(); // Ngăn Dialog bật lên
+    if (isLoading === setId) return;
+
+    const isSaved = savedSets.has(setId);
+    
+    // Optimistic UI update
+    setSavedSets(prev => {
+      const newSet = new Set(prev);
+      if (isSaved) newSet.delete(setId);
+      else newSet.add(setId);
+      return newSet;
+    });
+    
+    setIsLoading(setId);
+    const res = isSaved ? await unsaveSetFromLibrary(setId) : await saveSetToLibrary(setId);
+    
+    if (res.error) {
+      // Revert if error
+      setSavedSets(prev => {
+        const newSet = new Set(prev);
+        if (isSaved) newSet.add(setId);
+        else newSet.delete(setId);
+        return newSet;
+      });
+      toast.error(res.error);
+    } else {
+      toast.success(isSaved ? "Removed from library" : "Saved to library");
+    }
+    setIsLoading(null);
+  };
 
   return (
     <div className="w-full max-w-7xl mx-auto py-10 px-6 font-sans">
@@ -65,14 +103,29 @@ export default function ExploreGrid({ sets }: ExploreGridProps) {
                 className="cursor-pointer group relative bg-[#0a092d]/50 backdrop-blur-xl border border-white/5 rounded-3xl p-6 transition-all duration-300 hover:bg-[#0a092d]/80 hover:border-[#9fa6ff]/30 hover:shadow-[0_0_30px_rgba(159,166,255,0.15)] flex flex-col w-full text-left"
               >
                 <div className="flex-1">
-                    <div className="flex justify-between items-start mb-4">
-                      <h3 className="text-xl font-bold text-white group-hover:text-[#9fa6ff] transition-colors line-clamp-2">
-                        {set.title}
-                      </h3>
-                      <div className="flex items-center gap-1.5 px-3 py-1 bg-[#4255ff]/10 text-[#6b7bff] text-xs font-bold rounded-lg whitespace-nowrap">
-                        <Layers className="w-3.5 h-3.5" />
-                        {set.cards?.[0]?.count || 0} terms
+                    {/* Top Row: Title + Terms on Left, Flat Bookmark on Right */}
+                    <div className="flex justify-between items-start gap-4 mb-4 w-full">
+                      <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+                        <h3 className="text-xl font-bold text-white group-hover:text-[#9fa6ff] transition-colors line-clamp-2 leading-snug">
+                          {set.title}
+                        </h3>
+                        <span className="flex items-center gap-1 text-[11px] font-bold text-[#6b7bff] bg-[#4255ff]/10 px-2 py-0.5 rounded-md shrink-0">
+                          {set.cards?.[0]?.count || 0} terms
+                        </span>
                       </div>
+                      
+                      <button 
+                        onClick={(e) => handleToggleSave(e, set.id)}
+                        disabled={isLoading === set.id}
+                        className={`p-1.5 transition-all duration-300 rounded-lg hover:scale-110 shrink-0 ${
+                          savedSets.has(set.id) 
+                            ? 'text-[#4255ff]' 
+                            : 'text-muted-foreground hover:text-[#9fa6ff]'
+                        }`}
+                        title={savedSets.has(set.id) ? "Unsave set" : "Save set"}
+                      >
+                        <Bookmark className={`w-5 h-5 ${savedSets.has(set.id) ? 'fill-current' : ''}`} />
+                      </button>
                     </div>
                     
                     {set.description && (
@@ -96,14 +149,14 @@ export default function ExploreGrid({ sets }: ExploreGridProps) {
                       ) : (
                         <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center border border-white/10 shadow-sm shrink-0">
                           <span className="text-white text-sm font-bold uppercase">
-                            {(set.author?.email || 'A')[0]}
+                            {((set.author?.full_name || set.author?.email || 'A')[0])}
                           </span>
                         </div>
                       )}
                       
                       <div className="flex flex-col justify-center">
                         <span className="text-sm text-white font-medium truncate max-w-[150px] leading-tight">
-                          {set.author?.email || 'Anonymous'}
+                          {set.author?.full_name || (set.author?.email ? set.author.email.split('@')[0] : 'Anonymous')}
                         </span>
                         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/80 font-medium mt-0.5">
                           <Clock className="w-3 h-3" />
@@ -111,9 +164,11 @@ export default function ExploreGrid({ sets }: ExploreGridProps) {
                         </div>
                       </div>
                     </div>
-
-                    <div className="w-10 h-10 rounded-full bg-[#4255ff]/10 flex items-center justify-center text-[#9fa6ff] group-hover:bg-[#4255ff] group-hover:text-white transition-all duration-300 hover:scale-110 shadow-lg">
-                      <Play className="w-4 h-4 fill-current" />
+                    
+                    <div className="flex items-center gap-2">
+                      <div className="w-10 h-10 rounded-full bg-[#4255ff]/10 flex items-center justify-center text-[#9fa6ff] group-hover:bg-[#4255ff] group-hover:text-white transition-all duration-300 hover:scale-110 shadow-lg pointer-events-none">
+                        <Play className="w-4 h-4 fill-current" />
+                      </div>
                     </div>
                   </div>
               </DialogTrigger>

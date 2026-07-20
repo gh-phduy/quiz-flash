@@ -44,9 +44,9 @@ export function ActivityGraph({ data }: ActivityGraphProps) {
     switch (intensity) {
       case 0: return 'bg-white/5';
       case 1: return 'bg-[#4255ff]/40';
-      case 2: return 'bg-[#4255ff]/60';
-      case 3: return 'bg-[#4255ff]/80';
-      case 4: return 'bg-[#4255ff]';
+      case 2: return 'bg-[#4255ff]';
+      case 3: return 'bg-[#6d7bff]';
+      case 4: return 'bg-[#b892ff]';
       default: return 'bg-white/5';
     }
   };

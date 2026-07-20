@@ -15,7 +15,7 @@ const calculateRank = (points: number): string => {
   return 'Challenger';
 };
 
-export async function recordStudyActivity(setId: string, pointsToAdd: number, wordsInSet: number = 0) {
+export async function recordPoints(pointsToAdd: number) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -23,6 +23,69 @@ export async function recordStudyActivity(setId: string, pointsToAdd: number, wo
     if (!user) {
       return { success: false, error: 'User not authenticated' };
     }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('points, current_streak, highest_streak, last_active_date')
+      .eq('id', user.id)
+      .single();
+
+    if (profile) {
+      const today = new Date().toISOString().split('T')[0];
+      const lastActive = profile.last_active_date ? new Date(profile.last_active_date).toISOString().split('T')[0] : null;
+      
+      let newStreak = profile.current_streak || 0;
+      let newHighest = profile.highest_streak || 0;
+
+      if (lastActive !== today) {
+        if (!lastActive) {
+          newStreak = 1;
+        } else {
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          const yesterdayStr = yesterday.toISOString().split('T')[0];
+          
+          if (lastActive === yesterdayStr) {
+            newStreak += 1;
+          } else {
+            newStreak = 1; // reset
+          }
+        }
+        if (newStreak > newHighest) newHighest = newStreak;
+      }
+
+      const newPoints = (profile.points || 0) + pointsToAdd;
+      const newRank = calculateRank(newPoints);
+
+      await supabase
+        .from('profiles')
+        .update({
+          points: newPoints,
+          current_rank: newRank,
+          current_streak: newStreak,
+          highest_streak: newHighest,
+          last_active_date: new Date().toISOString()
+        })
+        .eq('id', user.id);
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error in recordPoints:', error);
+    return { success: false };
+  }
+}
+
+export async function recordStudyActivity(setId: string, pointsToAdd: number, wordsInSet: number = 0, mode: string = 'flashcards') {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: 'User not authenticated' };
+    }
+
+    const isLearnMode = mode === 'learn';
 
     // 1. Check if user has already learned this set before
     const { data: learnedSet } = await supabase
@@ -33,10 +96,10 @@ export async function recordStudyActivity(setId: string, pointsToAdd: number, wo
       .maybeSingle();
 
     const isNewSet = !learnedSet;
-    const wordsToAdd = isNewSet ? wordsInSet : 0;
+    const wordsToAdd = (isNewSet && isLearnMode) ? wordsInSet : 0;
 
-    if (isNewSet) {
-      // Mark as learned/mastered
+    if (isNewSet && isLearnMode) {
+      // Mark as learned/mastered ONLY if in learn mode
       await supabase
         .from('user_learned_sets')
         .insert({
@@ -123,7 +186,7 @@ export async function recordStudyActivity(setId: string, pointsToAdd: number, wo
         });
     }
 
-    return { success: true, newRank, newPoints: currentPoints, wordsLearnedAdded: wordsToAdd, isNewSet };
+    return { success: true, newRank, newPoints: currentPoints, wordsLearnedAdded: wordsToAdd, isNewSet, currentStreak };
   } catch (error) {
     console.error('Error recording study activity:', error);
     return { success: false, error: 'Internal server error' };

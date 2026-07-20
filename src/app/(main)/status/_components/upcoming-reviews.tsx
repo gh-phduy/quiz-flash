@@ -39,7 +39,7 @@ export default function UpcomingReviews({ data }: UpcomingReviewsProps) {
 
   return (
     <div className="w-full bg-[#0a092d]/50 border border-white/10 rounded-2xl p-6 md:p-8 backdrop-blur-xl shadow-2xl relative overflow-hidden h-full flex flex-col">
-      <div className="absolute top-0 left-0 w-64 h-64 bg-[#9fa6ff]/10 rounded-full blur-3xl -z-10" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-[#9fa6ff]/10 rounded-full blur-[100px] -z-10" />
       
       <div className="flex flex-col gap-2 mb-6">
         <h3 className="text-xl font-bold text-white">Upcoming Workload</h3>

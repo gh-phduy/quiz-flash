@@ -1,43 +1,73 @@
 import React from 'react';
 import { GripHorizontal, Trash2, Image as ImageIcon } from 'lucide-react';
 import { CardItem, FormErrors } from '@/shared/types/set';
+import { fetchWordData } from '@/lib/dictionary';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface FlashcardItemProps {
   card: CardItem;
   index: number;
-  errors: FormErrors['cards'];
-  cardsLength: number;
+  error?: { term?: string, definition?: string, image?: string };
+  canDelete: boolean;
   onDelete: (id: string) => void;
-  onChange: (id: string, field: 'term' | 'definition', value: string) => void;
+  onChange: (id: string, field: keyof CardItem, value: any) => void;
   onImageUpload: (id: string, e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveImage: (id: string) => void;
 }
 
-export function FlashcardItem({
+export const FlashcardItem = React.memo(function FlashcardItem({
   card,
   index,
-  errors,
-  cardsLength,
+  error,
+  canDelete,
   onDelete,
   onChange,
   onImageUpload,
   onRemoveImage
 }: FlashcardItemProps) {
-  const cardErrors = errors?.[card.id];
+
+  const handleTermBlur = async () => {
+    if (!card.term) return;
+    // Auto fetch if phonetic is empty
+    if (!card.phonetic) {
+      const data = await fetchWordData(card.term);
+      if (data) {
+        if (data.phonetic) onChange(card.id, 'phonetic', data.phonetic);
+        if (data.audioUrl) onChange(card.id, 'audio_url', data.audioUrl);
+      }
+    }
+  };
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: card.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 1 : 0,
+    opacity: isDragging ? 0.5 : 1,
+  };
 
   return (
-    <div className="bg-card rounded-xl flex flex-col group relative shadow-sm">
+    <div ref={setNodeRef} style={style} className="bg-card rounded-xl flex flex-col group relative shadow-sm">
       {/* Card Header */}
       <div className="flex items-center justify-between px-6 py-3 border-b border-[#0a092d]/40">
         <span className="font-bold text-foreground">{index + 1}</span>
         <div className="flex items-center gap-3 opacity-50 group-hover:opacity-100 transition-opacity">
-          <button className="text-muted-foreground hover:text-foreground transition-colors cursor-grab">
+          <button {...attributes} {...listeners} className="text-muted-foreground hover:text-foreground transition-colors cursor-grab touch-none">
             <GripHorizontal className="h-[18px] w-[18px]" />
           </button>
           <button 
             onClick={() => onDelete(card.id)}
-            disabled={cardsLength <= 2}
-            className={`text-muted-foreground transition-colors ${cardsLength > 2 ? 'hover:text-[#ff4242] cursor-pointer' : 'opacity-40 cursor-not-allowed'}`}
+            disabled={!canDelete}
+            className={`text-muted-foreground transition-colors ${canDelete ? 'hover:text-[#ff4242] cursor-pointer' : 'opacity-40 cursor-not-allowed'}`}
           >
             <Trash2 className="h-[18px] w-[18px]" />
           </button>
@@ -55,12 +85,24 @@ export function FlashcardItem({
               placeholder="Enter term" 
               value={card.term}
               onChange={(e) => onChange(card.id, 'term', e.target.value)}
-              className={`w-full bg-background border-b-2 ${cardErrors?.term ? 'border-red-500 focus:border-red-500' : 'border-transparent focus:border-yellow-400'} rounded-t-lg rounded-b-none px-4 py-3 text-foreground placeholder-[#939bb4] outline-none text-[15px] transition-colors`}
+              onBlur={handleTermBlur}
+              className={`w-full bg-background border-b-2 ${error?.term ? 'border-red-500 focus:border-red-500' : 'border-transparent focus:border-yellow-400'} rounded-t-lg rounded-b-none px-4 py-3 text-foreground placeholder-[#939bb4] outline-none text-[15px] transition-colors`}
             />
-            {cardErrors?.term && <span className="text-red-500 text-[12px] font-bold px-1">{cardErrors?.term}</span>}
+            {error?.term && <span className="text-red-500 text-[12px] font-bold px-1">{error?.term}</span>}
           </div>
           <div className="flex justify-between items-center mt-2">
             <span className="text-[11px] font-bold tracking-widest text-muted-foreground">TERM</span>
+            
+            {/* Phonetic Input */}
+            <div className="relative w-1/2 ml-4">
+              <input 
+                type="text" 
+                placeholder="Phonetic (optional)" 
+                value={card.phonetic || ''}
+                onChange={(e) => onChange(card.id, 'phonetic', e.target.value)}
+                className="w-full bg-background/50 border-b border-transparent focus:border-[#4255ff] px-2 py-1 text-muted-foreground text-[13px] outline-none transition-colors"
+              />
+            </div>
           </div>
         </div>
         
@@ -72,9 +114,9 @@ export function FlashcardItem({
               placeholder="Enter definition" 
               value={card.definition}
               onChange={(e) => onChange(card.id, 'definition', e.target.value)}
-              className={`w-full bg-background border-b-2 ${cardErrors?.definition ? 'border-red-500 focus:border-red-500' : 'border-transparent focus:border-yellow-400'} rounded-t-lg rounded-b-none px-4 py-3 text-foreground placeholder-[#939bb4] outline-none text-[15px] transition-colors`}
+              className={`w-full bg-background border-b-2 ${error?.definition ? 'border-red-500 focus:border-red-500' : 'border-transparent focus:border-yellow-400'} rounded-t-lg rounded-b-none px-4 py-3 text-foreground placeholder-[#939bb4] outline-none text-[15px] transition-colors`}
             />
-            {cardErrors?.definition && <span className="text-red-500 text-[12px] font-bold px-1">{cardErrors?.definition}</span>}
+            {error?.definition && <span className="text-red-500 text-[12px] font-bold px-1">{error?.definition}</span>}
           </div>
           <div className="flex justify-between items-center mt-2">
             <span className="text-[11px] font-bold tracking-widest text-muted-foreground">DEFINITION</span>
@@ -83,7 +125,7 @@ export function FlashcardItem({
         
         {/* Image Upload Box */}
         <div className="w-[84px] flex flex-col gap-1 flex-shrink-0 mt-0 relative">
-          <div className={`w-full h-[64px] rounded-lg ${cardErrors?.image ? 'border-2 border-red-500' : ''}`}>
+          <div className={`w-full h-[64px] rounded-lg ${error?.image ? 'border-2 border-red-500' : ''}`}>
             <input 
               type="file" 
               id={`file-input-${card.id}`}
@@ -122,10 +164,10 @@ export function FlashcardItem({
               </button>
             )}
           </div>
-          {cardErrors?.image && <span className="text-red-500 text-[10px] font-bold text-center leading-tight">Required</span>}
+          {error?.image && <span className="text-red-500 text-[10px] font-bold text-center leading-tight">Required</span>}
         </div>
 
       </div>
     </div>
   );
-}
+});

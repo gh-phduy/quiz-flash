@@ -12,6 +12,22 @@ export default async function Header() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  // Đồng bộ thông tin từ user_metadata sang bảng profiles (chạy ngầm)
+  if (user) {
+    const meta = user.user_metadata;
+    const nameToSync = meta?.full_name || meta?.name;
+    const avatarToSync = meta?.avatar_url;
+    
+    if (nameToSync || avatarToSync) {
+      const updateData: any = {};
+      if (nameToSync) updateData.full_name = nameToSync;
+      if (avatarToSync) updateData.avatar_url = avatarToSync;
+      
+      // Fire and forget
+      supabase.from('profiles').update(updateData).eq('id', user.id).then(() => {});
+    }
+  }
+
   return (
     <header className="flex h-[56px] items-center justify-between px-4 bg-background border-b border-border shrink-0 z-50 relative">
       {/* Left */}

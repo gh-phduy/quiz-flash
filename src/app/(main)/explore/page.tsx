@@ -14,6 +14,17 @@ export default async function ExplorePage() {
 
   const user = userResult.data?.user;
 
+  let savedSetIds: string[] = [];
+  if (user) {
+    const { data: savedSets } = await supabase
+      .from('user_saved_sets')
+      .select('set_id')
+      .eq('user_id', user.id);
+    if (savedSets) {
+      savedSetIds = savedSets.map(s => s.set_id);
+    }
+  }
+
   // Đồng bộ avatar từ Google Auth vào Profile (chỉ khi cần, không chặn render)
   if (user && user.user_metadata?.avatar_url) {
     // Chạy fire-and-forget, không chờ kết quả
@@ -33,7 +44,7 @@ export default async function ExplorePage() {
     
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, email, avatar_url')
+      .select('id, email, avatar_url, full_name')
       .in('id', userIds);
 
     if (profiles) {
@@ -46,7 +57,7 @@ export default async function ExplorePage() {
 
   return (
     <main className="min-h-[calc(100vh-64px)] bg-background">
-      <ExploreGrid sets={sets} />
+      <ExploreGrid sets={sets} initialSavedSetIds={savedSetIds} />
     </main>
   );
 }

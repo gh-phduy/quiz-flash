@@ -73,7 +73,7 @@ export default async function LeaderboardPage() {
         <div className="grid grid-cols-12 gap-4 px-6 py-5 bg-card/40 border-b border-white/10 text-xs font-bold text-muted-foreground uppercase tracking-widest">
           <div className="col-span-1 text-center">Rank</div>
           <div className="col-span-5 md:col-span-4">Player</div>
-          <div className="col-span-3 md:col-span-3 hidden md:flex items-center gap-1.5"><Trophy className="w-3.5 h-3.5" style={{ stroke: 'url(#logoGradient)' }}/> Tier</div>
+          <div className="col-span-3 md:col-span-3 hidden md:flex items-center justify-center gap-1.5"><Trophy className="w-3.5 h-3.5" style={{ stroke: 'url(#logoGradient)' }}/> Tier</div>
           <div className="col-span-3 md:col-span-2 text-right flex items-center justify-end gap-1.5"><Star className="w-3.5 h-3.5" style={{ stroke: 'url(#logoGradient)' }}/> Points</div>
           <div className="col-span-3 md:col-span-2 text-right flex items-center justify-end gap-1.5"><BookOpen className="w-3.5 h-3.5" style={{ stroke: 'url(#logoGradient)' }}/> Words</div>
         </div>
@@ -128,7 +128,7 @@ export default async function LeaderboardPage() {
                       )}
                     </div>
                   </div>
-                  <div className="col-span-3 md:col-span-3 hidden md:flex items-center">
+                  <div className="col-span-3 md:col-span-3 hidden md:flex items-center justify-center">
                     <div className={`px-3 py-1 rounded-lg text-[9px] uppercase font-extrabold tracking-widest border bg-background/60 backdrop-blur-sm ${getRankColor(player.current_rank || 'Iron')}`}>
                       {player.current_rank || 'Iron'}
                     </div>

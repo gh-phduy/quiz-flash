@@ -64,6 +64,84 @@ export async function recordCardReview(cardId: string, quality: number) {
   }
 }
 
+export async function recordBulkCardReviews(reviews: { cardId: string, quality: number }[]) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: 'User not authenticated' };
+    }
+
+    if (!reviews || reviews.length === 0) {
+      return { success: true, count: 0 };
+    }
+
+    const cardIds = reviews.map(r => r.cardId);
+
+    // Fetch current review states for all cards in one go
+    const { data: currentReviews, error: fetchError } = await supabase
+      .from('card_reviews')
+      .select('*')
+      .eq('user_id', user.id)
+      .in('card_id', cardIds);
+
+    if (fetchError) {
+      console.error('Error fetching bulk card reviews:', fetchError);
+      return { success: false, error: 'Failed to fetch current states' };
+    }
+
+    const currentMap = new Map((currentReviews || []).map(r => [r.card_id, r]));
+    const todayStr = new Date().toISOString().split('T')[0];
+    const nowIso = new Date().toISOString();
+
+    const upsertPayload = reviews.map(review => {
+      const current = currentMap.get(review.cardId);
+      
+      const prevEF = current?.easiness_factor ?? 2.5;
+      const prevRepetitions = current?.repetitions ?? 0;
+      const prevIntervalDays = current?.interval_days ?? 0;
+      const totalReviews = (current?.total_reviews ?? 0) + 1;
+      const correctCount = (current?.correct_count ?? 0) + (review.quality >= 3 ? 1 : 0);
+      const incorrectCount = (current?.incorrect_count ?? 0) + (review.quality < 3 ? 1 : 0);
+
+      const sm2 = calculateSM2(review.quality, prevEF, prevRepetitions, prevIntervalDays);
+
+      return {
+        user_id: user.id,
+        card_id: review.cardId,
+        easiness_factor: sm2.easinessFactor,
+        repetitions: sm2.repetitions,
+        interval_days: sm2.intervalDays,
+        next_review_date: sm2.nextReviewDate.toISOString().split('T')[0],
+        total_reviews: totalReviews,
+        correct_count: correctCount,
+        incorrect_count: incorrectCount,
+        last_quality: review.quality,
+        mastery_level: sm2.masteryLevel,
+        weakness_level: sm2.weaknessLevel,
+        last_reviewed_at: nowIso
+      };
+    });
+
+    const { error: upsertError } = await supabase
+      .from('card_reviews')
+      .upsert(upsertPayload, {
+        onConflict: 'user_id,card_id'
+      });
+
+    if (upsertError) {
+      console.error('Error in bulk upsert card reviews:', upsertError);
+      return { success: false, error: 'Database update failed' };
+    }
+
+    return { success: true, count: upsertPayload.length };
+  } catch (error) {
+    console.error('Error in recordBulkCardReviews:', error);
+    return { success: false, error: 'Internal server error' };
+  }
+}
+
 export async function getStatusDashboard(targetUserId?: string) {
   try {
     const supabase = await createClient();
@@ -133,6 +211,9 @@ export async function getStatusDashboard(targetUserId?: string) {
     ]);
 
     // 1. Calculate mastery levels
+    if (reviewsResult.error) {
+      console.error('Error fetching card_reviews:', reviewsResult.error);
+    }
     const reviews = reviewsResult.data || [];
     const masteryBreakdown = {
       new: 0,
@@ -172,19 +253,28 @@ export async function getStatusDashboard(targetUserId?: string) {
       : 0;
 
     // 2. Fetch all cards to see if there are cards that are not in card_reviews (which are "new")
-    // Let's get total count of user's cards
+    // Get sets created by user
     const { data: userSets } = await supabase
       .from('sets')
       .select('id')
       .eq('user_id', targetId);
+      
+    // Get sets learned by user
+    const { data: learnedSets } = await supabase
+      .from('user_learned_sets')
+      .select('set_id')
+      .eq('user_id', targetId);
+
+    const setIds = new Set<string>();
+    if (userSets) userSets.forEach(s => setIds.add(s.id));
+    if (learnedSets) learnedSets.forEach(s => setIds.add(s.set_id));
     
     let totalUserCards = 0;
-    if (userSets && userSets.length > 0) {
-      const setIds = userSets.map(s => s.id);
+    if (setIds.size > 0) {
       const { count } = await supabase
         .from('cards')
         .select('id', { count: 'exact', head: true })
-        .in('set_id', setIds);
+        .in('set_id', Array.from(setIds));
       totalUserCards = count || 0;
     }
 
@@ -263,6 +353,47 @@ export async function getUpcomingReviews(targetUserId?: string) {
     }));
   } catch (error) {
     console.error('Error in getUpcomingReviews:', error);
+    return [];
+  }
+}
+
+export async function getDueCardsToReview() {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const { data } = await supabase
+      .from('card_reviews')
+      .select(`
+        id,
+        card_id,
+        easiness_factor,
+        repetitions,
+        interval_days,
+        next_review_date,
+        card:cards (
+          id,
+          set_id,
+          term,
+          definition,
+          phonetic
+        )
+      `)
+      .eq('user_id', user.id)
+      .lte('next_review_date', todayStr);
+
+    if (!data) return [];
+    
+    // Format the response
+    return data.map((r: any) => ({
+      ...r,
+      card: Array.isArray(r.card) ? r.card[0] : r.card
+    })).filter((r: any) => r.card);
+  } catch (error) {
+    console.error('Error fetching due cards to review:', error);
     return [];
   }
 }

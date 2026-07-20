@@ -30,7 +30,25 @@ export async function middleware(request: NextRequest) {
   // IMPORTANT: Do NOT add any logic between createServerClient and
   // supabase.auth.getUser(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const url = request.nextUrl.clone()
+  const path = url.pathname
+
+  // Public paths that do not require authentication
+  const isPublicPath = path.startsWith('/login') || path.startsWith('/auth')
+
+  if (!user && !isPublicPath) {
+    // If not logged in and trying to access a protected route, redirect to login
+    url.pathname = '/login'
+    return NextResponse.redirect(url)
+  }
+
+  if (user && path === '/login') {
+    // If logged in and trying to access login page, redirect to home
+    url.pathname = '/'
+    return NextResponse.redirect(url)
+  }
 
   return supabaseResponse
 }

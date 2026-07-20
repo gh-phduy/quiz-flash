@@ -1,24 +1,15 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
-import { 
-  Search,
-  Plus, 
-  Globe, 
-  Lock, 
-  Trash2, 
-  Settings, 
-  Keyboard,
-  Loader2,
-  X
-} from 'lucide-react';
-import Link from 'next/link';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Search, Plus, Globe, Lock, Trash2, Keyboard, Loader2, X } from 'lucide-react';
+import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { toast } from "sonner";
-import { setSchema, FormErrors, CardItem } from '@/shared/types/set';
-import { FlashcardItem } from './_components/FlashcardItem';
+import { FlashcardItem } from '@/app/(main)/create-set/_components/FlashcardItem';
 import { fetchWordData } from '@/lib/dictionary';
 import { Wand2 } from 'lucide-react';
+import { setSchema, FormErrors, CardItem } from '@/shared/types/set';
+import { checkCollaboratorStatus, requestEditAccess } from '@/actions/collaboration';
 import {
   DndContext,
   closestCenter,
@@ -35,15 +26,19 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 
-export default function CreateSetPage() {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [cards, setCards] = useState<CardItem[]>([
-    { id: 'card-1', term: '', definition: '', image_url: null, image_file: null, phonetic: null, audio_url: null },
-    { id: 'card-2', term: '', definition: '', image_url: null, image_file: null, phonetic: null, audio_url: null },
-  ]);
+export default function EditSetForm({ initialSet, initialCards, initialCollabStatus }: { initialSet: any, initialCards: any[], initialCollabStatus: any }) {
+  const params = useParams();
+  const router = useRouter();
+  const setId = params.setId as string;
+  
+  const [title, setTitle] = useState(initialSet.title);
+  const [description, setDescription] = useState(initialSet.description || '');
+  const [cards, setCards] = useState<CardItem[]>(initialCards);
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [collabStatus, setCollabStatus] = useState<{ isOwner: boolean, isCollaborator: boolean, pendingRequest: boolean } | null>(initialCollabStatus);
+  const [isRequesting, setIsRequesting] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -72,13 +67,13 @@ export default function CreateSetPage() {
     }
   };
 
-  // Thêm thẻ mới
+  // Initial data is passed as props, no need to fetch here
+
   const handleAddCard = () => {
     const newId = `card-${Math.random().toString(36).substring(2, 9)}`;
     setCards([{ id: newId, term: '', definition: '', image_url: null, image_file: null, phonetic: null, audio_url: null }, ...cards]);
   };
 
-  // Xóa thẻ
   const handleDeleteCard = useCallback((id: string) => {
     setCards(prev => {
       if (prev.length <= 2) return prev;
@@ -90,7 +85,6 @@ export default function CreateSetPage() {
     });
   }, []);
 
-  // Cập nhật giá trị input
   const handleCardChange = useCallback((id: string, field: keyof CardItem, value: any) => {
     setCards(prev => prev.map(card => card.id === id ? { ...card, [field]: value } : card));
     
@@ -147,17 +141,14 @@ export default function CreateSetPage() {
     toast.success(`Đã điền phiên âm cho ${successCount}/${cardsToUpdate.length} thẻ!`);
   };
 
-  // Tải ảnh lên và tạo Preview (Chỉ chạy ở Client, chưa lưu lên Supabase)
   const handleImageUpload = useCallback((id: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Khởi tạo URL xem trước tạm thời ngay trên trình duyệt (local)
     const previewUrl = URL.createObjectURL(file);
 
     setCards(prev => prev.map(card => {
       if (card.id === id) {
-        // Dọn dẹp URL cũ nếu trước đó đã chọn ảnh khác
         if (card.image_url && card.image_url.startsWith('blob:')) {
           URL.revokeObjectURL(card.image_url);
         }
@@ -180,11 +171,9 @@ export default function CreateSetPage() {
       };
     });
 
-    // Reset input value để có thể chọn lại chính file đó nếu vừa xóa
     e.target.value = '';
   }, []);
 
-  // Xóa ảnh đã chọn
   const handleRemoveImage = useCallback((id: string) => {
     setCards(prev => prev.map(card => {
       if (card.id === id) {
@@ -197,8 +186,7 @@ export default function CreateSetPage() {
     }));
   }, []);
 
-  // Hàm xử lý lưu toàn bộ (Sẽ chạy upload sau)
-  const handleCreateSet = async () => {
+  const handleUpdateSet = async () => {
     const result = setSchema.safeParse({ title, description, cards });
     
     if (!result.success) {
@@ -227,7 +215,7 @@ export default function CreateSetPage() {
       return;
     }
 
-    setErrors({}); // Xóa lỗi nếu pass
+    setErrors({});
     setIsSubmitting(true);
 
     try {
@@ -235,55 +223,64 @@ export default function CreateSetPage() {
       
       // 1. Kiểm tra User
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Bạn cần đăng nhập để tạo bộ từ vựng.");
+      if (!user) throw new Error("Bạn cần đăng nhập để chỉnh sửa bộ từ vựng.");
 
-      // 2. Insert vào bảng sets
-      const { data: setRow, error: setError } = await supabase
+      // 2. Update bảng sets
+      const { error: setError } = await supabase
         .from('sets')
-        .insert({
+        .update({
           title,
           description,
-          is_public: true,
-          user_id: user.id
         })
-        .select()
-        .single();
+        .eq('id', setId); // RLS handles the permission check (Owner or Collaborator)
 
       if (setError) throw setError;
-      const setId = setRow.id;
 
-      // 3. Upload ảnh (nếu có) và chuẩn bị dữ liệu cards
+      // 3. Xóa các card cũ trong DB để insert lại
+      const { error: deleteError } = await supabase
+        .from('cards')
+        .delete()
+        .eq('set_id', setId);
+
+      if (deleteError) throw deleteError;
+
+      // 4. Upload ảnh mới (nếu có) và chuẩn bị dữ liệu cards
       const cardsToInsert = [];
       for (let i = 0; i < cards.length; i++) {
         const card = cards[i];
-        let uploadedImageUrl = null;
+        let finalImageUrl = card.image_url;
+
+        // Bỏ qua các URL blob vì nó là local preview (nếu vì lý do nào đó upload lỗi)
+        if (finalImageUrl && finalImageUrl.startsWith('blob:')) {
+            finalImageUrl = null; 
+        }
 
         if (card.image_file) {
           const fileExt = card.image_file.name.split('.').pop();
           const fileName = `${setId}/${card.id}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
           
           const { error: uploadError } = await supabase.storage
-            .from('flashcard-images') // Bucket name
+            .from('flashcard-images')
             .upload(fileName, card.image_file);
             
           if (uploadError) throw new Error("Lỗi tải ảnh: " + uploadError.message);
           
           const { data: { publicUrl } } = supabase.storage.from('flashcard-images').getPublicUrl(fileName);
-          uploadedImageUrl = publicUrl;
+          finalImageUrl = publicUrl;
         }
 
         cardsToInsert.push({
           set_id: setId,
           term: card.term,
           definition: card.definition,
-          image_url: uploadedImageUrl,
+          image_url: finalImageUrl,
           order_index: i,
           phonetic: card.phonetic,
           audio_url: card.audio_url
         });
       }
 
-      // 4. Insert toàn bộ cards
+      // 5. Insert lại toàn bộ cards
       const { error: cardsError } = await supabase
         .from('cards')
         .insert(cardsToInsert);
@@ -291,12 +288,14 @@ export default function CreateSetPage() {
       if (cardsError) throw cardsError;
 
       toast.success("Thành công!", {
-        description: "Bộ từ vựng đã được lưu an toàn trên Supabase.",
+        description: "Bộ từ vựng đã được cập nhật.",
       });
 
-      // Tùy chọn: Reset form hoặc chuyển hướng sau khi lưu thành công
+      // Chuyển hướng về lại thư viện hoặc trang học
+      router.push(`/user/${user.id}`);
+
     } catch (error: any) {
-      console.error("Create set error:", error);
+      console.error("Update set error:", error);
       toast.error("Thất bại!", {
         description: error.message || "Đã xảy ra lỗi không xác định.",
       });
@@ -305,6 +304,44 @@ export default function CreateSetPage() {
     }
   };
 
+
+  if (collabStatus && !collabStatus.isOwner && !collabStatus.isCollaborator) {
+    return (
+      <div className="min-h-[calc(100vh-64px)] bg-background flex flex-col items-center justify-center p-6 text-center">
+        <Lock className="w-16 h-16 text-[#4255ff] mb-6" />
+        <h1 className="text-3xl font-bold text-white mb-4">Edit Access Required</h1>
+        <p className="text-muted-foreground max-w-md mb-8">
+          You are not the owner or a collaborator of this public set. You must request edit access to modify it.
+        </p>
+        
+        {collabStatus.pendingRequest ? (
+          <button disabled className="px-6 py-3 bg-[#4255ff]/20 text-[#9fa6ff] font-bold rounded-xl cursor-not-allowed flex items-center">
+            Request Pending...
+          </button>
+        ) : (
+          <button 
+            onClick={async () => {
+              setIsRequesting(true);
+              const res = await requestEditAccess(setId);
+              if (res.error) {
+                toast.error(res.error);
+              } else {
+                toast.success('Edit request sent to owner!');
+                setCollabStatus(prev => prev ? { ...prev, pendingRequest: true } : prev);
+              }
+              setIsRequesting(false);
+            }}
+            disabled={isRequesting}
+            className="px-6 py-3 bg-[#4255ff] hover:bg-[#5b6aff] text-white font-bold rounded-xl flex items-center transition-colors"
+          >
+            {isRequesting ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : null}
+            Request Edit Access
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-full bg-background text-foreground font-sans selection:bg-[#4255ff] selection:text-foreground pb-24">
       {/* Main Content */}
@@ -312,32 +349,17 @@ export default function CreateSetPage() {
         
         {/* Title Area */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-          <h1 className="text-[28px] font-bold text-foreground">Create a new flashcard set</h1>
+          <h1 className="text-[28px] font-bold text-foreground">Edit flashcard set</h1>
           <div className="flex items-center gap-3">
             <button 
-              onClick={handleCreateSet}
+              onClick={handleUpdateSet}
               disabled={isSubmitting}
-              className="px-5 py-2.5 rounded-full bg-card text-foreground text-sm font-bold hover:bg-[#3a466a] transition-colors disabled:opacity-50 flex items-center"
+              className="px-5 py-2.5 rounded-full bg-[#4255ff] text-foreground text-sm font-bold hover:bg-[#5b6aff] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center"
             >
               {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Create
-            </button>
-            <button 
-              onClick={handleCreateSet}
-              disabled={isSubmitting}
-              className="px-5 py-2.5 rounded-full bg-[#4255ff] text-foreground text-sm font-bold hover:bg-[#5b6aff] transition-colors disabled:opacity-50 flex items-center"
-            >
-              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Create and practice
+              Save changes
             </button>
           </div>
-        </div>
-
-        {/* Visibility Setting */}
-        <div className="mb-8">
-          <button className="flex items-center px-4 py-1.5 rounded-full bg-card text-foreground text-sm font-bold hover:bg-[#3a466a] transition-colors">
-            <Globe className="mr-2 h-4 w-4" /> Public
-          </button>
         </div>
 
         {/* Title & Description Inputs */}
@@ -454,20 +476,12 @@ export default function CreateSetPage() {
       {/* Floating Bottom Action Bar */}
       <div className="fixed bottom-6 right-8 flex items-center gap-3 z-30">
         <button 
-          onClick={handleCreateSet}
+          onClick={handleUpdateSet}
           disabled={isSubmitting}
-          className="px-6 py-3 rounded-full bg-card text-foreground text-sm font-bold shadow-lg hover:bg-[#3a466a] transition-colors disabled:opacity-50 flex items-center"
+          className="px-6 py-3 rounded-full bg-[#4255ff] text-foreground text-sm font-bold hover:bg-[#5b6aff] shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center"
         >
           {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-          Create
-        </button>
-        <button 
-          onClick={handleCreateSet}
-          disabled={isSubmitting}
-          className="px-6 py-3 rounded-full bg-[#4255ff] text-foreground text-sm font-bold hover:bg-[#5b6aff] shadow-lg transition-colors disabled:opacity-50 flex items-center"
-        >
-          {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-          Create and practice
+          Save changes
         </button>
       </div>
     </div>

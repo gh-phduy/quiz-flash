@@ -51,8 +51,10 @@ export default function NotificationsPage() {
   };
 
   const handleMarkAsRead = async (notifId: string) => {
+    setLoading(true);
     await markNotificationAsRead(notifId);
     await fetchNotifications();
+    setLoading(false);
   };
 
   const unreadCount = notifications.filter(n => n.status === 'pending' || n.status === 'unread').length;
@@ -152,6 +154,18 @@ export default function NotificationsPage() {
                   {notif.type === 'EDIT_REQUEST' && notif.status !== 'pending' && (
                     <div className="sm:ml-auto px-4 py-2 rounded-lg bg-background border border-white/5 text-sm font-semibold text-muted-foreground">
                       {notif.status === 'accepted' ? 'Accepted' : 'Declined'}
+                    </div>
+                  )}
+                  
+                  {notif.type !== 'EDIT_REQUEST' && notif.status === 'unread' && (
+                    <div className="flex items-center gap-3 sm:ml-auto">
+                      <button 
+                        disabled={loading}
+                        onClick={(e) => { e.stopPropagation(); handleMarkAsRead(notif.id); }}
+                        className="bg-[#4255ff]/20 text-[#9fa6ff] hover:bg-[#4255ff]/40 border border-[#4255ff]/20 px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition"
+                      >
+                        <Check className="w-4 h-4" /> Mark as read
+                      </button>
                     </div>
                   )}
                 </div>
