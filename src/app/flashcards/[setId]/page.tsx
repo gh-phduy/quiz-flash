@@ -8,8 +8,8 @@ export default async function FlashcardPage({ params }: { params: Promise<{ setI
 
   // ⚡ Song song hóa: Fetch set + cards cùng lúc thay vì chờ nhau
   const [setResult, cardsResult] = await Promise.all([
-    supabase.from('sets').select('*').eq('id', setId).single(),
-    supabase.from('cards').select('*').eq('set_id', setId).order('order_index', { ascending: true }),
+    supabase.from('sets').select('id, title, description').eq('id', setId).single(),
+    supabase.from('cards').select('id, term, definition, image_url, phonetic, audio_url').eq('set_id', setId).order('order_index', { ascending: true }),
   ]);
 
   if (setResult.error || !setResult.data) {

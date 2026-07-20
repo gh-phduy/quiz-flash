@@ -1,13 +1,13 @@
 import React from 'react';
 import { getStatusDashboard, getUpcomingReviews } from '@/actions/review';
 import { ActivityGraph } from '@/components/shared/activity-graph';
-import MasteryChart from '../_components/mastery-chart';
-import WeaknessChart from '../_components/weakness-chart';
-import UpcomingReviews from '../_components/upcoming-reviews';
 import HardestWords from '../_components/hardest-words';
+import ChartsContainer from '../_components/charts-container';
 import { Trophy, Star, BookOpen, Clock, Target } from 'lucide-react';
 import Link from 'next/link';
 import { UserAvatar } from '@/components/shared/user-avatar';
+import EditDisplayName from '../_components/edit-display-name';
+import { createClient } from '@/utils/supabase/server';
 
 export const revalidate = 0; // Fresh stats on each load
 
@@ -17,6 +17,11 @@ interface PageProps {
 
 export default async function UserStatusPage({ params }: PageProps) {
   const { userId } = await params;
+  
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const isOwner = user?.id === userId;
+
   const dashboard = await getStatusDashboard(userId);
   const upcomingReviews = await getUpcomingReviews(userId);
 
@@ -50,6 +55,7 @@ export default async function UserStatusPage({ params }: PageProps) {
   
   const displayName = profile?.full_name || profile?.email?.split('@')[0] || 'Student';
   const avatarUrl = profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.id || 'default'}`;
+  const joinedDate = profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Recently';
 
   return (
     <div className="w-full max-w-7xl mx-auto py-10 px-4 md:px-8 font-sans space-y-10">
@@ -74,10 +80,14 @@ export default async function UserStatusPage({ params }: PageProps) {
             className="w-24 h-24 rounded-full border-[3px] border-[#4255ff] bg-gray-900 shrink-0 shadow-[0_0_20px_rgba(66,85,255,0.3)]"
           />
           <div>
-            <h1 className="text-4xl font-extrabold text-white tracking-tight flex items-center gap-2">
-              {displayName}
-            </h1>
-            <p className="text-sm text-muted-foreground font-semibold mt-1 tracking-wide">{profile?.email || 'Student'}</p>
+            {isOwner ? (
+              <EditDisplayName currentName={displayName} />
+            ) : (
+              <h1 className="text-4xl font-extrabold text-white tracking-tight flex items-center gap-2">
+                {displayName}
+              </h1>
+            )}
+            <p className="text-sm text-muted-foreground font-semibold mt-1 tracking-wide">Joined {joinedDate}</p>
           </div>
         </div>
         
@@ -170,17 +180,11 @@ export default async function UserStatusPage({ params }: PageProps) {
       </div>
 
       {/* Analytics Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-4 h-full">
-          <WeaknessChart breakdown={weaknessBreakdown} />
-        </div>
-        <div className="lg:col-span-4 h-full">
-          <MasteryChart breakdown={masteryBreakdown} />
-        </div>
-        <div className="lg:col-span-4 h-full">
-          <UpcomingReviews data={upcomingReviews} />
-        </div>
-      </div>
+      <ChartsContainer 
+        weaknessBreakdown={weaknessBreakdown}
+        masteryBreakdown={masteryBreakdown}
+        upcomingReviews={upcomingReviews}
+      />
 
       {/* Hardest Words List */}
       <div className="w-full">
