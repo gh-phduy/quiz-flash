@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, Check, X as XIcon, Settings, Printer } from 'lucide-react';
+import { X, Check, X as XIcon, Settings, Printer, Lightbulb, RotateCcw, Home, ArrowLeft } from 'lucide-react';
+import { getTestEvaluation, EvaluationResult } from '@/utils/evaluation';
 import {
   Dialog,
   DialogContent,
@@ -12,6 +13,8 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { ModeSwitcher } from '@/components/shared/mode-switcher';
 import { recordStudyActivity } from '@/actions/study';
+import { recordBulkCardReviews } from '@/actions/review';
+import { updateGameScores } from '@/actions/game';
 import {
   Select,
   SelectContent,
@@ -67,6 +70,11 @@ export default function TestGame({ set, cards }: TestGameProps) {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, string | boolean>>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isReviewing, setIsReviewing] = useState(false);
+  const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
+  const [pointsEarned, setPointsEarned] = useState(0);
+  const [correctCount, setCorrectCount] = useState(0);
+  const [incorrectCount, setIncorrectCount] = useState(0);
 
   // Focus only on building questions when user hits "Start test"
   const startTest = () => {
@@ -178,6 +186,7 @@ export default function TestGame({ set, cards }: TestGameProps) {
     setQuestions(newQuestions);
     setAnswers({});
     setIsSubmitted(false);
+    setIsReviewing(false);
     setShowSetup(false);
   };
 
@@ -224,13 +233,10 @@ export default function TestGame({ set, cards }: TestGameProps) {
         )}
 
         <div className="flex items-center gap-4">
-          <button className="hidden md:flex px-4 py-2 border border-border text-foreground text-sm font-bold rounded-full hover:bg-accent transition cursor-pointer">
-            Print test
-          </button>
           <button onClick={() => setShowSetup(true)} className="text-muted-foreground hover:text-foreground transition cursor-pointer" title="Options">
             <Settings className="w-5 h-5" />
           </button>
-          <button onClick={() => router.push(`/flashcards/${set.id}`)} className="text-muted-foreground hover:text-foreground transition cursor-pointer" title="Close test">
+          <button onClick={() => router.push('/')} className="text-muted-foreground hover:text-foreground transition cursor-pointer" title="Close test">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -239,30 +245,106 @@ export default function TestGame({ set, cards }: TestGameProps) {
       {/* Main Content */}
       <main className="flex-1 flex flex-col items-center p-4 md:p-8 max-w-4xl mx-auto w-full relative">
         
-        {isSubmitted && (
-          <div className="w-full bg-card rounded-xl p-8 mb-8 text-center shadow-lg border border-border animate-in fade-in slide-in-from-top-4 duration-500">
-            <h2 className="text-3xl font-bold mb-2">Your Score: {calculateScore()}%</h2>
-            <p className="text-muted-foreground font-semibold mb-6">
-              You got {questions.filter(q => {
-                const userAnswer = answers[q.id];
-                if (userAnswer === undefined) return false;
-                if (q.type === 'multiple_choice' || q.type === 'matching') return userAnswer === q.correctAnswer;
-                if (q.type === 'true_false') return userAnswer === q.isTrue;
-                if (q.type === 'written') return String(userAnswer).trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase();
-                return false;
-              }).length} out of {questions.length} correct.
-            </p>
-            <button 
-              onClick={() => setShowSetup(true)}
-              className="px-8 py-3 bg-[#4255ff] text-foreground font-bold rounded-lg hover:bg-[#5b6aff] transition shadow-lg"
-            >
-              Create new test
-            </button>
-          </div>
-        )}
+        {isSubmitted && !isReviewing ? (() => {
+          const colorClasses = {
+            emerald: 'from-emerald-500/20 to-emerald-500/5 border-emerald-500/30 text-emerald-400',
+            amber: 'from-amber-500/20 to-amber-500/5 border-amber-500/30 text-amber-400',
+            rose: 'from-rose-500/20 to-rose-500/5 border-rose-500/30 text-rose-400',
+            blue: 'from-blue-500/20 to-blue-500/5 border-blue-500/30 text-blue-400',
+            purple: 'from-purple-500/20 to-purple-500/5 border-purple-500/30 text-purple-400',
+          };
+          
+          const themeColor = evaluation ? colorClasses[evaluation.color] : colorClasses.blue;
+          const score = calculateScore();
 
-        {!showSetup && (
+          return (
+            <div className="flex flex-col items-center justify-center w-full relative z-10 px-4 mb-12 mt-4">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#4255ff]/10 rounded-full blur-[100px] pointer-events-none" />
+              
+              <div className="w-full max-w-2xl bg-card/40 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-12 shadow-2xl relative z-10 flex flex-col items-center animate-in fade-in zoom-in duration-500">
+                
+                <div className="text-center mb-10">
+                  <h1 className="text-4xl md:text-5xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-br from-white to-white/70">
+                    {evaluation?.title || "Test Complete!"}
+                  </h1>
+                  <p className="text-lg text-muted-foreground max-w-md mx-auto">
+                    {evaluation?.message || `You scored ${score}% on this test.`}
+                  </p>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full mb-8">
+                  <div className="bg-white/5 rounded-2xl p-4 flex flex-col items-center justify-center border border-white/5">
+                    <span className="text-sm font-bold text-muted-foreground mb-1">Score</span>
+                    <span className="text-3xl font-black text-white">{score}%</span>
+                  </div>
+                  <div className="bg-white/5 rounded-2xl p-4 flex flex-col items-center justify-center border border-white/5">
+                    <span className="text-sm font-bold text-emerald-400 mb-1">Correct</span>
+                    <span className="text-3xl font-black text-emerald-400">{correctCount}</span>
+                  </div>
+                  <div className="bg-white/5 rounded-2xl p-4 flex flex-col items-center justify-center border border-white/5">
+                    <span className="text-sm font-bold text-rose-400 mb-1">Incorrect</span>
+                    <span className="text-3xl font-black text-rose-400">{incorrectCount}</span>
+                  </div>
+                  <div className="bg-white/5 rounded-2xl p-4 flex flex-col items-center justify-center border border-white/5 relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-orange-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <span className="text-sm font-bold text-amber-400 mb-1">XP Earned</span>
+                    <span className="text-3xl font-black text-amber-400">+{pointsEarned}</span>
+                  </div>
+                </div>
+
+                {/* Smart Advice */}
+                {evaluation && (
+                  <div className={`w-full p-5 rounded-2xl bg-gradient-to-br ${themeColor} border backdrop-blur-sm mb-10 flex gap-4 items-start`}>
+                    <Lightbulb className="w-6 h-6 shrink-0 mt-0.5" />
+                    <div>
+                      <h3 className="font-bold mb-1">Smart Tip</h3>
+                      <p className="text-sm opacity-90 leading-relaxed">{evaluation.advice}</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                  <button 
+                    onClick={() => setIsReviewing(true)}
+                    className="px-8 py-3.5 bg-[#4255ff] text-white font-bold rounded-xl hover:bg-[#5b6aff] transition shadow-[0_0_20px_rgba(66,85,255,0.3)] hover:shadow-[0_0_30px_rgba(66,85,255,0.5)] hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full sm:w-auto"
+                  >
+                    <Check className="w-5 h-5" />
+                    Review Answers
+                  </button>
+                  <button 
+                    onClick={() => setShowSetup(true)}
+                    className="px-8 py-3.5 bg-white/5 text-white font-bold rounded-xl hover:bg-white/10 transition border border-white/10 flex items-center justify-center gap-2 w-full sm:w-auto"
+                  >
+                    <RotateCcw className="w-5 h-5" />
+                    Study Again
+                  </button>
+                  <button 
+                    onClick={() => router.push('/')}
+                    className="px-8 py-3.5 bg-white/5 text-white font-bold rounded-xl hover:bg-white/10 transition border border-white/10 flex items-center justify-center gap-2 w-full sm:w-auto"
+                  >
+                    <Home className="w-5 h-5" />
+                    Back to Home
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })() : null}
+
+        {!showSetup && (!isSubmitted || isReviewing) && (
           <div className="w-full flex flex-col gap-6 mb-20">
+            {isReviewing && (
+              <div className="flex justify-center mb-4">
+                <button 
+                  onClick={() => setIsReviewing(false)}
+                  className="px-6 py-2 bg-card border border-white/10 text-white rounded-lg hover:bg-white/5 transition flex items-center gap-2 font-bold shadow-lg"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to Results
+                </button>
+              </div>
+            )}
             {questions.map((q, idx) => {
               const userAnswer = answers[q.id];
               const isAnswered = userAnswer !== undefined;
@@ -396,7 +478,7 @@ export default function TestGame({ set, cards }: TestGameProps) {
                     <div className="flex flex-col gap-4">
                       <span className="text-muted-foreground text-sm font-bold tracking-wide mb-1">Select the correct match</span>
                       <Select 
-                        value={(userAnswer as string) || ''} 
+                        value={userAnswer === '__DONT_KNOW__' ? '' : ((userAnswer as string) || '')} 
                         onValueChange={(val) => handleAnswerSelect(q.id, val || '')}
                         disabled={isSubmitted}
                       >
@@ -425,7 +507,7 @@ export default function TestGame({ set, cards }: TestGameProps) {
                       <span className="text-muted-foreground text-sm font-bold tracking-wide mb-1">Type your answer</span>
                       <input 
                         type="text" 
-                        value={(userAnswer as string) || ''}
+                        value={userAnswer === '__DONT_KNOW__' ? '' : ((userAnswer as string) || '')}
                         onChange={(e) => handleAnswerSelect(q.id, e.target.value)}
                         disabled={isSubmitted}
                         placeholder="Type answer here..."
@@ -443,10 +525,14 @@ export default function TestGame({ set, cards }: TestGameProps) {
                   {!isSubmitted && (
                     <div className="mt-8 flex justify-center">
                       <button 
-                        onClick={() => handleAnswerSelect(q.id, "DONT_KNOW_SKIP")}
-                        className="text-sm font-bold text-[#b892ff] hover:text-[#cbb0ff] transition"
+                        onClick={() => handleAnswerSelect(q.id, "__DONT_KNOW__")}
+                        className={`text-sm font-bold transition px-6 py-2 rounded-lg border-2 ${
+                          userAnswer === "__DONT_KNOW__" 
+                            ? "border-amber-500 text-amber-500 bg-amber-500/10" 
+                            : "border-transparent text-[#b892ff] hover:text-[#cbb0ff] hover:bg-[#b892ff]/10"
+                        }`}
                       >
-                        Don't know?
+                        {userAnswer === "__DONT_KNOW__" ? "Skipped" : "Don't know?"}
                       </button>
                     </div>
                   )}
@@ -462,10 +548,78 @@ export default function TestGame({ set, cards }: TestGameProps) {
         <div className="fixed bottom-0 left-0 right-0 p-6 bg-background/90 backdrop-blur border-t border-white/5 flex justify-center z-20">
           <button 
             onClick={async () => {
-              setIsSubmitted(true);
               const score = calculateScore();
-              const pointsEarned = Math.round((score / 100) * 150) + questions.length; // Max ~150 pts + words
-              await recordStudyActivity(pointsEarned, questions.length);
+              const earned = Math.round((score / 100) * 150) + questions.length; // Max ~150 pts + words
+              
+              let correct = 0;
+              const cardQualities: Record<string, number[]> = {};
+              const correctCardsSet = new Set<string>();
+              const incorrectCardsSet = new Set<string>();
+
+              questions.forEach(q => {
+                const userAnswer = answers[q.id];
+                if (userAnswer === undefined) return;
+                
+                let isCorrect = false;
+                if (q.type === 'multiple_choice' || q.type === 'matching') {
+                  isCorrect = userAnswer === q.correctAnswer;
+                } else if (q.type === 'true_false') {
+                  isCorrect = userAnswer === q.isTrue;
+                } else if (q.type === 'written') {
+                  const pAns = String(userAnswer).trim().toLowerCase();
+                  const pCor = String(q.correctAnswer).trim().toLowerCase();
+                  isCorrect = (pAns === pCor);
+                }
+                
+                if (isCorrect) {
+                  correct++;
+                  correctCardsSet.add(q.cardId);
+                } else {
+                  incorrectCardsSet.add(q.cardId);
+                }
+
+                if (!cardQualities[q.cardId]) {
+                  cardQualities[q.cardId] = [];
+                }
+                cardQualities[q.cardId].push(isCorrect ? 4 : 1);
+              });
+              
+              const incorrect = questions.length - correct;
+              
+              const finalIncorrect = Array.from(incorrectCardsSet);
+              const finalCorrect = Array.from(correctCardsSet).filter(id => !incorrectCardsSet.has(id));
+
+              setCorrectCount(correct);
+              setIncorrectCount(incorrect);
+              setPointsEarned(earned);
+              
+              const evalResult = getTestEvaluation(score, correct, incorrect);
+              setEvaluation(evalResult);
+              
+              if (evalResult.performance === 'perfect') {
+                import('canvas-confetti').then(({ default: confetti }) => {
+                  confetti({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    colors: ['#b892ff', '#ff92d0', '#4255ff']
+                  });
+                });
+              }
+
+              setIsSubmitted(true);
+              
+              const reviews = Object.keys(cardQualities).map(cardId => {
+                // Take the minimum quality if a card appears in multiple questions
+                const minQuality = Math.min(...cardQualities[cardId]);
+                return { cardId, quality: minQuality };
+              });
+
+              Promise.all([
+                recordStudyActivity(set.id, earned, Object.keys(cardQualities).length, 'test'),
+                recordBulkCardReviews(reviews),
+                updateGameScores(finalCorrect, finalIncorrect)
+              ]);
             }}
             className="px-12 py-4 bg-[#4255ff] text-foreground text-lg font-bold rounded-full hover:bg-[#5b6aff] shadow-lg transition-transform hover:scale-105 active:scale-95"
           >
@@ -480,7 +634,7 @@ export default function TestGame({ set, cards }: TestGameProps) {
         if (!open && questions.length > 0) {
           setShowSetup(false);
         } else if (!open && questions.length === 0) {
-          router.push(`/flashcards/${set.id}`); // If they close it without starting, go back to flashcards
+          router.push('/'); // If they close it without starting, go back to home
         }
       }}>
         <DialogContent className="bg-card text-foreground border-transparent sm:max-w-[500px] p-0 overflow-hidden shadow-2xl rounded-2xl">

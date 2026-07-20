@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   X, Settings, Maximize, RotateCcw, 
@@ -8,6 +8,11 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { ModeSwitcher } from '@/components/shared/mode-switcher';
+import { playAudio } from '@/lib/speech';
+import { recordStudyActivity } from '@/actions/study';
+import { recordBulkCardReviews } from '@/actions/review';
+import { updateGameScores } from '@/actions/game';
+import { getSmartEvaluation, EvaluationResult } from '@/utils/evaluation';
 
 interface SetData {
   id: string;
@@ -20,6 +25,8 @@ interface CardData {
   term: string;
   definition: string;
   image_url?: string | null;
+  phonetic?: string | null;
+  audio_url?: string | null;
 }
 
 interface FlashcardPlayerProps {
@@ -35,27 +42,98 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
   const [knownCount, setKnownCount] = useState(0);
   const [showProgress, setShowProgress] = useState(true);
   const [isFinished, setIsFinished] = useState(false);
+  const [slideDirection, setSlideDirection] = useState<'left' | 'right' | 'reset' | null>(null);
+  const [startTime, setStartTime] = useState<number | null>(null);
+  const [timeSpent, setTimeSpent] = useState(0);
+  const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
+  const [pointsEarned, setPointsEarned] = useState(0);
+  const [newRank, setNewRank] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  const cardReviewsRef = useRef<{cardId: string, quality: number}[]>([]);
+
+  useEffect(() => {
+    setStartTime(Date.now());
+  }, []);
 
   const currentCard = cards[currentIndex];
 
   const handleNext = useCallback((status: 'known' | 'learning') => {
+    // Record review for SM-2
+    cardReviewsRef.current.push({
+      cardId: currentCard.id,
+      quality: status === 'known' ? 4 : 1
+    });
+
+    // Start sliding out animation
+    setSlideDirection(status === 'known' ? 'right' : 'left');
+
     if (status === 'known') {
       setKnownCount(prev => prev + 1);
     } else {
       setLearningCount(prev => prev + 1);
     }
 
-    setIsFlipped(false);
-    
-    // Đợi hiệu ứng lật thẻ xong thì đổi data
-    setTimeout(() => {
+    // Wait for the swipe out animation (300ms)
+    setTimeout(async () => {
+      setIsFlipped(false);
+      
       if (currentIndex < cards.length - 1) {
         setCurrentIndex(prev => prev + 1);
+        
+        // Instantly move the new card to a small invisible state at the center
+        setSlideDirection('reset');
+        
+        // Wait for React to render the reset state, then animate it in
+        setTimeout(() => {
+          setSlideDirection(null);
+        }, 50);
       } else {
+        const endTime = Date.now();
+        const durationSeconds = Math.max(1, Math.round((endTime - (startTime || endTime)) / 1000));
+        setTimeSpent(durationSeconds);
+        
+        const finalKnown = status === 'known' ? knownCount + 1 : knownCount;
+        const finalLearning = status === 'learning' ? learningCount + 1 : learningCount;
+        
         setIsFinished(true);
+        setIsSaving(true);
+        
+        // Calculate points: 10 per known card, 5 per learning card
+        const earned = (finalKnown * 10) + (finalLearning * 5);
+        setPointsEarned(earned);
+
+        const correctCards = cardReviewsRef.current.filter(r => r.quality === 4).map(r => r.cardId);
+        const incorrectCards = cardReviewsRef.current.filter(r => r.quality === 1).map(r => r.cardId);
+
+        // Record activity
+        const [res, bulkRes] = await Promise.all([
+          recordStudyActivity(set.id, earned, cards.length, 'flashcards'),
+          recordBulkCardReviews(cardReviewsRef.current),
+          updateGameScores(correctCards, incorrectCards)
+        ]);
+        
+        setIsSaving(false);
+        
+        if (res.success) {
+          setNewRank(res.newRank || null);
+          const evalResult = getSmartEvaluation(finalKnown, finalLearning, durationSeconds, res.currentStreak || 0);
+          setEvaluation(evalResult);
+          
+          if (evalResult.performance === 'perfect') {
+            import('canvas-confetti').then((mod) => {
+              mod.default({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#b892ff', '#ff92d0', '#4255ff']
+              });
+            });
+          }
+        }
       }
-    }, 150);
-  }, [currentIndex, cards.length]);
+    }, 300);
+  }, [currentIndex, cards.length, knownCount, learningCount, startTime, set.id]);
 
   const handleFlip = useCallback(() => {
     setIsFlipped(prev => !prev);
@@ -89,41 +167,109 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
   }, [handleFlip, handleNext, isFinished, isFlipped]);
 
   if (isFinished) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground">
-        <h1 className="text-4xl font-bold mb-4">Great job!</h1>
-        <p className="text-xl text-muted-foreground mb-8">You've reviewed all cards.</p>
-        <div className="flex gap-8 mb-12">
-          <div className="flex flex-col items-center">
-            <span className="text-4xl font-bold text-green-500">{knownCount}</span>
-            <span className="text-muted-foreground">Known</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <span className="text-4xl font-bold text-orange-500">{learningCount}</span>
-            <span className="text-muted-foreground">Still learning</span>
+    if (isSaving) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-6 relative overflow-hidden">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#4255ff]/10 rounded-full blur-[100px] pointer-events-none" />
+          <div className="relative z-10 flex flex-col items-center animate-in fade-in zoom-in duration-300">
+            <div className="relative w-20 h-20 mb-8">
+              <div className="absolute inset-0 border-4 border-[#4255ff]/20 rounded-full"></div>
+              <div className="absolute inset-0 border-4 border-transparent border-t-[#4255ff] rounded-full animate-spin shadow-[0_0_30px_rgba(66,85,255,0.5)]"></div>
+            </div>
+            <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70 animate-pulse mb-3">
+              Calculating results...
+            </h2>
+            <p className="text-muted-foreground font-medium">Analyzing performance & updating XP</p>
           </div>
         </div>
-        <div className="flex gap-4">
-          <button 
-            onClick={() => {
-              setCurrentIndex(0);
-              setIsFinished(false);
-              setKnownCount(0);
-              setLearningCount(0);
-              setIsFlipped(false);
-            }}
-            className="px-8 py-3 bg-[#4255ff] text-foreground font-bold rounded-lg hover:bg-[#5b6aff] transition cursor-pointer flex items-center gap-2 shadow-lg"
-          >
-            <RotateCcw className="w-5 h-5" />
-            Restart Flashcards
-          </button>
-          <button 
-            onClick={() => router.push('/')}
-            className="px-8 py-3 bg-card text-foreground font-bold rounded-lg hover:bg-[#3a466a] transition border-2 border-transparent hover:border-border cursor-pointer flex items-center gap-2"
-          >
-            <Home className="w-5 h-5" />
-            Home
-          </button>
+      );
+    }
+
+    const accuracy = Math.round((knownCount / (knownCount + learningCount || 1)) * 100);
+    const colorClasses = {
+      emerald: 'from-emerald-500/20 to-emerald-500/5 border-emerald-500/30 text-emerald-400',
+      amber: 'from-amber-500/20 to-amber-500/5 border-amber-500/30 text-amber-400',
+      rose: 'from-rose-500/20 to-rose-500/5 border-rose-500/30 text-rose-400',
+      blue: 'from-blue-500/20 to-blue-500/5 border-blue-500/30 text-blue-400',
+      purple: 'from-purple-500/20 to-purple-500/5 border-purple-500/30 text-purple-400',
+    };
+    
+    const themeColor = evaluation ? colorClasses[evaluation.color] : colorClasses.blue;
+
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-6 relative overflow-hidden">
+        {/* Background ambient light */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#4255ff]/10 rounded-full blur-[120px] pointer-events-none" />
+        
+        <div className="w-full max-w-2xl bg-card/40 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-12 shadow-2xl relative z-10 flex flex-col items-center animate-in fade-in zoom-in duration-500">
+          
+          <div className="text-center mb-10">
+            <h1 className="text-4xl md:text-5xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-br from-white to-white/70">
+              {evaluation?.title || "Great job!"}
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-md mx-auto">
+              {evaluation?.message || "You've reviewed all cards."}
+            </p>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full mb-8">
+            <div className="bg-white/5 rounded-2xl p-4 flex flex-col items-center justify-center border border-white/5">
+              <span className="text-sm font-bold text-muted-foreground mb-1">Accuracy</span>
+              <span className="text-3xl font-black text-white">{accuracy}%</span>
+            </div>
+            <div className="bg-white/5 rounded-2xl p-4 flex flex-col items-center justify-center border border-white/5">
+              <span className="text-sm font-bold text-emerald-400 mb-1">Known</span>
+              <span className="text-3xl font-black text-emerald-400">{knownCount}</span>
+            </div>
+            <div className="bg-white/5 rounded-2xl p-4 flex flex-col items-center justify-center border border-white/5">
+              <span className="text-sm font-bold text-orange-400 mb-1">Learning</span>
+              <span className="text-3xl font-black text-orange-400">{learningCount}</span>
+            </div>
+            <div className="bg-white/5 rounded-2xl p-4 flex flex-col items-center justify-center border border-white/5 relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-orange-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <span className="text-sm font-bold text-amber-400 mb-1">XP Earned</span>
+              <span className="text-3xl font-black text-amber-400">+{pointsEarned}</span>
+              {newRank && <span className="text-[10px] text-muted-foreground absolute bottom-2">{newRank}</span>}
+            </div>
+          </div>
+
+          {/* Smart Advice */}
+          {evaluation && (
+            <div className={`w-full p-5 rounded-2xl bg-gradient-to-br ${themeColor} border backdrop-blur-sm mb-10 flex gap-4 items-start`}>
+              <Lightbulb className="w-6 h-6 shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-bold mb-1">Smart Tip</h3>
+                <p className="text-sm opacity-90 leading-relaxed">{evaluation.advice}</p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+            <button 
+              onClick={() => {
+                setCurrentIndex(0);
+                setIsFinished(false);
+                setKnownCount(0);
+                setLearningCount(0);
+                setIsFlipped(false);
+                setStartTime(Date.now());
+                setEvaluation(null);
+                cardReviewsRef.current = [];
+              }}
+              className="px-8 py-3.5 bg-[#4255ff] text-white font-bold rounded-xl hover:bg-[#5b6aff] transition shadow-[0_0_20px_rgba(66,85,255,0.3)] hover:shadow-[0_0_30px_rgba(66,85,255,0.5)] hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full sm:w-auto"
+            >
+              <RotateCcw className="w-5 h-5" />
+              Study Again
+            </button>
+            <button 
+              onClick={() => router.push('/')}
+              className="px-8 py-3.5 bg-white/5 text-white font-bold rounded-xl hover:bg-white/10 transition border border-white/10 flex items-center justify-center gap-2 w-full sm:w-auto"
+            >
+              <Home className="w-5 h-5" />
+              Back to Home
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -143,15 +289,6 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
         </div>
 
         <div className="flex items-center gap-4">
-          <button 
-            onClick={() => router.push(`/match/${set.id}`)}
-            className="hidden md:flex px-4 py-2 bg-[#4255ff] text-foreground text-sm font-bold rounded-full hover:bg-[#5b6aff] transition shadow-lg cursor-pointer"
-          >
-            Play Match Game
-          </button>
-          <button className="hidden md:flex px-4 py-2 bg-card text-foreground text-sm font-bold rounded-full hover:bg-[#3a466a] transition cursor-pointer">
-            Turn these into questions
-          </button>
           <button className="text-muted-foreground hover:text-foreground transition cursor-pointer">
             <Settings className="w-5 h-5" />
           </button>
@@ -187,7 +324,12 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
 
         {/* Flashcard Container (3D perspective) */}
         <div 
-          className="w-full max-w-[800px] aspect-[5/3] md:aspect-[2/1] perspective-[1000px] cursor-pointer"
+          className={`w-full max-w-[800px] aspect-[5/3] md:aspect-[2/1] perspective-[1000px] cursor-pointer transition-all duration-300 ease-in-out ${
+            slideDirection === 'left' ? '-translate-x-[150%] -rotate-12 opacity-0' :
+            slideDirection === 'right' ? 'translate-x-[150%] rotate-12 opacity-0' :
+            slideDirection === 'reset' ? 'scale-90 opacity-0 duration-0 transition-none' :
+            'translate-x-0 rotate-0 opacity-100 scale-100'
+          }`}
           onClick={handleFlip}
         >
           {/* Card Inner */}
@@ -201,14 +343,23 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
                   <Lightbulb className="w-5 h-5" />
                   <span className="text-sm font-bold">Get a hint</span>
                 </button>
-                <button className="hover:text-foreground transition">
+                <button 
+                  className="hover:text-foreground transition z-10 relative cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    playAudio(currentCard.audio_url, currentCard.term);
+                  }}
+                >
                   <Volume2 className="w-5 h-5" />
                 </button>
               </div>
-              <div className="flex-1 flex items-center justify-center p-8">
+              <div className="flex-1 flex flex-col items-center justify-center p-8 gap-2">
                 <h2 className="text-4xl md:text-5xl font-medium text-foreground text-center break-words">
                   {currentCard.term}
                 </h2>
+                {currentCard.phonetic && (
+                  <span className="text-muted-foreground text-lg">{currentCard.phonetic}</span>
+                )}
               </div>
               
               {/* Footer Front */}
@@ -227,7 +378,13 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
             <div className="absolute inset-0 w-full h-full bg-card rounded-2xl shadow-xl flex flex-col [transform:rotateX(180deg)] [backface-visibility:hidden]">
               <div className="flex justify-between items-center p-6 text-muted-foreground">
                 <div />
-                <button className="hover:text-foreground transition">
+                <button 
+                  className="hover:text-foreground transition z-10 relative cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    playAudio(null, currentCard.definition); // We usually don't have audio_url for definition, so use TTS
+                  }}
+                >
                   <Volume2 className="w-5 h-5" />
                 </button>
               </div>

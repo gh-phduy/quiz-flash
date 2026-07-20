@@ -3,10 +3,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Volume2, X, Trophy, ArrowRight, Settings } from 'lucide-react';
+import { Volume2, X, Trophy, ArrowRight, Settings, Lightbulb, Home, RotateCcw } from 'lucide-react';
+import { getLearnEvaluation, EvaluationResult } from '@/utils/evaluation';
 import { ModeSwitcher } from '@/components/shared/mode-switcher';
 import { recordStudyActivity } from '@/actions/study';
-import confetti from 'canvas-confetti';
+import { recordCardReview } from '@/actions/review';
+import { generateGameSession } from '@/actions/game';
+import { playAudio } from '@/lib/speech';
+import { Loader2 } from 'lucide-react';
 
 interface LearnPlayerProps {
   set: any;
@@ -26,15 +30,37 @@ export default function LearnPlayer({ set, cards }: LearnPlayerProps) {
   const [isFinished, setIsFinished] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [pointsEarned, setPointsEarned] = useState(0);
+  const [wordsLearnedAdded, setWordsLearnedAdded] = useState(0);
+  
+  const [isConfiguring, setIsConfiguring] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [sessionCards, setSessionCards] = useState<any[]>([]);
+  
+  const [totalReviews, setTotalReviews] = useState(0);
+  const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
 
-  // Initialize game
+  // Initialize game after configuration
   useEffect(() => {
-    if (cards.length > 0 && learningQueue.length === 0 && !isFinished && !currentCard) {
-      const shuffled = [...cards].sort(() => 0.5 - Math.random());
-      setLearningQueue(shuffled);
-      loadNextCard(shuffled);
+    if (!isConfiguring && sessionCards.length > 0 && learningQueue.length === 0 && !isFinished && !currentCard) {
+      setLearningQueue(sessionCards);
+      loadNextCard(sessionCards);
     }
-  }, [cards]);
+  }, [sessionCards, isConfiguring]);
+
+  const handleStartSession = async (count: number) => {
+    setIsGenerating(true);
+    const res = await generateGameSession(set.id, count);
+    if (res.success && res.cards) {
+      setSessionCards(res.cards);
+      setIsConfiguring(false);
+    } else {
+      // Fallback
+      const shuffled = [...cards].sort(() => 0.5 - Math.random()).slice(0, count);
+      setSessionCards(shuffled);
+      setIsConfiguring(false);
+    }
+    setIsGenerating(false);
+  };
 
   const generateOptions = (correctCard: any, allCards: any[]) => {
     const incorrectCards = allCards.filter(c => c.id !== correctCard.id);
@@ -59,22 +85,34 @@ export default function LearnPlayer({ set, cards }: LearnPlayerProps) {
     setIsFinished(true);
     setIsSaving(true);
     
-    // Shoot confetti
-    confetti({
-      particleCount: 150,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors: ['#9fa6ff', '#b892ff', '#4255ff']
-    });
-
-    // Award 10 points per card learned
-    const points = cards.length * 10;
+    const points = sessionCards.length * 10;
     setPointsEarned(points);
+    
+    const accuracy = totalReviews > 0 ? sessionCards.length / totalReviews : 1;
+    const evalResult = getLearnEvaluation(sessionCards.length, totalReviews, accuracy);
+    setEvaluation(evalResult);
+
+    if (evalResult.performance === 'perfect') {
+      import('canvas-confetti').then(({ default: confetti }) => {
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#9fa6ff', '#b892ff', '#4255ff']
+        });
+      });
+    }
 
     try {
-      await recordStudyActivity(points, cards.length);
+      const res = await recordStudyActivity(set.id, points, sessionCards.length, 'learn');
+      if (res.success) {
+        setWordsLearnedAdded(res.wordsLearnedAdded ?? 0);
+      } else {
+        setWordsLearnedAdded(0);
+      }
     } catch (error) {
       console.error('Failed to save study activity:', error);
+      setWordsLearnedAdded(0);
     }
     setIsSaving(false);
   };
@@ -85,6 +123,12 @@ export default function LearnPlayer({ set, cards }: LearnPlayerProps) {
     setSelectedOptionId(option.id);
     const correct = option.id === currentCard.id;
     setIsCorrect(correct);
+    setTotalReviews(prev => prev + 1);
+
+    // Record SM-2 review progress
+    recordCardReview(currentCard.id, correct ? 4 : 1).catch(err => {
+      console.error('Failed to record card review:', err);
+    });
 
     setTimeout(() => {
       if (correct) {
@@ -103,41 +147,153 @@ export default function LearnPlayer({ set, cards }: LearnPlayerProps) {
   };
 
   // Calculate Progress
-  const totalCards = cards.length;
-  const progressPercent = totalCards === 0 ? 0 : (learnedCards.length / totalCards) * 100;
+  const totalSessionCards = sessionCards.length;
+  const progressPercent = totalSessionCards === 0 ? 0 : (learnedCards.length / totalSessionCards) * 100;
 
   if (isFinished) {
+    const accuracy = totalReviews > 0 ? Math.round((sessionCards.length / totalReviews) * 100) : 100;
+    
+    const colorClasses = {
+      emerald: 'from-emerald-500/20 to-emerald-500/5 border-emerald-500/30 text-emerald-400',
+      amber: 'from-amber-500/20 to-amber-500/5 border-amber-500/30 text-amber-400',
+      rose: 'from-rose-500/20 to-rose-500/5 border-rose-500/30 text-rose-400',
+      blue: 'from-blue-500/20 to-blue-500/5 border-blue-500/30 text-blue-400',
+      purple: 'from-purple-500/20 to-purple-500/5 border-purple-500/30 text-purple-400',
+    };
+    
+    const themeColor = evaluation ? colorClasses[evaluation.color] : colorClasses.blue;
+
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center font-sans overflow-hidden p-6 relative">
         <div className="absolute inset-0 bg-gradient-to-br from-[#4255ff]/10 via-background to-[#b892ff]/10 pointer-events-none" />
         
-        <div className="w-full max-w-lg bg-card/80 backdrop-blur-xl border border-white/10 rounded-3xl p-10 flex flex-col items-center text-center shadow-2xl relative z-10">
-          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#4255ff] to-[#9fa6ff] flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(159,166,255,0.4)]">
-            <Trophy className="w-12 h-12 text-white" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#4255ff]/10 rounded-full blur-[100px] pointer-events-none" />
+
+        <div className="w-full max-w-2xl bg-card/40 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-12 flex flex-col items-center text-center shadow-2xl relative z-10 animate-in fade-in zoom-in duration-500">
+          
+          <div className="text-center mb-10">
+            <h1 className="text-4xl md:text-5xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-br from-white to-white/70">
+              {evaluation?.title || "Awesome!"}
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-md mx-auto">
+              {evaluation?.message || "You've mastered this set."}
+            </p>
           </div>
           
-          <h1 className="text-4xl font-bold text-white mb-2">Awesome!</h1>
-          <p className="text-muted-foreground text-lg mb-8">You've mastered this set.</p>
-          
-          <div className="flex gap-4 w-full mb-8">
-            <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col items-center">
-              <span className="text-3xl font-bold text-[#b892ff]">{cards.length}</span>
-              <span className="text-xs text-muted-foreground uppercase tracking-wider mt-1 font-semibold">Words Learned</span>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full mb-8">
+            <div className="bg-white/5 rounded-2xl p-4 flex flex-col items-center justify-center border border-white/5">
+              <span className="text-sm font-bold text-emerald-400 mb-1">Learned</span>
+              <span className="text-3xl font-black text-emerald-400">{wordsLearnedAdded}</span>
             </div>
-            <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col items-center">
-              <span className="text-3xl font-bold text-[#9fa6ff]">+{pointsEarned}</span>
-              <span className="text-xs text-muted-foreground uppercase tracking-wider mt-1 font-semibold">Points Earned</span>
+            <div className="bg-white/5 rounded-2xl p-4 flex flex-col items-center justify-center border border-white/5">
+              <span className="text-sm font-bold text-muted-foreground mb-1">Reviews</span>
+              <span className="text-3xl font-black text-white">{totalReviews}</span>
+            </div>
+            <div className="bg-white/5 rounded-2xl p-4 flex flex-col items-center justify-center border border-white/5">
+              <span className="text-sm font-bold text-orange-400 mb-1">Accuracy</span>
+              <span className="text-3xl font-black text-orange-400">{accuracy}%</span>
+            </div>
+            <div className="bg-white/5 rounded-2xl p-4 flex flex-col items-center justify-center border border-white/5 relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-orange-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <span className="text-sm font-bold text-amber-400 mb-1">XP Earned</span>
+              <span className="text-3xl font-black text-amber-400">+{pointsEarned}</span>
             </div>
           </div>
           
-          <button 
-            onClick={() => router.push(`/flashcards/${set.id}`)}
-            disabled={isSaving}
-            className="w-full py-4 bg-gradient-to-r from-[#4255ff] to-[#6b7bff] text-white font-bold rounded-xl hover:opacity-90 transition-opacity shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+          {/* Smart Advice */}
+          {evaluation && (
+            <div className={`w-full p-5 rounded-2xl bg-gradient-to-br ${themeColor} border backdrop-blur-sm mb-10 flex gap-4 items-start text-left`}>
+              <Lightbulb className="w-6 h-6 shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-bold mb-1">Smart Tip</h3>
+                <p className="text-sm opacity-90 leading-relaxed">{evaluation.advice}</p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+            <button 
+              onClick={() => {
+                setIsFinished(false);
+                setLearnedCards([]);
+                setCurrentCard(null);
+                setLearningQueue([]);
+                setSessionCards([]);
+                setIsConfiguring(true);
+                setTotalReviews(0);
+                setEvaluation(null);
+              }}
+              disabled={isSaving}
+              className="px-8 py-3.5 bg-[#4255ff] text-white font-bold rounded-xl hover:bg-[#5b6aff] transition shadow-[0_0_20px_rgba(66,85,255,0.3)] hover:shadow-[0_0_30px_rgba(66,85,255,0.5)] hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full sm:w-auto disabled:opacity-50"
+            >
+              <RotateCcw className="w-5 h-5" />
+              {isSaving ? 'Saving...' : 'Learn More'}
+            </button>
+            <button 
+              onClick={() => router.push('/')}
+              disabled={isSaving}
+              className="px-8 py-3.5 bg-white/5 text-white font-bold rounded-xl hover:bg-white/10 transition border border-white/10 flex items-center justify-center gap-2 w-full sm:w-auto disabled:opacity-50"
+            >
+              <Home className="w-5 h-5" />
+              Back to Home
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isConfiguring) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex flex-col font-sans overflow-hidden p-6 relative items-center justify-center">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#4255ff]/10 via-background to-[#b892ff]/10 pointer-events-none" />
+        
+        <div className="w-full max-w-xl bg-card/80 backdrop-blur-xl border border-white/10 rounded-3xl p-10 flex flex-col items-center text-center shadow-2xl relative z-10">
+          <h1 className="text-3xl font-bold text-white mb-2">High-Intensity Training</h1>
+          <p className="text-muted-foreground mb-8">How many words do you want to conquer today?</p>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full mb-8">
+            {[10, 20, 30, 50].map((count) => {
+              const disabled = count > cards.length;
+              return (
+                <button
+                  key={count}
+                  onClick={() => handleStartSession(count)}
+                  disabled={disabled || isGenerating}
+                  className={`py-6 rounded-2xl border-2 flex flex-col items-center justify-center transition-all ${
+                    disabled 
+                      ? 'bg-white/5 border-white/5 opacity-50 cursor-not-allowed' 
+                      : 'bg-white/5 border-white/10 hover:border-[#4255ff]/50 hover:bg-[#4255ff]/10'
+                  }`}
+                >
+                  <span className="text-2xl font-bold text-white mb-1">{count}</span>
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider">Words</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="w-full flex items-center gap-4 my-4">
+            <div className="flex-1 h-px bg-white/10" />
+            <span className="text-xs text-muted-foreground uppercase tracking-widest">OR</span>
+            <div className="flex-1 h-px bg-white/10" />
+          </div>
+
+          <button
+            onClick={() => handleStartSession(cards.length)}
+            disabled={isGenerating}
+            className="w-full py-4 bg-white/5 border border-white/10 text-white font-bold rounded-xl hover:bg-white/10 transition-all disabled:opacity-50 flex items-center justify-center gap-2 mb-8"
           >
-            {isSaving ? 'Saving progress...' : 'Continue'} 
-            {!isSaving && <ArrowRight className="w-5 h-5" />}
+            Learn all {cards.length} words
           </button>
+
+          {isGenerating && (
+            <div className="flex items-center gap-3 text-[#b892ff]">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="text-sm font-medium">Generating optimal learning path...</span>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -158,7 +314,7 @@ export default function LearnPlayer({ set, cards }: LearnPlayerProps) {
             <Settings className="w-5 h-5" />
           </button>
           <button 
-            onClick={() => router.push(`/flashcards/${set.id}`)}
+            onClick={() => router.push('/')}
             className="text-muted-foreground hover:text-foreground transition"
           >
             <X className="w-6 h-6" />
@@ -176,7 +332,7 @@ export default function LearnPlayer({ set, cards }: LearnPlayerProps) {
             style={{ width: `${progressPercent}%` }}
           />
         </div>
-        <span className="text-sm font-bold text-muted-foreground w-6">{totalCards}</span>
+        <span className="text-sm font-bold text-muted-foreground w-6">{totalSessionCards}</span>
       </div>
 
       {/* Main Content */}
@@ -189,13 +345,24 @@ export default function LearnPlayer({ set, cards }: LearnPlayerProps) {
             <div className="mb-12">
               <div className="flex items-center justify-between mb-4">
                 <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Term</span>
-                <button className="text-muted-foreground hover:text-foreground transition bg-white/5 p-2 rounded-lg">
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    playAudio(currentCard.audio_url, currentCard.term);
+                  }}
+                  className="text-muted-foreground hover:text-foreground transition bg-white/5 p-2 rounded-lg cursor-pointer"
+                >
                   <Volume2 className="w-5 h-5" />
                 </button>
               </div>
-              <h2 className="text-3xl md:text-5xl font-medium text-white break-words">
-                {currentCard.term}
-              </h2>
+              <div className="flex flex-col gap-2">
+                <h2 className="text-3xl md:text-5xl font-medium text-white break-words">
+                  {currentCard.term}
+                </h2>
+                {currentCard.phonetic && (
+                  <span className="text-muted-foreground text-xl">{currentCard.phonetic}</span>
+                )}
+              </div>
             </div>
 
             {/* Options Section */}
@@ -254,6 +421,12 @@ export default function LearnPlayer({ set, cards }: LearnPlayerProps) {
                   // If they don't know, treat it as selecting a wrong invisible option
                   setSelectedOptionId('dont_know');
                   setIsCorrect(false);
+                  
+                  // Record SM-2 review progress (1 = forgot)
+                  recordCardReview(currentCard.id, 1).catch(err => {
+                    console.error('Failed to record card review:', err);
+                  });
+
                   setTimeout(() => {
                     const newQueue = [...learningQueue.slice(1), currentCard];
                     setLearningQueue(newQueue);

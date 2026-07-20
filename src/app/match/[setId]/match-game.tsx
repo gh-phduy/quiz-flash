@@ -2,10 +2,13 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, RotateCcw, ArrowLeft, Play } from 'lucide-react';
+import { X, RotateCcw, Play, Home, Lightbulb } from 'lucide-react';
 import Image from 'next/image';
 import { ModeSwitcher } from '@/components/shared/mode-switcher';
 import { recordStudyActivity } from '@/actions/study';
+import { recordBulkCardReviews } from '@/actions/review';
+import { updateGameScores } from '@/actions/game';
+import { getMatchEvaluation, EvaluationResult } from '@/utils/evaluation';
 
 interface SetData {
   id: string;
@@ -44,6 +47,10 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
   const [isFinished, setIsFinished] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [hasRecorded, setHasRecorded] = useState(false);
+  const [incorrectAttempts, setIncorrectAttempts] = useState(0);
+  const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
+  const [pointsEarned, setPointsEarned] = useState(0);
+  const [mistakesPerCard, setMistakesPerCard] = useState<Record<string, number>>({});
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -53,10 +60,44 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
       const basePoints = 50;
       // Thưởng thêm điểm nếu hoàn thành nhanh (dưới 60s)
       const timeBonus = Math.max(0, 60000 - timeMs) / 1000;
-      const pointsEarned = Math.round(basePoints + timeBonus) + cards.length;
-      recordStudyActivity(pointsEarned, cards.length);
+      const earned = Math.round(basePoints + timeBonus) + cards.length;
+      setPointsEarned(earned);
+      
+      const evalResult = getMatchEvaluation(timeMs / 1000, cards.length, incorrectAttempts);
+      setEvaluation(evalResult);
+      
+      if (evalResult.performance === 'perfect') {
+        import('canvas-confetti').then(({ default: confetti }) => {
+          confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#b892ff', '#ff92d0', '#4255ff']
+          });
+        });
+      }
+
+      // Prepare bulk reviews for the cards played in this session
+      const playedCardIds = Array.from(new Set(tiles.map(t => t.cardId)));
+      const reviews = playedCardIds.map(cardId => {
+        const mistakes = mistakesPerCard[cardId] || 0;
+        let quality = 4;
+        if (mistakes === 1) quality = 3;
+        else if (mistakes === 2) quality = 2;
+        else if (mistakes >= 3) quality = 1;
+        return { cardId, quality };
+      });
+
+      const correctCards = playedCardIds.filter(id => !mistakesPerCard[id]);
+      const incorrectCards = playedCardIds.filter(id => mistakesPerCard[id] > 0);
+
+      Promise.all([
+        recordStudyActivity(set.id, earned, playedCardIds.length, 'match'),
+        recordBulkCardReviews(reviews),
+        updateGameScores(correctCards, incorrectCards)
+      ]);
     }
-  }, [isFinished, hasRecorded, timeMs, cards.length]);
+  }, [isFinished, hasRecorded, timeMs, cards.length, set.id, mistakesPerCard, tiles]);
 
   // Initialize Game
   const initGame = useCallback(() => {
@@ -94,6 +135,11 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
     setIsFinished(false);
     setSelectedIds([]);
     setIsPlaying(true);
+    setHasRecorded(false);
+    setIncorrectAttempts(0);
+    setEvaluation(null);
+    setPointsEarned(0);
+    setMistakesPerCard({});
   }, [cards]);
 
   // Start game on mount
@@ -166,6 +212,13 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
           newSelectedIds.includes(t.id) ? { ...t, status: 'error' as TileStatus } : t
         ));
         
+        setMistakesPerCard(prev => ({
+          ...prev,
+          [tile1.cardId]: (prev[tile1.cardId] || 0) + 1,
+          [tile2.cardId]: (prev[tile2.cardId] || 0) + 1
+        }));
+        
+        setIncorrectAttempts(prev => prev + 1);
         // Cộng phạt 1 giây
         setTimeMs(prev => prev + 1000);
 
@@ -198,37 +251,97 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
         </div>
 
         <div className="flex items-center gap-4">
-          <button onClick={() => router.push(`/flashcards/${set.id}`)} className="text-muted-foreground hover:text-foreground transition cursor-pointer" title="Close game">
+          <button onClick={() => router.push('/')} className="text-muted-foreground hover:text-foreground transition cursor-pointer" title="Close game">
             <X className="w-6 h-6" />
           </button>
         </div>
       </header>
 
       {/* Main Game Area */}
-      <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 w-full relative">
+      <main className="flex-1 flex flex-col items-center justify-start pt-10 md:pt-20 p-4 md:p-8 w-full relative">
         
-        {isFinished ? (
-          <div className="flex flex-col items-center animate-in fade-in zoom-in duration-500 z-10">
-            <h2 className="text-4xl font-bold mb-2">Great time!</h2>
-            <p className="text-muted-foreground font-bold text-lg mb-8">You matched everything in {formatTime(timeMs)} seconds.</p>
-            <div className="flex items-center gap-4">
-              <button 
-                onClick={initGame}
-                className="px-8 py-3 bg-[#4255ff] text-foreground font-bold rounded-lg hover:bg-[#5b6aff] transition flex items-center gap-2 shadow-lg hover:shadow-xl cursor-pointer"
-              >
-                <RotateCcw className="w-5 h-5" />
-                Play again
-              </button>
-              <button 
-                onClick={() => router.push(`/flashcards/${set.id}`)}
-                className="px-8 py-3 bg-card text-foreground font-bold rounded-lg hover:bg-[#3a466a] transition cursor-pointer"
-              >
-                Back to Flashcards
-              </button>
+        {isFinished ? (() => {
+          const colorClasses = {
+            emerald: 'from-emerald-500/20 to-emerald-500/5 border-emerald-500/30 text-emerald-400',
+            amber: 'from-amber-500/20 to-amber-500/5 border-amber-500/30 text-amber-400',
+            rose: 'from-rose-500/20 to-rose-500/5 border-rose-500/30 text-rose-400',
+            blue: 'from-blue-500/20 to-blue-500/5 border-blue-500/30 text-blue-400',
+            purple: 'from-purple-500/20 to-purple-500/5 border-purple-500/30 text-purple-400',
+          };
+          
+          const themeColor = evaluation ? colorClasses[evaluation.color] : colorClasses.blue;
+          
+          // Fix infinity accuracy if 0 errors
+          const accuracy = Math.round((cards.length / (cards.length + incorrectAttempts)) * 100) || 100;
+
+          return (
+            <div className="flex flex-col items-center justify-center w-full h-full relative z-10 px-4">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#4255ff]/10 rounded-full blur-[100px] pointer-events-none" />
+              
+              <div className="w-full max-w-2xl bg-card/40 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-12 shadow-2xl relative z-10 flex flex-col items-center animate-in fade-in zoom-in duration-500">
+                
+                <div className="text-center mb-10">
+                  <h1 className="text-4xl md:text-5xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-br from-white to-white/70">
+                    {evaluation?.title || "Great time!"}
+                  </h1>
+                  <p className="text-lg text-muted-foreground max-w-md mx-auto">
+                    {evaluation?.message || `You matched everything in ${formatTime(timeMs)} seconds.`}
+                  </p>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full mb-8">
+                  <div className="bg-white/5 rounded-2xl p-4 flex flex-col items-center justify-center border border-white/5">
+                    <span className="text-sm font-bold text-muted-foreground mb-1">Time</span>
+                    <span className="text-3xl font-black text-white">{formatTime(timeMs)}s</span>
+                  </div>
+                  <div className="bg-white/5 rounded-2xl p-4 flex flex-col items-center justify-center border border-white/5">
+                    <span className="text-sm font-bold text-emerald-400 mb-1">Cards</span>
+                    <span className="text-3xl font-black text-emerald-400">{cards.length}</span>
+                  </div>
+                  <div className="bg-white/5 rounded-2xl p-4 flex flex-col items-center justify-center border border-white/5">
+                    <span className="text-sm font-bold text-orange-400 mb-1">Accuracy</span>
+                    <span className="text-3xl font-black text-orange-400">{accuracy}%</span>
+                  </div>
+                  <div className="bg-white/5 rounded-2xl p-4 flex flex-col items-center justify-center border border-white/5 relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-orange-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <span className="text-sm font-bold text-amber-400 mb-1">XP Earned</span>
+                    <span className="text-3xl font-black text-amber-400">+{pointsEarned}</span>
+                  </div>
+                </div>
+
+                {/* Smart Advice */}
+                {evaluation && (
+                  <div className={`w-full p-5 rounded-2xl bg-gradient-to-br ${themeColor} border backdrop-blur-sm mb-10 flex gap-4 items-start`}>
+                    <Lightbulb className="w-6 h-6 shrink-0 mt-0.5" />
+                    <div>
+                      <h3 className="font-bold mb-1">Smart Tip</h3>
+                      <p className="text-sm opacity-90 leading-relaxed">{evaluation.advice}</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                  <button 
+                    onClick={initGame}
+                    className="px-8 py-3.5 bg-[#4255ff] text-white font-bold rounded-xl hover:bg-[#5b6aff] transition shadow-[0_0_20px_rgba(66,85,255,0.3)] hover:shadow-[0_0_30px_rgba(66,85,255,0.5)] hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full sm:w-auto"
+                  >
+                    <RotateCcw className="w-5 h-5" />
+                    Play again
+                  </button>
+                  <button 
+                    onClick={() => router.push('/')}
+                    className="px-8 py-3.5 bg-white/5 text-white font-bold rounded-xl hover:bg-white/10 transition border border-white/10 flex items-center justify-center gap-2 w-full sm:w-auto"
+                  >
+                    <Home className="w-5 h-5" />
+                    Back to Home
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="w-full max-w-5xl h-[60vh] max-h-[800px] grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 relative">
+          );
+        })() : (
+          <div className="w-full max-w-5xl grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 relative">
             {tiles.map(tile => {
               // Xử lý styles dựa trên status
               let tileStyles = "bg-card hover:bg-[#3a466a] border-transparent hover:shadow-lg cursor-pointer transform hover:-translate-y-1";
@@ -245,7 +358,7 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
                   key={tile.id}
                   onClick={() => handleTileClick(tile.id)}
                   className={`
-                    rounded-xl border-2 p-4 md:p-6 flex flex-col items-center justify-center text-center
+                    min-h-[140px] md:min-h-[180px] rounded-xl border-2 p-4 md:p-6 flex flex-col items-center justify-center text-center
                     transition-all duration-300 select-none shadow-md
                     ${tileStyles}
                   `}

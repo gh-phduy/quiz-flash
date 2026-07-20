@@ -77,3 +77,34 @@ export async function generateGameSession(setId: string, totalCardsToLearn: numb
     return { success: false, error: error.message };
   }
 }
+
+export async function updateGameScores(correctCardIds: string[], incorrectCardIds: string[] = []) {
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    if (correctCardIds.length === 0 && incorrectCardIds.length === 0) {
+      return { success: true };
+    }
+
+    const { error } = await supabase.rpc('update_game_scores', {
+      p_user_id: user.id,
+      p_correct_card_ids: correctCardIds,
+      p_incorrect_card_ids: incorrectCardIds
+    });
+
+    if (error) {
+      console.error('Failed to update game scores:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Failed to update game scores (exception):', error);
+    return { success: false, error: error.message };
+  }
+}
