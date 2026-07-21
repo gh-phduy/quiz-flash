@@ -290,7 +290,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row gap-4 w-full">
             <button 
               onClick={() => {
                 setCurrentIndex(0);
@@ -303,14 +303,14 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
                 setSlideDirection(null);
                 cardReviewsRef.current = [];
               }}
-              className="px-8 py-3.5 bg-[#4255ff] text-white font-bold rounded-xl hover:bg-[#5b6aff] transition shadow-[0_0_20px_rgba(66,85,255,0.3)] hover:shadow-[0_0_30px_rgba(66,85,255,0.5)] hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full sm:w-auto"
+              className="px-8 py-3.5 bg-[#4255ff] text-white font-bold rounded-xl hover:bg-[#5b6aff] transition shadow-[0_0_20px_rgba(66,85,255,0.3)] hover:shadow-[0_0_30px_rgba(66,85,255,0.5)] hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full flex-1"
             >
               <RotateCcw className="w-5 h-5" />
               Study Again
             </button>
             <button 
               onClick={() => router.push('/')}
-              className="px-8 py-3.5 bg-white/5 text-white font-bold rounded-xl hover:bg-white/10 transition border border-white/10 flex items-center justify-center gap-2 w-full sm:w-auto"
+              className="px-8 py-3.5 bg-white/5 text-white font-bold rounded-xl hover:bg-white/10 transition border border-white/10 flex items-center justify-center gap-2 w-full flex-1"
             >
               <Home className="w-5 h-5" />
               Back to Home
