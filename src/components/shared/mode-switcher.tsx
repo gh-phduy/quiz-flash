@@ -8,7 +8,9 @@ import {
   Copy, 
   Home, 
   Search,
-  BookOpen
+  BookOpen,
+  Mic,
+  Headphones
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -18,7 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export type GameMode = 'Flashcards' | 'Test' | 'Match' | 'Learn';
+export type GameMode = 'Flashcards' | 'Test' | 'Match' | 'Learn' | 'Speaking' | 'Listening';
 
 interface ModeSwitcherProps {
   currentMode: GameMode;
@@ -34,6 +36,8 @@ export function ModeSwitcher({ currentMode, setId }: ModeSwitcherProps) {
       case 'Test': return <FileText className={`${className} text-indigo-400`} />;
       case 'Match': return <Copy className={`${className} text-cyan-400`} />;
       case 'Learn': return <BookOpen className={`${className} text-purple-400`} />;
+      case 'Speaking': return <Mic className={`${className} text-rose-400`} />;
+      case 'Listening': return <Headphones className={`${className} text-amber-400`} />;
     }
   };
 
@@ -43,6 +47,8 @@ export function ModeSwitcher({ currentMode, setId }: ModeSwitcherProps) {
       case 'Test': return 'bg-indigo-500/20';
       case 'Match': return 'bg-cyan-500/20';
       case 'Learn': return 'bg-purple-500/20';
+      case 'Speaking': return 'bg-rose-500/20';
+      case 'Listening': return 'bg-amber-500/20';
     }
   };
 
@@ -90,6 +96,22 @@ export function ModeSwitcher({ currentMode, setId }: ModeSwitcherProps) {
         >
           <BookOpen className="w-5 h-5 text-purple-400" />
           <span className="font-bold text-[15px]">Learn</span>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem 
+          onClick={() => router.push(`/speaking/${setId}`)}
+          className={`gap-3 py-3 px-3 cursor-pointer rounded-lg transition-colors text-foreground focus:!text-foreground focus:!bg-border hover:!text-foreground hover:!bg-border ${currentMode === 'Speaking' ? 'bg-white/5' : ''}`}
+        >
+          <Mic className="w-5 h-5 text-rose-400" />
+          <span className="font-bold text-[15px]">Speaking</span>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem 
+          onClick={() => router.push(`/listening/${setId}`)}
+          className={`gap-3 py-3 px-3 cursor-pointer rounded-lg transition-colors text-foreground focus:!text-foreground focus:!bg-border hover:!text-foreground hover:!bg-border ${currentMode === 'Listening' ? 'bg-white/5' : ''}`}
+        >
+          <Headphones className="w-5 h-5 text-amber-400" />
+          <span className="font-bold text-[15px]">Listening</span>
         </DropdownMenuItem>
 
         <DropdownMenuSeparator className="bg-border my-2" />

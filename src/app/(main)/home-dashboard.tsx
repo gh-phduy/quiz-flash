@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import {
   Search, Layers, Play, Clock, BookOpen, FileText, Copy, Bookmark,
-  Plus, Users, Flame, Star, RefreshCw, Trophy
+  Plus, Users, Flame, Star, RefreshCw, Trophy, Mic, Headphones
 } from 'lucide-react';
 import { saveSetToLibrary, unsaveSetFromLibrary } from '@/actions/collaboration';
 import { toast } from 'sonner';
@@ -42,6 +42,8 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
   const GAME_MODES = [
     { id: 'flashcards', name: 'Flashcards', desc: 'Review terms & definitions', icon: <Layers className="w-8 h-8 text-blue-400 group-hover:scale-110 transition-transform" />, href: '/flashcards', bg: 'from-blue-500/10 to-blue-600/5', border: 'border-blue-500/20 hover:border-blue-500/40' },
     { id: 'learn', name: 'Learn', desc: 'Adaptive learning path', icon: <RefreshCw className="w-8 h-8 text-purple-400 group-hover:rotate-180 transition-transform duration-500" />, href: '/learn', bg: 'from-purple-500/10 to-purple-600/5', border: 'border-purple-500/20 hover:border-purple-500/40' },
+    { id: 'speaking', name: 'Speaking', desc: 'Coming soon', disabled: true, icon: <Mic className="w-8 h-8 text-rose-400 group-hover:scale-110 transition-transform" />, href: '/speaking', bg: 'from-rose-500/10 to-rose-600/5', border: 'border-rose-500/20 hover:border-rose-500/40' },
+    { id: 'listening', name: 'Listening', desc: 'Train your ears', icon: <Headphones className="w-8 h-8 text-amber-400 group-hover:scale-110 transition-transform" />, href: '/listening', bg: 'from-amber-500/10 to-amber-600/5', border: 'border-amber-500/20 hover:border-amber-500/40' },
     { id: 'test', name: 'Test', desc: 'Evaluate your knowledge', icon: <FileText className="w-8 h-8 text-indigo-400 group-hover:scale-110 transition-transform" />, href: '/test', bg: 'from-indigo-500/10 to-indigo-600/5', border: 'border-indigo-500/20 hover:border-indigo-500/40' },
     { id: 'match', name: 'Match', desc: 'Race against time', icon: <Copy className="w-8 h-8 text-cyan-400 group-hover:scale-110 transition-transform" />, href: '/match', bg: 'from-cyan-500/10 to-cyan-600/5', border: 'border-cyan-500/20 hover:border-cyan-500/40' },
   ];
@@ -179,12 +181,13 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
           <div className="h-[1px] flex-1 bg-gradient-to-r from-white/10 to-transparent"></div>
         </div>
         
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4">
           {GAME_MODES.map((mode) => (
             <button
               key={mode.id}
-              onClick={() => handleModeClick(mode)}
-              className={`group relative overflow-hidden bg-gradient-to-br ${mode.bg} backdrop-blur-xl border ${mode.border} hover:bg-card/80 p-5 rounded-3xl transition-all duration-300 flex flex-col items-center justify-center text-center shadow-lg hover:shadow-[0_0_25px_rgba(255,255,255,0.1)] hover:-translate-y-1 cursor-pointer`}
+              onClick={() => !mode.disabled && handleModeClick(mode as any)}
+              disabled={mode.disabled}
+              className={`group relative overflow-hidden bg-gradient-to-br ${mode.bg} backdrop-blur-xl border ${mode.border} ${mode.disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-card/80 hover:shadow-[0_0_25px_rgba(255,255,255,0.1)] hover:-translate-y-1 cursor-pointer'} p-5 rounded-3xl transition-all duration-300 flex flex-col items-center justify-center text-center shadow-lg`}
             >
               <div className="w-16 h-16 rounded-full bg-background/50 border border-white/5 flex items-center justify-center mb-4 shadow-inner">
                 {mode.icon}
@@ -301,7 +304,7 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
                   </DialogTitle>
                 </DialogHeader>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <button 
                     onClick={() => router.push(`/flashcards/${set.id}`)}
                     className="flex flex-col items-center justify-center gap-3 p-6 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-2xl transition-all hover:scale-105 group"
@@ -316,6 +319,14 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
                   >
                     <BookOpen className="w-8 h-8 text-purple-400 group-hover:animate-bounce" />
                     <span className="font-bold text-white">Learn</span>
+                  </button>
+
+                  <button 
+                    onClick={() => router.push(`/speaking/${set.id}`)}
+                    className="flex flex-col items-center justify-center gap-3 p-6 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-2xl transition-all hover:scale-105 group"
+                  >
+                    <Mic className="w-8 h-8 text-rose-400 group-hover:animate-bounce" />
+                    <span className="font-bold text-white">Speaking</span>
                   </button>
 
                   <button 
