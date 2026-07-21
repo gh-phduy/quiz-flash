@@ -422,7 +422,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
                   <Volume2 className="w-8 h-8" />
                 </button>
               </div>
-              <div className="flex-1 flex flex-col items-center justify-center p-8 gap-2">
+              <div className="flex-1 flex flex-col items-center justify-center p-8 gap-2 min-h-0 overflow-y-auto">
                 <h2 className="text-4xl md:text-5xl font-medium text-foreground text-center break-words">
                   {currentCard.term}
                 </h2>
@@ -432,7 +432,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
               </div>
               
               {/* Footer Front */}
-              <div className="h-14 w-full bg-[#b892ff]/90 rounded-b-2xl flex items-center justify-center gap-3 text-[#0a092d] font-semibold text-sm">
+              <div className="min-h-[3.5rem] py-2 w-full bg-[#b892ff]/90 rounded-b-2xl flex flex-wrap items-center justify-center gap-2 md:gap-3 text-[#0a092d] font-semibold text-xs md:text-sm px-4">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-bold border border-[#0a092d]/20 px-1.5 py-0.5 rounded shadow-sm bg-border">⌨</span>
                   Shortcut
@@ -458,12 +458,12 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
                 </button>
               </div>
               
-              <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-8 p-8">
+              <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-6 p-6 min-h-0 overflow-y-auto">
                 <h2 className="text-3xl md:text-4xl font-medium text-foreground text-center break-words">
                   {currentCard.definition}
                 </h2>
                 {currentCard.image_url && (
-                  <div className="w-48 h-48 md:w-64 md:h-64 relative rounded-xl overflow-hidden shadow-lg flex-shrink-0">
+                  <div className="w-32 h-32 md:w-48 md:h-48 relative rounded-xl overflow-hidden shadow-lg flex-shrink-0">
                     <Image 
                       src={currentCard.image_url} 
                       alt={currentCard.term}
@@ -475,7 +475,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
               </div>
               
               {/* Footer Back */}
-              <div className="h-14 w-full bg-[#b892ff]/90 rounded-b-2xl flex items-center justify-center gap-3 text-[#0a092d] font-semibold text-sm">
+              <div className="min-h-[3.5rem] py-2 w-full bg-[#b892ff]/90 rounded-b-2xl flex flex-wrap items-center justify-center gap-2 md:gap-3 text-[#0a092d] font-semibold text-xs md:text-sm px-4">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-bold border border-[#0a092d]/20 px-1.5 py-0.5 rounded shadow-sm bg-border">⌨</span>
                   Shortcut
