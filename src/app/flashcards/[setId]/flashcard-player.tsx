@@ -153,6 +153,9 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
   }, []);
 
   const handlePointerDown = (e: React.PointerEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('button')) return; // Ignore if clicking a button (like the speaker)
+
     dragStartX.current = e.clientX;
     e.currentTarget.setPointerCapture(e.pointerId);
   };
@@ -387,7 +390,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
             className={`w-full h-full relative transition-transform duration-500 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateX(180deg)]' : ''}`}
           >
             {/* Front Side */}
-            <div className="absolute inset-0 w-full h-full bg-card rounded-2xl shadow-xl flex flex-col [backface-visibility:hidden]">
+            <div className="absolute inset-0 w-full h-full bg-card rounded-2xl shadow-xl flex flex-col [backface-visibility:hidden] select-none">
               <div className="flex justify-between items-center p-6 text-muted-foreground">
                 <button className="flex items-center gap-2 hover:text-foreground transition">
                   <Lightbulb className="w-5 h-5" />
@@ -425,7 +428,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
             </div>
 
             {/* Back Side */}
-            <div className="absolute inset-0 w-full h-full bg-card rounded-2xl shadow-xl flex flex-col [transform:rotateX(180deg)] [backface-visibility:hidden]">
+            <div className="absolute inset-0 w-full h-full bg-card rounded-2xl shadow-xl flex flex-col [transform:rotateX(180deg)] [backface-visibility:hidden] select-none">
               <div className="flex justify-between items-center p-6 text-muted-foreground">
                 <div />
                 <button 
