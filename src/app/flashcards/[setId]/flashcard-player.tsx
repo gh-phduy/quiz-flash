@@ -299,6 +299,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
                 setIsFlipped(false);
                 setStartTime(Date.now());
                 setEvaluation(null);
+                setSlideDirection(null);
                 cardReviewsRef.current = [];
               }}
               className="px-8 py-3.5 bg-[#4255ff] text-white font-bold rounded-xl hover:bg-[#5b6aff] transition shadow-[0_0_20px_rgba(66,85,255,0.3)] hover:shadow-[0_0_30px_rgba(66,85,255,0.5)] hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full sm:w-auto"
