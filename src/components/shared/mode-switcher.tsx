@@ -7,8 +7,6 @@ import {
   FileText, 
   Copy, 
   Home, 
-  Search,
-  BookOpen,
   Mic,
   Headphones
 } from 'lucide-react';
@@ -20,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export type GameMode = 'Flashcards' | 'Test' | 'Match' | 'Learn' | 'Speaking' | 'Listening';
+export type GameMode = 'Flashcards' | 'Test' | 'Match' | 'Speaking' | 'Listening';
 
 interface ModeSwitcherProps {
   currentMode: GameMode;
@@ -35,7 +33,6 @@ export function ModeSwitcher({ currentMode, setId }: ModeSwitcherProps) {
       case 'Flashcards': return <Layers className={`${className} text-blue-400`} />;
       case 'Test': return <FileText className={`${className} text-indigo-400`} />;
       case 'Match': return <Copy className={`${className} text-cyan-400`} />;
-      case 'Learn': return <BookOpen className={`${className} text-purple-400`} />;
       case 'Speaking': return <Mic className={`${className} text-rose-400`} />;
       case 'Listening': return <Headphones className={`${className} text-amber-400`} />;
     }
@@ -46,7 +43,6 @@ export function ModeSwitcher({ currentMode, setId }: ModeSwitcherProps) {
       case 'Flashcards': return 'bg-blue-500/20';
       case 'Test': return 'bg-indigo-500/20';
       case 'Match': return 'bg-cyan-500/20';
-      case 'Learn': return 'bg-purple-500/20';
       case 'Speaking': return 'bg-rose-500/20';
       case 'Listening': return 'bg-amber-500/20';
     }
@@ -88,14 +84,6 @@ export function ModeSwitcher({ currentMode, setId }: ModeSwitcherProps) {
         >
           <Copy className="w-5 h-5 text-cyan-400" />
           <span className="font-bold text-[15px]">Match</span>
-        </DropdownMenuItem>
-
-        <DropdownMenuItem 
-          onClick={() => router.push(`/flashcards/${setId}/learn`)}
-          className={`gap-3 py-3 px-3 cursor-pointer rounded-lg transition-colors text-foreground focus:!text-foreground focus:!bg-border hover:!text-foreground hover:!bg-border ${currentMode === 'Learn' ? 'bg-white/5' : ''}`}
-        >
-          <BookOpen className="w-5 h-5 text-purple-400" />
-          <span className="font-bold text-[15px]">Learn</span>
         </DropdownMenuItem>
 
         <DropdownMenuItem 

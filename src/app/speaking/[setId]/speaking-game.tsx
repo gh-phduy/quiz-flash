@@ -2,12 +2,17 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mic, X, SkipForward, Home, RefreshCw, Trophy, CheckCircle2, XCircle } from 'lucide-react';
+import { 
+  Mic, Square, Volume2, VolumeX, Play, Pause, X, SkipForward, Home, RefreshCw, 
+  Trophy, CheckCircle2, XCircle, RotateCcw, ThumbsUp, ThumbsDown, Sparkles, Sliders 
+} from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { ModeSwitcher } from '@/components/shared/mode-switcher';
-import { useSpeechRecognition } from '@/hooks/use-speech-recognition';
+import { playAudio } from '@/lib/speech';
 import { recordStudyActivity } from '@/actions/study';
-
+import { recordBulkCardReviews } from '@/actions/review';
+import { logGameSession, checkNewCardsForSession } from '@/actions/game';
+import { NewWordsWarmup } from '@/components/shared/new-words-warmup';
 
 interface SetData {
   id: string;
@@ -18,6 +23,9 @@ interface CardData {
   id: string;
   term: string;
   definition: string;
+  phonetic?: string | null;
+  audio_url?: string | null;
+  image_url?: string | null;
 }
 
 interface SpeakingGameProps {
@@ -25,24 +33,7 @@ interface SpeakingGameProps {
   cards: CardData[];
 }
 
-// So sánh chuỗi
-function normalize(text: string) {
-  return text.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
-}
-
-function isMatch(spoken: string, target: string): boolean {
-  const s = normalize(spoken);
-  const t = normalize(target);
-  if (!s || !t) return false;
-  if (s === t) return true;
-  // "the cat" chứa "cat"
-  if (s.includes(t)) return true;
-  // Cho phép sai lệch nhỏ (VD: "cats" vs "cat")
-  if (t.includes(s) && Math.abs(t.length - s.length) <= 2) return true;
-  return false;
-}
-
-type Status = 'idle' | 'listening' | 'correct' | 'wrong';
+type StepState = 'ready' | 'recording' | 'recorded';
 
 export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
   const router = useRouter();
@@ -51,159 +42,204 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
   const [score, setScore] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [status, setStatus] = useState<Status>('idle');
-  const [heardText, setHeardText] = useState('');
 
-  // Refs để callback luôn đọc được state mới nhất
-  const statusRef = useRef(status);
-  const currentIndexRef = useRef(currentIndex);
-  const heardTextRef = useRef(heardText);
-  statusRef.current = status;
-  currentIndexRef.current = currentIndex;
-  heardTextRef.current = heardText;
+  // Card state
+  const [step, setStep] = useState<StepState>('ready');
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [userAudioUrl, setUserAudioUrl] = useState<string | null>(null);
+  const [isPlayingNative, setIsPlayingNative] = useState(false);
+  const [isPlayingUserAudio, setIsPlayingUserAudio] = useState(false);
 
-  const speech = useSpeechRecognition();
+  // Custom independent volume controls (0.0 to 1.0)
+  const [nativeVolume, setNativeVolume] = useState<number>(1.0);
+  const [userVolume, setUserVolume] = useState<number>(0.8);
 
-  // Đăng ký callback onResult: gọi mỗi khi trình duyệt nhận ra một đoạn text
+  // Refs for media recording & audio playback
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const userAudioRef = useRef<HTMLAudioElement | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const correctCardsRef = useRef<Set<string>>(new Set());
+  const [newCardsForWarmup, setNewCardsForWarmup] = useState<any[]>([]);
+  const [showWarmup, setShowWarmup] = useState(false);
+
+  const currentCard = cards[currentIndex];
+
+  // Check for new unreviewed cards on start
   useEffect(() => {
-    speech.setOnResult((text: string, isFinal: boolean) => {
-      if (statusRef.current === 'correct') return;
-
-      setHeardText(text);
-      heardTextRef.current = text;
-
-      const term = cards[currentIndexRef.current]?.term;
-      if (!term) return;
-
-      if (isMatch(text, term)) {
-        // ĐÚNG
-        setStatus('correct');
-        statusRef.current = 'correct';
-
-        confetti({
-          particleCount: 120,
-          spread: 80,
-          origin: { y: 0.6 },
-          colors: ['#4ade80', '#22c55e', '#16a34a'],
-        });
-
-        setScore(prev => prev + 1);
-
-        setTimeout(() => {
-          const next = currentIndexRef.current + 1;
-          if (next < cards.length) {
-            setCurrentIndex(next);
-            setStatus('idle');
-            statusRef.current = 'idle';
-            setHeardText('');
-            heardTextRef.current = '';
-          } else {
-            setIsFinished(true);
-          }
-        }, 1500);
-      } else if (isFinal) {
-        // SAI - trình duyệt đã chốt xong kết quả cuối cùng
-        setStatus('wrong');
-        statusRef.current = 'wrong';
-      }
-    });
-
-    // Đăng ký callback onEnd: gọi khi recognition KẾT THÚC (dù có kết quả hay không)
-    // ĐÂY LÀ CHỖ SỬA LỖI TREO: nếu recognition kết thúc mà status vẫn là 'listening',
-    // nghĩa là không có kết quả nào được trả về hoặc kết quả interim chưa kịp chấm.
-    // Ta sẽ kiểm tra và cập nhật status cho phù hợp.
-    speech.setOnEnd((finalTranscript: string) => {
-      if (statusRef.current === 'correct') return; // Đã xử lý rồi
-
-      if (statusRef.current === 'listening') {
-        if (finalTranscript) {
-          // Có text nhưng chưa chấm (interim chưa kịp match) → chấm lại lần cuối
-          const term = cards[currentIndexRef.current]?.term;
-          if (term && isMatch(finalTranscript, term)) {
-            setStatus('correct');
-            statusRef.current = 'correct';
-            confetti({
-              particleCount: 120,
-              spread: 80,
-              origin: { y: 0.6 },
-              colors: ['#4ade80', '#22c55e', '#16a34a'],
-            });
-            setScore(prev => prev + 1);
-            setTimeout(() => {
-              const next = currentIndexRef.current + 1;
-              if (next < cards.length) {
-                setCurrentIndex(next);
-                setStatus('idle');
-                statusRef.current = 'idle';
-                setHeardText('');
-                heardTextRef.current = '';
-              } else {
-                setIsFinished(true);
-              }
-            }, 1500);
-          } else {
-            // Có text nhưng sai
-            setStatus('wrong');
-            statusRef.current = 'wrong';
-          }
-        } else {
-          // Không nghe được gì cả → về idle
-          setStatus('idle');
-          statusRef.current = 'idle';
+    if (cards && cards.length > 0) {
+      checkNewCardsForSession(cards.map(c => c.id)).then(unreviewed => {
+        if (unreviewed && unreviewed.length > 0) {
+          setNewCardsForWarmup(unreviewed);
+          setShowWarmup(true);
         }
-      }
-    });
-  }, [cards, speech]);
+      });
+    }
+  }, [cards]);
 
-  // Lưu kết quả
+  // Clean up audio URL and reset states when changing cards
+  useEffect(() => {
+    if (userAudioUrl) {
+      URL.revokeObjectURL(userAudioUrl);
+    }
+    setUserAudioUrl(null);
+    setStep('ready');
+    setRecordingTime(0);
+    setIsPlayingNative(false);
+    setIsPlayingUserAudio(false);
+
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+  }, [currentIndex]);
+
+  // Save final results & trigger confetti ONLY on session end
   useEffect(() => {
     if (!isFinished) return;
+
+    // Fire confetti once when entire lesson is completed!
+    confetti({
+      particleCount: 150,
+      spread: 80,
+      origin: { y: 0.6 },
+      colors: ['#f43f5e', '#fb7185', '#34d399', '#60a5fa']
+    });
+
     (async () => {
       setIsSaving(true);
       try {
-        const accuracy = Math.round((score / cards.length) * 100);
+        const accuracy = cards.length > 0 ? Math.round((score / cards.length) * 100) : 0;
         const xp = Math.round(score * 10);
-        await recordStudyActivity(set.id, xp, cards.length, 'speaking');
+        
+        const reviews = cards.map(c => ({
+          cardId: c.id,
+          quality: correctCardsRef.current.has(c.id) ? 4 : 1
+        }));
+
+        await Promise.all([
+          recordStudyActivity(set.id, xp, cards.length, 'speaking'),
+          recordBulkCardReviews(reviews, 'speaking'),
+          logGameSession({
+            setId: set.id,
+            mode: 'speaking',
+            totalCards: cards.length,
+            correctCount: score,
+            incorrectCount: cards.length - score,
+            pointsEarned: xp
+          })
+        ]);
       } catch (e) {
-        console.warn('Lỗi khi lưu kết quả:', e);
+        console.warn('Lỗi khi lưu kết quả Speaking:', e);
       } finally {
         setIsSaving(false);
       }
     })();
-  }, [isFinished, score, cards.length, set.id]);
+  }, [isFinished, score, cards, set.id]);
 
-  const handleMicClick = () => {
-    if (status === 'correct') return;
-    if (speech.isListening) {
-      speech.stop();
-    } else {
-      setStatus('listening');
-      statusRef.current = 'listening';
-      setHeardText('');
-      heardTextRef.current = '';
-      speech.start();
+  // Start Voice Recording
+  const startRecording = async () => {
+    try {
+      audioChunksRef.current = [];
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const url = URL.createObjectURL(audioBlob);
+        setUserAudioUrl(url);
+        setStep('recorded');
+
+        // Stop media stream tracks
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setStep('recording');
+      setRecordingTime(0);
+
+      timerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+
+    } catch (err) {
+      console.error('Microphone access error:', err);
+      alert('Vui lòng cho phép quyền truy cập Micro trên trình duyệt để thu âm.');
     }
   };
 
-  const handleSkip = () => {
-    speech.stop();
-    const next = currentIndex + 1;
-    if (next < cards.length) {
-      setCurrentIndex(next);
-      setStatus('idle');
-      statusRef.current = 'idle';
-      setHeardText('');
-      heardTextRef.current = '';
+  // Stop Voice Recording
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+  };
+
+  // Play Native Audio with Native Volume
+  const handlePlayNative = () => {
+    if (!currentCard) return;
+    setIsPlayingNative(true);
+    playAudio(currentCard.audio_url, currentCard.term, nativeVolume);
+    setTimeout(() => {
+      setIsPlayingNative(false);
+    }, 1500);
+  };
+
+  // Play User Recorded Audio with User Volume
+  const handlePlayUserAudio = () => {
+    if (!userAudioUrl) return;
+
+    if (userAudioRef.current) {
+      userAudioRef.current.pause();
+    }
+
+    const audio = new Audio(userAudioUrl);
+    audio.volume = Math.max(0, Math.min(1, userVolume));
+    userAudioRef.current = audio;
+    setIsPlayingUserAudio(true);
+
+    audio.onended = () => {
+      setIsPlayingUserAudio(false);
+    };
+
+    audio.play().catch(e => {
+      console.error('Error playing user audio:', e);
+      setIsPlayingUserAudio(false);
+    });
+  };
+
+  // Self Rating: Correct / Good (No confetti on single card)
+  const handleRateCorrect = () => {
+    if (currentCard) {
+      correctCardsRef.current.add(currentCard.id);
+    }
+    setScore(prev => prev + 1);
+    handleNextCard();
+  };
+
+  // Self Rating: Incorrect / Needs Work
+  const handleRateIncorrect = () => {
+    handleNextCard();
+  };
+
+  const handleNextCard = () => {
+    const nextIdx = currentIndex + 1;
+    if (nextIdx < cards.length) {
+      setCurrentIndex(nextIdx);
     } else {
       setIsFinished(true);
     }
-  };
-
-  const handleRetry = () => {
-    setStatus('idle');
-    statusRef.current = 'idle';
-    setHeardText('');
-    heardTextRef.current = '';
   };
 
   const handleRestart = () => {
@@ -211,64 +247,68 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
     setScore(0);
     setIsFinished(false);
     setIsSaving(false);
-    setStatus('idle');
-    statusRef.current = 'idle';
-    setHeardText('');
-    heardTextRef.current = '';
+    setStep('ready');
+    correctCardsRef.current.clear();
   };
 
-  // ===== TRÌNH DUYỆT KHÔNG HỖ TRỢ =====
-  if (!speech.isSupported) {
+  if (showWarmup && newCardsForWarmup.length > 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-background text-foreground">
-        <XCircle className="w-16 h-16 text-rose-500 mb-4" />
-        <h2 className="text-2xl font-bold text-rose-400 mb-2">Trình duyệt không hỗ trợ</h2>
-        <p className="text-muted-foreground max-w-md">
-          Vui lòng sử dụng <strong>Google Chrome</strong> hoặc <strong>Microsoft Edge</strong> để sử dụng tính năng luyện phát âm.
-        </p>
-        <button onClick={() => router.push('/')} className="mt-8 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-bold transition">
-          Quay về trang chủ
-        </button>
-      </div>
+      <NewWordsWarmup
+        newCards={newCardsForWarmup}
+        allSetCards={cards}
+        onComplete={() => setShowWarmup(false)}
+        onSkip={() => setShowWarmup(false)}
+      />
     );
   }
 
-  // ===== MÀN HÌNH KẾT QUẢ =====
+  // ===== RESULT SCREEN =====
   if (isFinished) {
     const accuracy = cards.length > 0 ? Math.round((score / cards.length) * 100) : 0;
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-6 relative overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-rose-500/10 rounded-full blur-[120px] pointer-events-none" />
+
         {isSaving && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="w-12 h-12 border-4 border-rose-500/20 border-t-rose-500 rounded-full animate-spin" />
           </div>
         )}
+
         <div className="w-full max-w-2xl bg-card/40 backdrop-blur-xl border border-white/10 rounded-3xl p-10 shadow-2xl relative z-10 flex flex-col items-center">
-          <div className="w-24 h-24 bg-gradient-to-br from-rose-400 to-rose-600 rounded-full flex items-center justify-center mb-6 shadow-lg">
+          <div className="w-24 h-24 bg-gradient-to-br from-rose-400 to-rose-600 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(244,63,94,0.4)]">
             <Trophy className="w-12 h-12 text-white" />
           </div>
+
           <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/80 mb-2">
-            Awesome Job!
+            Awesome Practice!
           </h1>
           <p className="text-lg text-muted-foreground mb-8 text-center max-w-md">
-            You completed the speaking practice!
+            You completed the speaking self-evaluation!
           </p>
+
           <div className="grid grid-cols-2 gap-4 w-full mb-10">
             <div className="bg-background/50 border border-white/5 rounded-2xl p-6 flex flex-col items-center">
               <span className="text-muted-foreground font-semibold mb-1">Accuracy</span>
               <span className="text-4xl font-black text-rose-400">{accuracy}%</span>
             </div>
             <div className="bg-background/50 border border-white/5 rounded-2xl p-6 flex flex-col items-center">
-              <span className="text-muted-foreground font-semibold mb-1">Correct</span>
+              <span className="text-muted-foreground font-semibold mb-1">Good Pronunciation</span>
               <span className="text-4xl font-black text-emerald-400">{score}/{cards.length}</span>
             </div>
           </div>
+
           <div className="flex flex-col sm:flex-row gap-4 w-full">
-            <button onClick={handleRestart} className="flex-1 px-8 py-4 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(244,63,94,0.3)] hover:shadow-[0_0_30px_rgba(244,63,94,0.5)] flex items-center justify-center gap-2">
+            <button
+              onClick={handleRestart}
+              className="flex-1 px-8 py-4 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(244,63,94,0.3)] hover:shadow-[0_0_30px_rgba(244,63,94,0.5)] flex items-center justify-center gap-2"
+            >
               <RefreshCw className="w-5 h-5" /> Practice Again
             </button>
-            <button onClick={() => router.push('/')} className="flex-1 px-8 py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl transition-all border border-white/10 flex items-center justify-center gap-2">
+            <button
+              onClick={() => router.push('/')}
+              className="flex-1 px-8 py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl transition-all border border-white/10 flex items-center justify-center gap-2"
+            >
               <Home className="w-5 h-5" /> Back to Home
             </button>
           </div>
@@ -277,128 +317,222 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
     );
   }
 
-  // ===== MÀN HÌNH CHÍNH =====
-  const currentCard = cards[currentIndex];
-
-  const bgClass =
-    status === 'correct' ? 'bg-emerald-500/10' :
-    status === 'wrong' ? 'bg-rose-500/10' :
-    speech.isListening ? 'bg-blue-500/10' :
-    'bg-transparent';
-
-  const micBtnClass =
-    status === 'correct'
-      ? 'bg-emerald-500 text-white scale-110 shadow-[0_0_40px_rgba(52,211,153,0.6)]'
-      : speech.isListening
-        ? 'bg-blue-500 text-white scale-95 shadow-[0_0_30px_rgba(59,130,246,0.6)]'
-        : 'bg-[#0a092d] border-2 border-white/20 hover:border-white/40 text-white hover:scale-105';
-
-  // Xác định hiển thị Listening dựa trên THỰC TẾ speech.isListening, không phải status
-  const showListening = speech.isListening && status !== 'correct' && status !== 'wrong';
-
+  // ===== MAIN SPEAKING PRACTICE GAME SCREEN =====
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans overflow-hidden relative">
-      <div className={`absolute inset-0 transition-colors duration-700 ${bgClass}`} />
-
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 relative z-10">
+      <header className="flex items-center justify-between px-6 py-4 border-b border-white/5 relative z-10">
         <ModeSwitcher currentMode="Speaking" setId={set.id} />
-        <div className="flex flex-col items-center absolute left-1/2 -translate-x-1/2">
-          <span className="text-sm font-bold text-foreground mb-1">{currentIndex + 1} / {cards.length}</span>
-          <span className="text-sm font-bold text-muted-foreground">{set.title}</span>
+
+        <div className="flex items-center gap-2 font-mono text-sm font-bold bg-white/5 px-4 py-1.5 rounded-full border border-white/10">
+          <span className="text-rose-400">{currentIndex + 1}</span>
+          <span className="text-white/40">/</span>
+          <span className="text-white/80">{cards.length}</span>
         </div>
-        <button onClick={() => router.push('/')} className="text-muted-foreground hover:text-foreground transition cursor-pointer">
-          <X className="w-6 h-6" />
-        </button>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.push('/')}
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white transition"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
       </header>
 
-      {/* Main */}
-      <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 max-w-4xl mx-auto w-full relative z-10">
-        <div className="w-full bg-card/60 backdrop-blur-xl border border-white/10 rounded-3xl p-10 md:p-16 flex flex-col items-center justify-center min-h-[420px] shadow-2xl relative">
+      {/* Main Container */}
+      <main className="flex-1 flex flex-col items-center justify-center p-6 relative z-10 max-w-3xl mx-auto w-full">
+        {/* Flashcard Card */}
+        <div className="w-full bg-card/50 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col items-center text-center relative overflow-hidden">
+          {/* Top Tag */}
+          <div className="flex items-center gap-2 px-3.5 py-1 bg-rose-500/10 border border-rose-500/30 rounded-full mb-6">
+            <Mic className="w-3.5 h-3.5 text-rose-400" />
+            <span className="text-[11px] font-black uppercase tracking-wider text-rose-300">
+              Pronunciation Self-Assessment
+            </span>
+          </div>
 
-          {/* Từ vựng */}
-          <h2 className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-white/70 mb-10 text-center tracking-tight select-none">
+          {/* Optional Image */}
+          {currentCard.image_url && (
+            <div className="w-28 h-28 relative rounded-2xl overflow-hidden border border-white/10 mb-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={currentCard.image_url} alt={currentCard.term} className="w-full h-full object-cover" />
+            </div>
+          )}
+
+          {/* Term & Phonetic */}
+          <h2 className="text-4xl sm:text-5xl font-black text-white tracking-tight mb-2">
             {currentCard.term}
           </h2>
 
-          {/* Feedback */}
-          <div className="min-h-[80px] mb-6 flex flex-col items-center justify-center w-full">
+          {currentCard.phonetic && (
+            <p className="text-base font-mono text-muted-foreground mb-4">{currentCard.phonetic}</p>
+          )}
 
-            {status === 'correct' && (
-              <div className="flex items-center gap-2 text-emerald-400 font-bold text-xl animate-in zoom-in duration-300">
-                <CheckCircle2 className="w-6 h-6" />
-                <span>Correct! 🎉</span>
-              </div>
-            )}
+          {/* Definition Box */}
+          <div className="w-full p-4 rounded-2xl bg-white/5 border border-white/10 text-center mb-6">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-white/50 block mb-1">Meaning</span>
+            <p className="text-base font-bold text-white/90">{currentCard.definition}</p>
+          </div>
 
-            {status === 'wrong' && (
-              <div className="flex flex-col items-center text-center gap-2">
-                <div className="flex items-center gap-2 text-rose-400 font-bold text-lg">
-                  <XCircle className="w-5 h-5" />
-                  <span>Not quite right</span>
-                </div>
-                {heardText && (
-                  <span className="text-muted-foreground text-sm">
-                    Heard: <span className="text-white font-medium">&quot;{heardText}&quot;</span>
-                  </span>
-                )}
-                <button onClick={handleRetry} className="mt-2 px-5 py-2 bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 rounded-full text-sm font-bold transition cursor-pointer">
-                  Try again
+          {/* STATE 1: Ready to Record */}
+          {step === 'ready' && (
+            <div className="flex flex-col items-center space-y-4 w-full">
+              <button
+                onClick={startRecording}
+                className="w-24 h-24 rounded-full bg-gradient-to-tr from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 text-white flex items-center justify-center shadow-[0_0_40px_rgba(244,63,94,0.5)] hover:shadow-[0_0_50px_rgba(244,63,94,0.7)] hover:scale-105 active:scale-95 transition-all group"
+              >
+                <Mic className="w-10 h-10 group-hover:scale-110 transition-transform" />
+              </button>
+              <p className="text-xs font-bold text-muted-foreground">
+                Tap microphone to start recording your voice
+              </p>
+            </div>
+          )}
+
+          {/* STATE 2: Recording in progress */}
+          {step === 'recording' && (
+            <div className="flex flex-col items-center space-y-4 w-full">
+              <div className="relative">
+                <div className="absolute -inset-4 bg-rose-500/30 rounded-full blur-xl animate-ping" />
+                <button
+                  onClick={stopRecording}
+                  className="relative w-24 h-24 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-[0_0_50px_rgba(244,63,94,0.7)] hover:scale-105 active:scale-95 transition-all"
+                >
+                  <Square className="w-8 h-8 fill-current" />
                 </button>
               </div>
-            )}
 
-            {showListening && (
-              <div className="flex flex-col items-center gap-2">
-                <div className="flex items-center gap-2 text-blue-400 font-medium animate-pulse">
-                  <span>Listening</span>
-                  <span className="flex gap-1">
-                    <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                  </span>
-                </div>
-                {heardText && (
-                  <span className="text-white/70 text-base font-medium">&quot;{heardText}&quot;</span>
-                )}
+              <div className="flex items-center gap-2 text-rose-400 font-mono text-sm font-bold bg-rose-500/10 px-4 py-1.5 rounded-full border border-rose-500/30">
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                Recording... 0:0{recordingTime}s (Tap to stop)
               </div>
-            )}
+            </div>
+          )}
 
-            {speech.error && status !== 'correct' && (
-              <span className="text-rose-400 text-sm font-medium">{speech.error}</span>
-            )}
+          {/* STATE 3: Recorded -> Playback Comparison & Self Rating */}
+          {step === 'recorded' && (
+            <div className="w-full space-y-5 animate-in fade-in zoom-in duration-300">
+              {/* Audio Comparison Players with Independent Volume Sliders */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+                
+                {/* 1. Native Speaker Audio Box */}
+                <div className="p-4 bg-white/5 border border-white/10 rounded-2xl flex flex-col justify-between space-y-3">
+                  <button
+                    onClick={handlePlayNative}
+                    className="flex items-center justify-between w-full text-left group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 rounded-xl bg-blue-500/20 text-blue-400">
+                        {nativeVolume === 0 ? <VolumeX className="w-5 h-5 text-rose-400" /> : <Volume2 className="w-5 h-5" />}
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-white block">Native Standard</span>
+                        <span className="text-[10px] text-muted-foreground">Original Pronunciation</span>
+                      </div>
+                    </div>
+                    {isPlayingNative ? (
+                      <Pause className="w-5 h-5 text-blue-400 animate-pulse" />
+                    ) : (
+                      <Play className="w-5 h-5 text-white/50 group-hover:text-blue-400 transition" />
+                    )}
+                  </button>
 
-            {status === 'idle' && !speech.isListening && !speech.error && (
-              <span className="text-muted-foreground font-medium">Click the microphone and say the word</span>
-            )}
-          </div>
+                  {/* Native Volume Slider */}
+                  <div className="pt-2 border-t border-white/5 flex items-center gap-2 text-[11px] font-bold text-white/60">
+                    <Volume2 className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={nativeVolume}
+                      onChange={(e) => setNativeVolume(parseFloat(e.target.value))}
+                      className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                    />
+                    <span className="font-mono text-[10px] text-blue-300 w-8 text-right">
+                      {Math.round(nativeVolume * 100)}%
+                    </span>
+                  </div>
+                </div>
 
-          {/* Mic button */}
-          <div className="relative">
-            {speech.isListening && (
-              <>
-                <div className="absolute inset-0 bg-blue-500/20 rounded-full animate-ping" style={{ animationDuration: '2s' }} />
-                <div className="absolute inset-0 bg-blue-500/20 rounded-full animate-ping" style={{ animationDuration: '2s', animationDelay: '1s' }} />
-              </>
-            )}
-            <button
-              onClick={handleMicClick}
-              disabled={status === 'correct'}
-              className={`relative z-10 w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl cursor-pointer select-none ${micBtnClass}`}
-            >
-              <Mic className={`w-10 h-10 ${speech.isListening ? 'animate-pulse' : ''}`} />
-            </button>
-          </div>
+                {/* 2. User Recorded Audio Box */}
+                <div className="p-4 bg-white/5 border border-white/10 rounded-2xl flex flex-col justify-between space-y-3">
+                  <button
+                    onClick={handlePlayUserAudio}
+                    className="flex items-center justify-between w-full text-left group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 rounded-xl bg-rose-500/20 text-rose-400">
+                        {userVolume === 0 ? <VolumeX className="w-5 h-5 text-rose-400" /> : <Mic className="w-5 h-5" />}
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-white block">Your Recording</span>
+                        <span className="text-[10px] text-muted-foreground">Listen back to yourself</span>
+                      </div>
+                    </div>
+                    {isPlayingUserAudio ? (
+                      <Pause className="w-5 h-5 text-rose-400 animate-pulse" />
+                    ) : (
+                      <Play className="w-5 h-5 text-white/50 group-hover:text-rose-400 transition" />
+                    )}
+                  </button>
 
-          <p className="text-muted-foreground text-sm mt-6 select-none font-medium">
-            {speech.isListening ? 'Listening... speak now!' : 'Click to speak'}
-          </p>
+                  {/* User Recording Volume Slider */}
+                  <div className="pt-2 border-t border-white/5 flex items-center gap-2 text-[11px] font-bold text-white/60">
+                    <Mic className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={userVolume}
+                      onChange={(e) => setUserVolume(parseFloat(e.target.value))}
+                      className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-rose-500"
+                    />
+                    <span className="font-mono text-[10px] text-rose-300 w-8 text-right">
+                      {Math.round(userVolume * 100)}%
+                    </span>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Re-record Option */}
+              <div className="flex justify-center">
+                <button
+                  onClick={startRecording}
+                  className="text-xs font-bold text-muted-foreground hover:text-white flex items-center gap-1.5 transition"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" /> Re-record Audio
+                </button>
+              </div>
+
+              {/* Self-Rating Action Buttons */}
+              <div className="pt-4 border-t border-white/10 space-y-3">
+                <span className="text-xs font-bold text-white/60 uppercase tracking-wider block">
+                  How was your pronunciation?
+                </span>
+
+                <div className="grid grid-cols-2 gap-4 w-full">
+                  <button
+                    onClick={handleRateIncorrect}
+                    className="py-3.5 px-6 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 font-extrabold rounded-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                  >
+                    <ThumbsDown className="w-5 h-5" /> Needs Work
+                  </button>
+
+                  <button
+                    onClick={handleRateCorrect}
+                    className="py-3.5 px-6 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 font-extrabold rounded-2xl hover:scale-[1.02] active:scale-95 transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2"
+                  >
+                    <ThumbsUp className="w-5 h-5" /> Good / Correct
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-
-        {/* Skip */}
-        <button onClick={handleSkip} className="mt-8 flex items-center gap-2 text-muted-foreground hover:text-white transition-colors py-2 px-4 rounded-full hover:bg-white/5 font-semibold cursor-pointer">
-          Skip <SkipForward className="w-4 h-4" />
-        </button>
       </main>
     </div>
   );

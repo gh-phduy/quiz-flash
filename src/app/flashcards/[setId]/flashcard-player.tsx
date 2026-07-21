@@ -11,7 +11,8 @@ import { ModeSwitcher } from '@/components/shared/mode-switcher';
 import { playAudio } from '@/lib/speech';
 import { recordStudyActivity } from '@/actions/study';
 import { recordBulkCardReviews } from '@/actions/review';
-import { updateGameScores } from '@/actions/game';
+import { updateGameScores, logGameSession, checkNewCardsForSession } from '@/actions/game';
+import { NewWordsWarmup } from '@/components/shared/new-words-warmup';
 import { getSmartEvaluation, EvaluationResult } from '@/utils/evaluation';
 
 interface SetData {
@@ -55,6 +56,20 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
 
   const [dragOffset, setDragOffset] = useState(0);
   const dragStartX = useRef<number | null>(null);
+
+  const [newCardsForWarmup, setNewCardsForWarmup] = useState<any[]>([]);
+  const [showWarmup, setShowWarmup] = useState(false);
+
+  useEffect(() => {
+    if (cards && cards.length > 0) {
+      checkNewCardsForSession(cards.map(c => c.id)).then(unreviewed => {
+        if (unreviewed && unreviewed.length > 0) {
+          setNewCardsForWarmup(unreviewed);
+          setShowWarmup(true);
+        }
+      });
+    }
+  }, [cards]);
 
   useEffect(() => {
     setStartTime(Date.now());
@@ -121,8 +136,17 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
         // Record activity
         const [res, bulkRes] = await Promise.all([
           recordStudyActivity(set.id, earned, cards.length, 'flashcards'),
-          recordBulkCardReviews(cardReviewsRef.current),
-          updateGameScores(correctCards, incorrectCards)
+          recordBulkCardReviews(cardReviewsRef.current, 'flashcards'),
+          updateGameScores(correctCards, incorrectCards),
+          logGameSession({
+            setId: set.id,
+            mode: 'flashcards',
+            totalCards: cards.length,
+            correctCount: finalKnown,
+            incorrectCount: finalLearning,
+            durationSeconds,
+            pointsEarned: earned
+          })
         ]);
         
         setIsSaving(false);
@@ -182,6 +206,17 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
     dragStartX.current = null;
     e.currentTarget.releasePointerCapture(e.pointerId);
   };
+
+  if (showWarmup && newCardsForWarmup.length > 0) {
+    return (
+      <NewWordsWarmup
+        newCards={newCardsForWarmup}
+        allSetCards={cards}
+        onComplete={() => setShowWarmup(false)}
+        onSkip={() => setShowWarmup(false)}
+      />
+    );
+  }
 
   // Xử lý phím tắt bàn phím
   useEffect(() => {

@@ -1,8 +1,9 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
+import { GameModeType } from '@/lib/sm2';
 
-export async function generateGameSession(setId: string, totalCardsToLearn: number) {
+export async function generateGameSession(setId: string, totalCardsToLearn: number = 20) {
   try {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -11,70 +12,63 @@ export async function generateGameSession(setId: string, totalCardsToLearn: numb
       return { success: false, error: 'Unauthorized' };
     }
 
-    // Tỉ lệ: 45% mức 5, 25% mức 4, 15% mức 3, 10% mức 2, 5% mức 1
-    let q5 = Math.round(totalCardsToLearn * 0.45);
-    let q4 = Math.round(totalCardsToLearn * 0.25);
-    let q3 = Math.round(totalCardsToLearn * 0.15);
-    let q2 = Math.round(totalCardsToLearn * 0.10);
-    let q1 = totalCardsToLearn - (q5 + q4 + q3 + q2);
+    // Try calling new Smart Waterfall RPC first
+    const { data: cards, error: rpcError } = await supabase.rpc('get_smart_waterfall_cards', {
+      p_set_id: setId,
+      p_user_id: user.id,
+      p_total_limit: totalCardsToLearn
+    });
 
-    const quotas = [
-      { level: 5, quota: q5 },
-      { level: 4, quota: q4 },
-      { level: 3, quota: q3 },
-      { level: 2, quota: q2 },
-      { level: 1, quota: q1 },
-    ];
-
-    let selectedCards: any[] = [];
-    let rolloverQuota = 0;
-
-    for (let i = 0; i < quotas.length; i++) {
-      const currentQuota = quotas[i].quota + rolloverQuota;
-      
-      if (currentQuota <= 0) continue;
-
-      const { data: cards, error } = await supabase.rpc('get_random_cards_by_weakness', {
-        p_set_id: setId,
-        p_user_id: user.id,
-        p_weakness_level: quotas[i].level,
-        p_limit: currentQuota
-      });
-
-      if (error) {
-        console.error('Error fetching cards for level ' + quotas[i].level, error);
-        continue;
-      }
-
-      if (cards && cards.length > 0) {
-        // Filter out cards that are already selected (just in case)
-        const uniqueCards = cards.filter((c: any) => !selectedCards.some(sc => sc.id === c.id));
-        selectedCards = [...selectedCards, ...uniqueCards];
-        
-        // Calculate if we got enough cards
-        const deficit = currentQuota - uniqueCards.length;
-        if (deficit > 0) {
-          rolloverQuota = deficit;
-        } else {
-          rolloverQuota = 0;
-        }
-      } else {
-        rolloverQuota = currentQuota;
-      }
+    if (!rpcError && cards && cards.length > 0) {
+      return { success: true, cards };
     }
 
-    // Nếu lặp hết thác nước từ 5->1 mà vẫn còn thiếu (do bộ thẻ quá ít), ta có thể lặp ngược lại từ 1->5
-    // Nhưng vì ta chỉ lấy tối đa totalCardsToLearn, và logic này đã gom gần như hết các thẻ có thể,
-    // ta cứ trả về số lượng hiện tại (vì số lượng tối đa không vượt qua tổng số thẻ).
-    
-    // Xáo trộn lần cuối để không bị tình trạng mức 5 luôn xuất hiện đầu tiên
-    const shuffled = selectedCards.sort(() => 0.5 - Math.random());
+    // Fallback: If RPC error or 0 cards returned (e.g. migration not run yet), fetch directly from cards table
+    const { data: fallbackCards, error: fetchError } = await supabase
+      .from('cards')
+      .select('*')
+      .eq('set_id', setId)
+      .limit(totalCardsToLearn);
 
+    if (fetchError) {
+      return { success: false, error: fetchError.message };
+    }
+
+    const shuffled = (fallbackCards || []).sort(() => 0.5 - Math.random());
     return { success: true, cards: shuffled };
 
   } catch (error: any) {
     console.error('Failed to generate game session:', error);
     return { success: false, error: error.message };
+  }
+}
+
+export async function checkNewCardsForSession(cardIds: string[]) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || !cardIds || cardIds.length === 0) return [];
+
+    const { data: reviews } = await supabase
+      .from('card_reviews')
+      .select('card_id')
+      .eq('user_id', user.id)
+      .in('card_id', cardIds);
+
+    const reviewedSet = new Set((reviews || []).map(r => r.card_id));
+    const newCardIds = cardIds.filter(id => !reviewedSet.has(id));
+
+    if (newCardIds.length === 0) return [];
+
+    const { data: newCards } = await supabase
+      .from('cards')
+      .select('*')
+      .in('id', newCardIds);
+
+    return newCards || [];
+  } catch (error) {
+    console.error('Error checking new cards for session:', error);
+    return [];
   }
 }
 
@@ -105,6 +99,92 @@ export async function updateGameScores(correctCardIds: string[], incorrectCardId
     return { success: true };
   } catch (error: any) {
     console.error('Failed to update game scores (exception):', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function logGameSession(params: {
+  setId: string;
+  mode: GameModeType;
+  totalCards: number;
+  correctCount: number;
+  incorrectCount: number;
+  durationSeconds?: number;
+  newCardsCount?: number;
+  reviewCardsCount?: number;
+  pointsEarned?: number;
+}) {
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const accuracyPercent = params.totalCards > 0 
+      ? Math.round((params.correctCount / params.totalCards) * 100)
+      : 0;
+
+    // 1. Insert into game_sessions table
+    const { error: sessionError } = await supabase
+      .from('game_sessions')
+      .insert({
+        user_id: user.id,
+        set_id: params.setId,
+        mode: params.mode,
+        total_cards: params.totalCards,
+        correct_count: params.correctCount,
+        incorrect_count: params.incorrectCount,
+        accuracy_percent: accuracyPercent,
+        duration_seconds: params.durationSeconds || 0,
+        new_cards_count: params.newCardsCount || 0,
+        review_cards_count: params.reviewCardsCount || 0,
+        points_earned: params.pointsEarned || 0
+      });
+
+    if (sessionError) {
+      console.error('Failed to log game session:', sessionError);
+    }
+
+    // 2. Upsert into daily_goals table for today
+    const todayStr = new Date().toISOString().split('T')[0];
+    
+    const { data: existingGoal } = await supabase
+      .from('daily_goals')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('goal_date', todayStr)
+      .maybeSingle();
+
+    const actualNew = (existingGoal?.actual_new_words || 0) + (params.newCardsCount || 0);
+    const actualReview = (existingGoal?.actual_review_words || 0) + (params.reviewCardsCount || 0);
+    const sessionsComp = (existingGoal?.sessions_completed || 0) + 1;
+    const studySecs = (existingGoal?.total_study_seconds || 0) + (params.durationSeconds || 0);
+
+    const { error: goalError } = await supabase
+      .from('daily_goals')
+      .upsert({
+        user_id: user.id,
+        goal_date: todayStr,
+        target_new_words: 167,
+        target_review_words: 100,
+        actual_new_words: actualNew,
+        actual_review_words: actualReview,
+        sessions_completed: sessionsComp,
+        total_study_seconds: studySecs
+      }, {
+        onConflict: 'user_id,goal_date'
+      });
+
+    if (goalError) {
+      console.error('Failed to update daily goals:', goalError);
+    }
+
+    return { success: true };
+
+  } catch (error: any) {
+    console.error('Exception in logGameSession:', error);
     return { success: false, error: error.message };
   }
 }

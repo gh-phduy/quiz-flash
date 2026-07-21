@@ -1,9 +1,13 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
-import { calculateSM2 } from '@/lib/sm2';
+import { calculateSM2, GameModeType } from '@/lib/sm2';
 
-export async function recordCardReview(cardId: string, quality: number) {
+export async function recordCardReview(
+  cardId: string, 
+  quality: number, 
+  mode?: GameModeType
+) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -23,15 +27,33 @@ export async function recordCardReview(cardId: string, quality: number) {
     const prevEF = currentReview?.easiness_factor ?? 2.5;
     const prevRepetitions = currentReview?.repetitions ?? 0;
     const prevIntervalDays = currentReview?.interval_days ?? 0;
-    const totalReviews = (currentReview?.total_reviews ?? 0) + 1;
-    const correctCount = (currentReview?.correct_count ?? 0) + (quality >= 3 ? 1 : 0);
+    const prevCorrectCount = currentReview?.correct_count ?? 0;
+    const prevTotalReviews = currentReview?.total_reviews ?? 0;
+    const prevStreakCorrect = currentReview?.streak_correct ?? 0;
+    const prevStreakIncorrect = currentReview?.streak_incorrect ?? 0;
+    const prevLastReviewedAt = currentReview?.last_reviewed_at ? new Date(currentReview.last_reviewed_at) : null;
+    const prevModeStats = currentReview?.mode_stats ?? {};
+
+    const totalReviews = prevTotalReviews + 1;
+    const correctCount = prevCorrectCount + (quality >= 3 ? 1 : 0);
     const incorrectCount = (currentReview?.incorrect_count ?? 0) + (quality < 3 ? 1 : 0);
 
-    // 2. Calculate new SM-2 state
-    const sm2 = calculateSM2(quality, prevEF, prevRepetitions, prevIntervalDays);
+    // 2. Calculate new SM-2 state with mastery_score & mode_stats
+    const sm2 = calculateSM2(
+      quality,
+      prevEF,
+      prevRepetitions,
+      prevIntervalDays,
+      prevCorrectCount,
+      prevTotalReviews,
+      prevStreakCorrect,
+      prevStreakIncorrect,
+      prevLastReviewedAt,
+      prevModeStats,
+      mode
+    );
 
     // 3. Upsert review record
-    const todayStr = new Date().toISOString().split('T')[0];
     const { error: upsertError } = await supabase
       .from('card_reviews')
       .upsert({
@@ -47,6 +69,10 @@ export async function recordCardReview(cardId: string, quality: number) {
         last_quality: quality,
         mastery_level: sm2.masteryLevel,
         weakness_level: sm2.weaknessLevel,
+        mastery_score: sm2.masteryScore,
+        streak_correct: sm2.streakCorrect,
+        streak_incorrect: sm2.streakIncorrect,
+        mode_stats: sm2.modeStats,
         last_reviewed_at: new Date().toISOString()
       }, {
         onConflict: 'user_id,card_id'
@@ -64,7 +90,10 @@ export async function recordCardReview(cardId: string, quality: number) {
   }
 }
 
-export async function recordBulkCardReviews(reviews: { cardId: string, quality: number }[]) {
+export async function recordBulkCardReviews(
+  reviews: { cardId: string; quality: number }[],
+  mode?: GameModeType
+) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -92,7 +121,6 @@ export async function recordBulkCardReviews(reviews: { cardId: string, quality: 
     }
 
     const currentMap = new Map((currentReviews || []).map(r => [r.card_id, r]));
-    const todayStr = new Date().toISOString().split('T')[0];
     const nowIso = new Date().toISOString();
 
     const upsertPayload = reviews.map(review => {
@@ -101,11 +129,30 @@ export async function recordBulkCardReviews(reviews: { cardId: string, quality: 
       const prevEF = current?.easiness_factor ?? 2.5;
       const prevRepetitions = current?.repetitions ?? 0;
       const prevIntervalDays = current?.interval_days ?? 0;
-      const totalReviews = (current?.total_reviews ?? 0) + 1;
-      const correctCount = (current?.correct_count ?? 0) + (review.quality >= 3 ? 1 : 0);
+      const prevCorrectCount = current?.correct_count ?? 0;
+      const prevTotalReviews = current?.total_reviews ?? 0;
+      const prevStreakCorrect = current?.streak_correct ?? 0;
+      const prevStreakIncorrect = current?.streak_incorrect ?? 0;
+      const prevLastReviewedAt = current?.last_reviewed_at ? new Date(current.last_reviewed_at) : null;
+      const prevModeStats = current?.mode_stats ?? {};
+
+      const totalReviews = prevTotalReviews + 1;
+      const correctCount = prevCorrectCount + (review.quality >= 3 ? 1 : 0);
       const incorrectCount = (current?.incorrect_count ?? 0) + (review.quality < 3 ? 1 : 0);
 
-      const sm2 = calculateSM2(review.quality, prevEF, prevRepetitions, prevIntervalDays);
+      const sm2 = calculateSM2(
+        review.quality,
+        prevEF,
+        prevRepetitions,
+        prevIntervalDays,
+        prevCorrectCount,
+        prevTotalReviews,
+        prevStreakCorrect,
+        prevStreakIncorrect,
+        prevLastReviewedAt,
+        prevModeStats,
+        mode
+      );
 
       return {
         user_id: user.id,
@@ -120,6 +167,10 @@ export async function recordBulkCardReviews(reviews: { cardId: string, quality: 
         last_quality: review.quality,
         mastery_level: sm2.masteryLevel,
         weakness_level: sm2.weaknessLevel,
+        mastery_score: sm2.masteryScore,
+        streak_correct: sm2.streakCorrect,
+        streak_incorrect: sm2.streakIncorrect,
+        mode_stats: sm2.modeStats,
         last_reviewed_at: nowIso
       };
     });
@@ -142,6 +193,31 @@ export async function recordBulkCardReviews(reviews: { cardId: string, quality: 
   }
 }
 
+export async function resetUserProgress() {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: 'User not authenticated' };
+    }
+
+    const { error } = await supabase.rpc('reset_user_study_progress', {
+      p_user_id: user.id
+    });
+
+    if (error) {
+      console.error('Error resetting user progress:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error in resetUserProgress:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 export async function getStatusDashboard(targetUserId?: string) {
   try {
     const supabase = await createClient();
@@ -160,12 +236,14 @@ export async function getStatusDashboard(targetUserId?: string) {
       profileResult,
       streakResult,
       hardestResult,
-      dueCountResult
+      dueCountResult,
+      gameSessionsResult,
+      dailyGoalResult
     ] = await Promise.all([
       // A. Get count of cards by mastery level and overall stats
       supabase
         .from('card_reviews')
-        .select('mastery_level, correct_count, incorrect_count, total_reviews, weakness_level')
+        .select('mastery_level, correct_count, incorrect_count, total_reviews, weakness_level, mastery_score, mode_stats')
         .eq('user_id', targetId),
         
       // B. User profile streak & points
@@ -182,11 +260,12 @@ export async function getStatusDashboard(targetUserId?: string) {
         .eq('user_id', targetId)
         .order('study_date', { ascending: true }),
 
-      // D. Top 10 hardest cards (lowest EF, must have been reviewed at least once)
+      // D. Top 10 hardest cards (lowest mastery_score)
       supabase
         .from('card_reviews')
         .select(`
           easiness_factor,
+          mastery_score,
           correct_count,
           incorrect_count,
           total_reviews,
@@ -199,7 +278,7 @@ export async function getStatusDashboard(targetUserId?: string) {
         `)
         .eq('user_id', targetId)
         .gt('total_reviews', 0)
-        .order('easiness_factor', { ascending: true })
+        .order('mastery_score', { ascending: true })
         .limit(10),
 
       // E. Number of due cards (next_review_date <= today)
@@ -207,13 +286,25 @@ export async function getStatusDashboard(targetUserId?: string) {
         .from('card_reviews')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', targetId)
-        .lte('next_review_date', todayStr)
+        .lte('next_review_date', todayStr),
+
+      // F. Recent Game Sessions (last 20)
+      supabase
+        .from('game_sessions')
+        .select('*')
+        .eq('user_id', targetId)
+        .order('created_at', { ascending: false })
+        .limit(20),
+
+      // G. Today's Daily Goal progress
+      supabase
+        .from('daily_goals')
+        .select('*')
+        .eq('user_id', targetId)
+        .eq('goal_date', todayStr)
+        .maybeSingle()
     ]);
 
-    // 1. Calculate mastery levels
-    if (reviewsResult.error) {
-      console.error('Error fetching card_reviews:', reviewsResult.error);
-    }
     const reviews = reviewsResult.data || [];
     const masteryBreakdown = {
       new: 0,
@@ -228,6 +319,15 @@ export async function getStatusDashboard(targetUserId?: string) {
       3: 0,
       4: 0,
       5: 0
+    };
+
+    // Mode-specific accuracy breakdown across all cards
+    const modePerformance: Record<string, { correct: number; total: number; accuracy: number }> = {
+      flashcards: { correct: 0, total: 0, accuracy: 0 },
+      listening: { correct: 0, total: 0, accuracy: 0 },
+      speaking: { correct: 0, total: 0, accuracy: 0 },
+      test: { correct: 0, total: 0, accuracy: 0 },
+      match: { correct: 0, total: 0, accuracy: 0 },
     };
     
     let totalCorrect = 0;
@@ -246,20 +346,34 @@ export async function getStatusDashboard(targetUserId?: string) {
 
       totalCorrect += r.correct_count;
       totalReviewsCount += r.total_reviews;
+
+      // Aggregate mode stats
+      if (r.mode_stats && typeof r.mode_stats === 'object') {
+        Object.entries(r.mode_stats).forEach(([modeKey, stats]: [string, any]) => {
+          if (modePerformance[modeKey] && stats) {
+            modePerformance[modeKey].correct += stats.correct || 0;
+            modePerformance[modeKey].total += stats.total || 0;
+          }
+        });
+      }
+    });
+
+    // Calculate accuracy percentages for modes
+    Object.keys(modePerformance).forEach(modeKey => {
+      const item = modePerformance[modeKey];
+      item.accuracy = item.total > 0 ? Math.round((item.correct / item.total) * 100) : 0;
     });
 
     const accuracyRate = totalReviewsCount > 0 
       ? Math.round((totalCorrect / totalReviewsCount) * 100) 
       : 0;
 
-    // 2. Fetch all cards to see if there are cards that are not in card_reviews (which are "new")
-    // Get sets created by user
+    // Fetch total cards across sets
     const { data: userSets } = await supabase
       .from('sets')
       .select('id')
       .eq('user_id', targetId);
       
-    // Get sets learned by user
     const { data: learnedSets } = await supabase
       .from('user_learned_sets')
       .select('set_id')
@@ -278,7 +392,6 @@ export async function getStatusDashboard(targetUserId?: string) {
       totalUserCards = count || 0;
     }
 
-    // Unreviewed cards count as "new" and "weakness level 5"
     const reviewedCardIds = new Set(reviews.map((r: any) => r.card_id));
     const unreviewedCount = Math.max(0, totalUserCards - reviewedCardIds.size);
     masteryBreakdown.new += unreviewedCount;
@@ -288,12 +401,24 @@ export async function getStatusDashboard(targetUserId?: string) {
       profile: profileResult.data,
       masteryBreakdown,
       weaknessBreakdown,
+      modePerformance,
       accuracyRate,
       totalReviewedCards: reviews.length,
+      totalUserCards,
       dueCount: dueCountResult.count || 0,
       streakHistory: streakResult.data || [],
+      recentSessions: gameSessionsResult.data || [],
+      dailyGoal: dailyGoalResult.data || {
+        target_new_words: 167,
+        target_review_words: 100,
+        actual_new_words: 0,
+        actual_review_words: 0,
+        sessions_completed: 0,
+        total_study_seconds: 0
+      },
       hardestCards: (hardestResult.data || []).map((h: any) => ({
         easinessFactor: h.easiness_factor,
+        masteryScore: h.mastery_score ?? 0,
         correctCount: h.correct_count,
         incorrectCount: h.incorrect_count,
         totalReviews: h.total_reviews,
@@ -320,14 +445,12 @@ export async function getUpcomingReviews(targetUserId?: string) {
     const today = new Date();
     const dates: string[] = [];
     
-    // Generate dates for the next 7 days
     for (let i = 0; i < 7; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() + i);
       dates.push(d.toISOString().split('T')[0]);
     }
 
-    // Query card reviews due in the next 7 days
     const { data } = await supabase
       .from('card_reviews')
       .select('next_review_date')
@@ -374,6 +497,7 @@ export async function getDueCardsToReview() {
         repetitions,
         interval_days,
         next_review_date,
+        mastery_score,
         card:cards (
           id,
           set_id,
@@ -387,7 +511,6 @@ export async function getDueCardsToReview() {
 
     if (!data) return [];
     
-    // Format the response
     return data.map((r: any) => ({
       ...r,
       card: Array.isArray(r.card) ? r.card[0] : r.card

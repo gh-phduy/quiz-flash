@@ -1,12 +1,13 @@
 import React from 'react';
-import { getStatusDashboard, getUpcomingReviews } from '@/actions/review';
+import { getStatusDashboard } from '@/actions/review';
 import { ActivityGraph } from '@/components/shared/activity-graph';
-import HardestWords from '../_components/hardest-words';
-import ChartsContainer from '../_components/charts-container';
-import { Trophy, Star, BookOpen, Clock, Target } from 'lucide-react';
+import { Trophy, Star, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import { UserAvatar } from '@/components/shared/user-avatar';
 import EditDisplayName from '../_components/edit-display-name';
+import ModePerformance from '../_components/mode-performance';
+import DailyGoalCard from '../_components/daily-goal-card';
+import ResetProgressButton from '../_components/reset-progress-button';
 import { createClient } from '@/utils/supabase/server';
 
 export const revalidate = 0; // Fresh stats on each load
@@ -23,7 +24,6 @@ export default async function UserStatusPage({ params }: PageProps) {
   const isOwner = user?.id === userId;
 
   const dashboard = await getStatusDashboard(userId);
-  const upcomingReviews = await getUpcomingReviews(userId);
 
   if (!dashboard) {
     return (
@@ -42,23 +42,17 @@ export default async function UserStatusPage({ params }: PageProps) {
 
   const {
     profile,
-    masteryBreakdown,
-    weaknessBreakdown,
-    accuracyRate,
-    totalReviewedCards,
-    dueCount,
+    modePerformance,
     streakHistory,
-    hardestCards
+    dailyGoal
   } = dashboard;
 
-  const cardsCount = masteryBreakdown.new + masteryBreakdown.learning + masteryBreakdown.reviewing + masteryBreakdown.mastered;
-  
   const displayName = profile?.full_name || profile?.email?.split('@')[0] || 'Student';
   const avatarUrl = profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.id || 'default'}`;
   const joinedDate = profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Recently';
 
   return (
-    <div className="w-full max-w-7xl mx-auto py-10 px-4 md:px-8 font-sans space-y-10">
+    <div className="w-full max-w-7xl mx-auto py-10 px-4 md:px-8 font-sans space-y-8">
       {/* Hidden SVG definition for icon gradients */}
       <svg width="0" height="0" className="absolute pointer-events-none">
         <defs>
@@ -71,7 +65,7 @@ export default async function UserStatusPage({ params }: PageProps) {
       </svg>
 
       {/* Header section with User Profile */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-4 border-b border-white/5">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-6 border-b border-white/10">
         <div className="flex items-center gap-5">
           <UserAvatar 
             src={avatarUrl}
@@ -119,76 +113,22 @@ export default async function UserStatusPage({ params }: PageProps) {
         </div>
       </div>
 
+      {/* Action Bar below header line */}
+      {isOwner && (
+        <div className="flex justify-end -mt-2">
+          <ResetProgressButton />
+        </div>
+      )}
+
+      {/* Daily Goal Target Section */}
+      <DailyGoalCard dailyGoal={dailyGoal} />
+
+      {/* Per-Mode Skill Breakdown */}
+      <ModePerformance modePerformance={modePerformance} />
+
       {/* Heatmap Section */}
       <div className="w-full">
         <ActivityGraph data={streakHistory} />
-      </div>
-
-      {/* Primary Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-        {/* Due Today */}
-        <div className="p-6 bg-gradient-to-br from-[#0a092d]/50 to-[#b892ff]/10 border border-white/10 rounded-3xl flex flex-col justify-between transition-all duration-300 hover:border-white/20 hover:shadow-[0_0_30px_rgba(184,146,255,0.15)] relative overflow-hidden group">
-          <div className="absolute -right-6 -top-6 w-24 h-24 bg-[#b892ff]/20 rounded-full blur-2xl group-hover:bg-[#b892ff]/30 transition-all" />
-          <div className="flex items-center justify-between text-muted-foreground relative z-10">
-            <span className="text-xs font-bold uppercase tracking-widest text-white/60">Due Today</span>
-            <Clock className="w-5 h-5 text-[#b892ff]" />
-          </div>
-          <div className="mt-6 relative z-10">
-            <span className="text-5xl font-extrabold font-mono text-[#b892ff] block tracking-tighter">
-              {dueCount}
-            </span>
-            <span className="text-[11px] text-white/50 font-bold mt-2 uppercase tracking-wider block">
-              Cards require immediate review
-            </span>
-          </div>
-        </div>
-
-        {/* Accuracy */}
-        <div className="p-6 bg-gradient-to-br from-[#0a092d]/50 to-[#9fa6ff]/10 border border-white/10 rounded-3xl flex flex-col justify-between transition-all duration-300 hover:border-white/20 hover:shadow-[0_0_30px_rgba(159,166,255,0.15)] relative overflow-hidden group">
-          <div className="absolute -right-6 -top-6 w-24 h-24 bg-[#9fa6ff]/20 rounded-full blur-2xl group-hover:bg-[#9fa6ff]/30 transition-all" />
-          <div className="flex items-center justify-between text-muted-foreground relative z-10">
-            <span className="text-xs font-bold uppercase tracking-widest text-white/60">Accuracy</span>
-            <Target className="w-5 h-5 text-[#9fa6ff]" />
-          </div>
-          <div className="mt-6 relative z-10">
-            <span className="text-5xl font-extrabold font-mono text-[#9fa6ff] block tracking-tighter">
-              {accuracyRate}%
-            </span>
-            <span className="text-[11px] text-white/50 font-bold mt-2 uppercase tracking-wider block">
-              Based on {totalReviewedCards} reviews
-            </span>
-          </div>
-        </div>
-
-        {/* Words Learned */}
-        <div className="p-6 bg-gradient-to-br from-[#0a092d]/50 to-[#4255ff]/10 border border-white/10 rounded-3xl flex flex-col justify-between transition-all duration-300 hover:border-white/20 hover:shadow-[0_0_30px_rgba(66,85,255,0.15)] relative overflow-hidden group">
-          <div className="absolute -right-6 -top-6 w-24 h-24 bg-[#4255ff]/20 rounded-full blur-2xl group-hover:bg-[#4255ff]/30 transition-all" />
-          <div className="flex items-center justify-between text-muted-foreground relative z-10">
-            <span className="text-xs font-bold uppercase tracking-widest text-white/60">Library Size</span>
-            <BookOpen className="w-5 h-5 text-[#4255ff]" />
-          </div>
-          <div className="mt-6 relative z-10">
-            <span className="text-5xl font-extrabold font-mono text-[#4255ff] block tracking-tighter">
-              {cardsCount}
-            </span>
-            <span className="text-[11px] text-white/50 font-bold mt-2 uppercase tracking-wider block">
-              Total vocabulary cards
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Analytics Charts Grid */}
-      <ChartsContainer 
-        weaknessBreakdown={weaknessBreakdown}
-        masteryBreakdown={masteryBreakdown}
-        upcomingReviews={upcomingReviews}
-      />
-
-      {/* Hardest Words List */}
-      <div className="w-full">
-        <HardestWords cards={hardestCards} />
       </div>
     </div>
   );

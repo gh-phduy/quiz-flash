@@ -14,7 +14,8 @@ import { Switch } from '@/components/ui/switch';
 import { ModeSwitcher } from '@/components/shared/mode-switcher';
 import { recordStudyActivity } from '@/actions/study';
 import { recordBulkCardReviews } from '@/actions/review';
-import { updateGameScores } from '@/actions/game';
+import { updateGameScores, logGameSession, checkNewCardsForSession } from '@/actions/game';
+import { NewWordsWarmup } from '@/components/shared/new-words-warmup';
 import {
   Select,
   SelectContent,
@@ -76,8 +77,11 @@ export default function TestGame({ set, cards }: TestGameProps) {
   const [correctCount, setCorrectCount] = useState(0);
   const [incorrectCount, setIncorrectCount] = useState(0);
 
+  const [newCardsForWarmup, setNewCardsForWarmup] = useState<any[]>([]);
+  const [showWarmup, setShowWarmup] = useState(false);
+
   // Focus only on building questions when user hits "Start test"
-  const startTest = () => {
+  const startTest = async () => {
     // Validate
     if (!useMultipleChoice && !useTrueFalse && !useMatching && !useWritten) {
       alert("Please select at least one question type.");
@@ -86,6 +90,12 @@ export default function TestGame({ set, cards }: TestGameProps) {
     
     // Generator
     const shuffledCards = [...cards].sort(() => Math.random() - 0.5).slice(0, questionCount);
+
+    const unreviewed = await checkNewCardsForSession(shuffledCards.map(c => c.id));
+    if (unreviewed && unreviewed.length > 0) {
+      setNewCardsForWarmup(unreviewed);
+      setShowWarmup(true);
+    }
     
     const newQuestions = shuffledCards.map((card, index) => {
       let promptText = '';
@@ -213,6 +223,17 @@ export default function TestGame({ set, cards }: TestGameProps) {
     });
     return Math.round((correct / questions.length) * 100);
   };
+
+  if (showWarmup && newCardsForWarmup.length > 0) {
+    return (
+      <NewWordsWarmup
+        newCards={newCardsForWarmup}
+        allSetCards={cards}
+        onComplete={() => setShowWarmup(false)}
+        onSkip={() => setShowWarmup(false)}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans overflow-y-auto">
@@ -617,8 +638,16 @@ export default function TestGame({ set, cards }: TestGameProps) {
 
               Promise.all([
                 recordStudyActivity(set.id, earned, Object.keys(cardQualities).length, 'test'),
-                recordBulkCardReviews(reviews),
-                updateGameScores(finalCorrect, finalIncorrect)
+                recordBulkCardReviews(reviews, 'test'),
+                updateGameScores(finalCorrect, finalIncorrect),
+                logGameSession({
+                  setId: set.id,
+                  mode: 'test',
+                  totalCards: Object.keys(cardQualities).length,
+                  correctCount: finalCorrect.length,
+                  incorrectCount: finalIncorrect.length,
+                  pointsEarned: earned
+                })
               ]);
             }}
             className="px-12 py-4 bg-[#4255ff] text-foreground text-lg font-bold rounded-full hover:bg-[#5b6aff] shadow-lg transition-transform hover:scale-105 active:scale-95"

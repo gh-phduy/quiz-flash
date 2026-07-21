@@ -7,7 +7,8 @@ import Image from 'next/image';
 import { ModeSwitcher } from '@/components/shared/mode-switcher';
 import { recordStudyActivity } from '@/actions/study';
 import { recordBulkCardReviews } from '@/actions/review';
-import { updateGameScores } from '@/actions/game';
+import { updateGameScores, logGameSession, checkNewCardsForSession } from '@/actions/game';
+import { NewWordsWarmup } from '@/components/shared/new-words-warmup';
 import { getMatchEvaluation, EvaluationResult } from '@/utils/evaluation';
 
 interface SetData {
@@ -93,17 +94,36 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
 
       Promise.all([
         recordStudyActivity(set.id, earned, playedCardIds.length, 'match'),
-        recordBulkCardReviews(reviews),
-        updateGameScores(correctCards, incorrectCards)
+        recordBulkCardReviews(reviews, 'match'),
+        updateGameScores(correctCards, incorrectCards),
+        logGameSession({
+          setId: set.id,
+          mode: 'match',
+          totalCards: playedCardIds.length,
+          correctCount: correctCards.length,
+          incorrectCount: incorrectCards.length,
+          durationSeconds: Math.round(timeMs / 1000),
+          pointsEarned: earned
+        })
       ]);
     }
   }, [isFinished, hasRecorded, timeMs, cards.length, set.id, mistakesPerCard, tiles]);
+
+  const [newCardsForWarmup, setNewCardsForWarmup] = useState<any[]>([]);
+  const [showWarmup, setShowWarmup] = useState(false);
 
   // Initialize Game
   const initGame = useCallback(() => {
     // Lấy tối đa 6 cặp thẻ ngẫu nhiên để không bị quá chật màn hình
     const shuffledCards = [...cards].sort(() => Math.random() - 0.5).slice(0, 6);
     
+    checkNewCardsForSession(shuffledCards.map(c => c.id)).then(unreviewed => {
+      if (unreviewed && unreviewed.length > 0) {
+        setNewCardsForWarmup(unreviewed);
+        setShowWarmup(true);
+      }
+    });
+
     let newTiles: TileData[] = [];
     
     shuffledCards.forEach(card => {
@@ -237,6 +257,17 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
   const formatTime = (ms: number) => {
     return (ms / 1000).toFixed(1);
   };
+
+  if (showWarmup && newCardsForWarmup.length > 0) {
+    return (
+      <NewWordsWarmup
+        newCards={newCardsForWarmup}
+        allSetCards={cards}
+        onComplete={() => setShowWarmup(false)}
+        onSkip={() => setShowWarmup(false)}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans overflow-hidden">

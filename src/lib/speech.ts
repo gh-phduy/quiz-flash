@@ -6,13 +6,11 @@ if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
   };
 }
 
-export function playAudio(audioUrl?: string | null, textToSpeak?: string | null) {
-  // Ignore audioUrl (dictionary APIs have different speakers, causing inconsistent voices).
-  // Force SpeechSynthesis for a single, consistent voice.
-  fallbackToSpeechSynthesis(textToSpeak);
+export function playAudio(audioUrl?: string | null, textToSpeak?: string | null, volume: number = 1.0) {
+  fallbackToSpeechSynthesis(textToSpeak, volume);
 }
 
-function fallbackToSpeechSynthesis(text?: string | null) {
+function fallbackToSpeechSynthesis(text?: string | null, volume: number = 1.0) {
   if (!text) return;
   if (!('speechSynthesis' in window)) {
     console.warn('SpeechSynthesis API not supported in this browser.');
@@ -26,12 +24,12 @@ function fallbackToSpeechSynthesis(text?: string | null) {
   utterance.lang = 'en-US';
   utterance.rate = 0.95; // Slightly slower for clear pronunciation
   utterance.pitch = 1.0;
+  utterance.volume = Math.max(0, Math.min(1, volume));
   
   const voices = window.speechSynthesis.getVoices();
   const englishVoices = voices.filter(v => v.lang.startsWith('en'));
   
   if (englishVoices.length > 0) {
-    // Prioritize clear US Male voices as requested previously, or clear standard US voices
     const preferredVoiceNames = [
       'Google US English', // Chrome
       'Microsoft David', // Windows US Male
@@ -45,7 +43,6 @@ function fallbackToSpeechSynthesis(text?: string | null) {
       preferredVoiceNames.some(name => v.name.includes(name))
     );
 
-    // Fallback if no specific voice is found
     if (!preferredVoice) {
       preferredVoice = englishVoices.find(v => v.lang === 'en-US' && v.name.toLowerCase().includes('male'))
         || englishVoices.find(v => v.lang === 'en-US') 

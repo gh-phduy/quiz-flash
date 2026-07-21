@@ -6,6 +6,9 @@ import { Headphones, X, SkipForward, Home, RefreshCw, Trophy, CheckCircle2, XCir
 import confetti from 'canvas-confetti';
 import { ModeSwitcher } from '@/components/shared/mode-switcher';
 import { recordStudyActivity } from '@/actions/study';
+import { recordBulkCardReviews } from '@/actions/review';
+import { logGameSession, checkNewCardsForSession } from '@/actions/game';
+import { NewWordsWarmup } from '@/components/shared/new-words-warmup';
 
 import { playAudio } from '@/lib/speech';
 
@@ -46,10 +49,25 @@ export default function ListeningGame({ set, cards }: ListeningGameProps) {
   const [userInput, setUserInput] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const correctCardsRef = useRef<Set<string>>(new Set());
   const currentCard = cards[currentIndex];
 
+  const [newCardsForWarmup, setNewCardsForWarmup] = useState<any[]>([]);
+  const [showWarmup, setShowWarmup] = useState(false);
+
   useEffect(() => {
-    if (!isFinished && currentCard) {
+    if (cards && cards.length > 0) {
+      checkNewCardsForSession(cards.map(c => c.id)).then(unreviewed => {
+        if (unreviewed && unreviewed.length > 0) {
+          setNewCardsForWarmup(unreviewed);
+          setShowWarmup(true);
+        }
+      });
+    }
+  }, [cards]);
+
+  useEffect(() => {
+    if (!isFinished && currentCard && !showWarmup) {
       playAudio(currentCard.audio_url, currentCard.term);
       setUserInput('');
       setStatus('idle');
@@ -60,7 +78,7 @@ export default function ListeningGame({ set, cards }: ListeningGameProps) {
         }
       }, 100);
     }
-  }, [currentIndex, isFinished, currentCard]);
+  }, [currentIndex, isFinished, currentCard, showWarmup]);
 
   // Save results
   useEffect(() => {
@@ -70,14 +88,31 @@ export default function ListeningGame({ set, cards }: ListeningGameProps) {
       try {
         const accuracy = Math.round((score / cards.length) * 100);
         const xp = Math.round(score * 10);
-        await recordStudyActivity(set.id, xp, cards.length, 'listening');
+        
+        const reviews = cards.map(c => ({
+          cardId: c.id,
+          quality: correctCardsRef.current.has(c.id) ? 4 : 1
+        }));
+
+        await Promise.all([
+          recordStudyActivity(set.id, xp, cards.length, 'listening'),
+          recordBulkCardReviews(reviews, 'listening'),
+          logGameSession({
+            setId: set.id,
+            mode: 'listening',
+            totalCards: cards.length,
+            correctCount: score,
+            incorrectCount: cards.length - score,
+            pointsEarned: xp
+          })
+        ]);
       } catch (e) {
         console.warn('Error saving results:', e);
       } finally {
         setIsSaving(false);
       }
     })();
-  }, [isFinished, score, cards.length, set.id]);
+  }, [isFinished, score, cards.length, set.id, cards]);
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -87,6 +122,9 @@ export default function ListeningGame({ set, cards }: ListeningGameProps) {
     const target = currentCard?.term || '';
     if (normalizeText(userInput) === normalizeText(target)) {
       setStatus('correct');
+      if (currentCard) {
+        correctCardsRef.current.add(currentCard.id);
+      }
       confetti({
         particleCount: 120,
         spread: 80,
@@ -128,6 +166,17 @@ export default function ListeningGame({ set, cards }: ListeningGameProps) {
     setStatus('idle');
     setUserInput('');
   };
+
+  if (showWarmup && newCardsForWarmup.length > 0) {
+    return (
+      <NewWordsWarmup
+        newCards={newCardsForWarmup}
+        allSetCards={cards}
+        onComplete={() => setShowWarmup(false)}
+        onSkip={() => setShowWarmup(false)}
+      />
+    );
+  }
 
   // ===== RESULT SCREEN =====
   if (isFinished) {
