@@ -463,12 +463,13 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
                   {currentCard.definition}
                 </h2>
                 {currentCard.image_url && (
-                  <div className="w-32 h-32 md:w-48 md:h-48 relative rounded-xl overflow-hidden shadow-lg flex-shrink-0">
+                  <div className="w-32 h-32 md:w-48 md:h-48 relative rounded-xl overflow-hidden shadow-lg flex-shrink-0 pointer-events-none select-none">
                     <Image 
                       src={currentCard.image_url} 
                       alt={currentCard.term}
                       fill
                       className="object-cover"
+                      draggable={false}
                     />
                   </div>
                 )}
