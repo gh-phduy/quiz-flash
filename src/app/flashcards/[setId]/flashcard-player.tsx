@@ -52,11 +52,24 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
   
   const cardReviewsRef = useRef<{cardId: string, quality: number}[]>([]);
 
+  const [dragOffset, setDragOffset] = useState(0);
+  const dragStartX = useRef<number | null>(null);
+
   useEffect(() => {
     setStartTime(Date.now());
   }, []);
 
   const currentCard = cards[currentIndex];
+
+  useEffect(() => {
+    if (currentCard && !isFinished) {
+      // Auto-play audio when card appears (wait for slide animation)
+      const timer = setTimeout(() => {
+        playAudio(currentCard.audio_url, currentCard.term);
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [currentIndex, currentCard, isFinished]);
 
   const handleNext = useCallback((status: 'known' | 'learning') => {
     // Record review for SM-2
@@ -138,6 +151,34 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
   const handleFlip = useCallback(() => {
     setIsFlipped(prev => !prev);
   }, []);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    dragStartX.current = e.clientX;
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (dragStartX.current === null) return;
+    setDragOffset(e.clientX - dragStartX.current);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (dragStartX.current === null) return;
+    
+    const isDrag = Math.abs(dragOffset) > 10;
+
+    if (dragOffset > 100) {
+      handleNext('known');
+    } else if (dragOffset < -100) {
+      handleNext('learning');
+    } else if (!isDrag) {
+      handleFlip();
+    }
+    
+    setDragOffset(0);
+    dragStartX.current = null;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  };
 
   // Xử lý phím tắt bàn phím
   useEffect(() => {
@@ -274,6 +315,10 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
       </div>
     );
   }
+  const dragStyle = dragStartX.current !== null ? {
+    transform: `translateX(${dragOffset}px) rotate(${dragOffset * 0.05}deg)`,
+    transition: 'none',
+  } : undefined;
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans overflow-hidden">
@@ -324,13 +369,18 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
 
         {/* Flashcard Container (3D perspective) */}
         <div 
-          className={`w-full max-w-[800px] aspect-[5/3] md:aspect-[2/1] perspective-[1000px] cursor-pointer transition-all duration-300 ease-in-out ${
+          key="flashcard-container"
+          className={`w-full max-w-[800px] aspect-[5/3] md:aspect-[2/1] perspective-[1000px] cursor-pointer transition-all duration-300 ease-in-out touch-none ${
             slideDirection === 'left' ? '-translate-x-[150%] -rotate-12 opacity-0' :
             slideDirection === 'right' ? 'translate-x-[150%] rotate-12 opacity-0' :
             slideDirection === 'reset' ? 'scale-90 opacity-0 duration-0 transition-none' :
             'translate-x-0 rotate-0 opacity-100 scale-100'
           }`}
-          onClick={handleFlip}
+          style={dragStyle}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
         >
           {/* Card Inner */}
           <div 
@@ -344,13 +394,13 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
                   <span className="text-sm font-bold">Get a hint</span>
                 </button>
                 <button 
-                  className="hover:text-foreground transition z-10 relative cursor-pointer"
+                  className="hover:bg-white/10 p-2 rounded-full transition z-10 relative cursor-pointer text-[#9fa6ff] hover:text-white"
                   onClick={(e) => {
                     e.stopPropagation();
                     playAudio(currentCard.audio_url, currentCard.term);
                   }}
                 >
-                  <Volume2 className="w-5 h-5" />
+                  <Volume2 className="w-8 h-8" />
                 </button>
               </div>
               <div className="flex-1 flex flex-col items-center justify-center p-8 gap-2">
@@ -379,13 +429,13 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
               <div className="flex justify-between items-center p-6 text-muted-foreground">
                 <div />
                 <button 
-                  className="hover:text-foreground transition z-10 relative cursor-pointer"
+                  className="hover:bg-white/10 p-2 rounded-full transition z-10 relative cursor-pointer text-[#9fa6ff] hover:text-white"
                   onClick={(e) => {
                     e.stopPropagation();
                     playAudio(null, currentCard.definition); // We usually don't have audio_url for definition, so use TTS
                   }}
                 >
-                  <Volume2 className="w-5 h-5" />
+                  <Volume2 className="w-8 h-8" />
                 </button>
               </div>
               
