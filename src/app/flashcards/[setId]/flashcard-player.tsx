@@ -375,7 +375,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
         {/* Flashcard Container (3D perspective) */}
         <div 
           key="flashcard-container"
-          className={`w-full max-w-[800px] aspect-[5/3] md:aspect-[2/1] perspective-[1000px] cursor-pointer transition-all duration-300 ease-in-out touch-none ${
+          className={`relative w-full max-w-[800px] aspect-[5/3] md:aspect-[2/1] perspective-[1000px] cursor-pointer transition-all duration-300 ease-in-out touch-none ${
             slideDirection === 'left' ? '-translate-x-[150%] -rotate-12 opacity-0' :
             slideDirection === 'right' ? 'translate-x-[150%] rotate-12 opacity-0' :
             slideDirection === 'reset' ? 'scale-90 opacity-0 duration-0 transition-none' :
@@ -387,24 +387,24 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
         >
+          {/* Stamps for Tinder-like effect - Placed OUTSIDE the flip container so they never mirror */}
+          <div 
+            className="absolute top-8 right-8 border-4 border-emerald-400 text-emerald-400 rounded-2xl px-6 py-2 text-4xl font-black uppercase tracking-widest z-50 pointer-events-none"
+            style={{ opacity: dragOffset > 20 ? Math.min((dragOffset - 20) / 40, 1) : 0, transform: 'rotate(15deg)' }}
+          >
+            KNOW
+          </div>
+          <div 
+            className="absolute top-8 left-8 border-4 border-orange-500 text-orange-500 rounded-2xl px-6 py-2 text-4xl font-black uppercase tracking-widest z-50 pointer-events-none"
+            style={{ opacity: dragOffset < -20 ? Math.min((Math.abs(dragOffset) - 20) / 40, 1) : 0, transform: 'rotate(-15deg)' }}
+          >
+            LEARNING
+          </div>
+
           {/* Card Inner */}
           <div 
             className={`w-full h-full relative transition-transform duration-500 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateX(180deg)]' : ''}`}
           >
-            {/* Stamps for Tinder-like effect */}
-            <div 
-              className="absolute top-8 right-8 border-4 border-emerald-400 text-emerald-400 rounded-2xl px-6 py-2 text-4xl font-black uppercase tracking-widest z-50 pointer-events-none"
-              style={{ opacity: dragOffset > 20 ? Math.min((dragOffset - 20) / 40, 1) : 0, transform: 'rotate(15deg)' }}
-            >
-              KNOW
-            </div>
-            <div 
-              className="absolute top-8 left-8 border-4 border-orange-500 text-orange-500 rounded-2xl px-6 py-2 text-4xl font-black uppercase tracking-widest z-50 pointer-events-none"
-              style={{ opacity: dragOffset < -20 ? Math.min((Math.abs(dragOffset) - 20) / 40, 1) : 0, transform: 'rotate(-15deg)' }}
-            >
-              LEARNING
-            </div>
-
             {/* Front Side */}
             <div className="absolute inset-0 w-full h-full bg-card rounded-2xl shadow-xl flex flex-col [backface-visibility:hidden] select-none">
               <div className="flex justify-between items-center p-6 text-muted-foreground">
