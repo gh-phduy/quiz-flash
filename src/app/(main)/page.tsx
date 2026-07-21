@@ -39,9 +39,9 @@ export default async function Home() {
       // 3. Fetch saved sets
       supabase
         .from('user_saved_sets')
-        .select('set_id, sets(*, cards(count), profiles!sets_user_id_fkey(id, email, avatar_url, full_name))')
+        .select('set_id, sets(*, cards(count))')
         .eq('user_id', user.id)
-        .order('saved_at', { ascending: false }),
+        .order('created_at', { ascending: false }),
         
       // 5. Fetch due reviews count
       supabase
@@ -54,16 +54,26 @@ export default async function Home() {
     profile = profileData;
     if (setsData) sets = setsData;
     
-    if (userSavedSets) {
-      savedSetIds = userSavedSets.map(s => s.set_id);
-      savedSets = userSavedSets.map(s => {
+    if (userSavedSets && !userSavedSets.error) {
+      savedSetIds = userSavedSets.map((s: any) => s.set_id);
+      
+      const rawSavedSets = userSavedSets.map((s: any) => {
         const setObj = Array.isArray(s.sets) ? s.sets[0] : s.sets;
-        if (!setObj) return null;
-        return {
-          ...setObj,
-          author: setObj.profiles || null
-        };
+        return setObj;
       }).filter(Boolean);
+
+      if (rawSavedSets.length > 0) {
+        const savedUserIds = [...new Set(rawSavedSets.map((s: any) => s.user_id))];
+        const { data: savedProfiles } = await supabase
+          .from('profiles')
+          .select('id, email, avatar_url, full_name')
+          .in('id', savedUserIds);
+
+        savedSets = rawSavedSets.map((setObj: any) => ({
+          ...setObj,
+          author: savedProfiles?.find((p: any) => p.id === setObj.user_id) || null
+        }));
+      }
     }
     
     dueCount = dueReviewsCount || 0;

@@ -1,4 +1,4 @@
-export default function CreateSetLoading() {
+export default function EditSetLoading() {
   return (
     <div className="min-h-full bg-background text-foreground font-sans pb-24">
       <main className="mx-auto max-w-[1000px] px-4 py-8 lg:px-8">

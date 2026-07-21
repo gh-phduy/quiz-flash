@@ -38,6 +38,7 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
   // Mode Selection State
   const [selectedMode, setSelectedMode] = useState<{ id: string; name: string; href: string } | null>(null);
   const [isModeDialogOpen, setIsModeDialogOpen] = useState(false);
+  const [dialogSearchQuery, setDialogSearchQuery] = useState('');
 
   const GAME_MODES = [
     { id: 'flashcards', name: 'Flashcards', desc: 'Review terms & definitions', icon: <Layers className="w-8 h-8 text-blue-400 group-hover:scale-110 transition-transform" />, href: '/flashcards', bg: 'from-blue-500/10 to-blue-600/5', border: 'border-blue-500/20 hover:border-blue-500/40' },
@@ -50,6 +51,7 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
 
   const handleModeClick = (mode: { id: string; name: string; href: string }) => {
     setSelectedMode(mode);
+    setDialogSearchQuery('');
     setIsModeDialogOpen(true);
   };
 
@@ -65,7 +67,22 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
     router.push(`${basePath}/${setId}`);
   };
 
-  const displayedSets = activeTab === 'created' ? sets : savedSets;
+  const activeSavedSets = savedSets.filter(s => savedSetIds.has(s.id));
+  const newlySavedSets = (suggestedPublicSets || []).filter(s => savedSetIds.has(s.id) && !activeSavedSets.find(as => as.id === s.id));
+  const currentSavedSets = [...activeSavedSets, ...newlySavedSets];
+
+  const displayedSets = activeTab === 'created' ? sets : currentSavedSets;
+
+  const allDialogSets = [...sets, ...currentSavedSets].filter((v, i, a) => a.findIndex(t => (t.id === v.id)) === i);
+  const filteredDialogSets = allDialogSets.filter(set => 
+    set.title.toLowerCase().includes(dialogSearchQuery.toLowerCase()) || 
+    set.description?.toLowerCase().includes(dialogSearchQuery.toLowerCase())
+  );
+  
+  const filteredSuggestedSets = (suggestedPublicSets || []).filter(set => 
+    set.title.toLowerCase().includes(dialogSearchQuery.toLowerCase()) || 
+    set.description?.toLowerCase().includes(dialogSearchQuery.toLowerCase())
+  );
 
   const displayName = profile?.full_name || profile?.email?.split('@')[0] || user?.user_metadata?.full_name || 'Student';
 
@@ -305,45 +322,23 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
                 </DialogHeader>
                 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <button 
-                    onClick={() => router.push(`/flashcards/${set.id}`)}
-                    className="flex flex-col items-center justify-center gap-3 p-6 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-2xl transition-all hover:scale-105 group"
-                  >
-                    <Layers className="w-8 h-8 text-blue-400 group-hover:animate-bounce" />
-                    <span className="font-bold text-white">Flashcards</span>
-                  </button>
-
-                  <button 
-                    onClick={() => router.push(`/flashcards/${set.id}/learn`)}
-                    className="flex flex-col items-center justify-center gap-3 p-6 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 rounded-2xl transition-all hover:scale-105 group"
-                  >
-                    <BookOpen className="w-8 h-8 text-purple-400 group-hover:animate-bounce" />
-                    <span className="font-bold text-white">Learn</span>
-                  </button>
-
-                  <button 
-                    onClick={() => router.push(`/speaking/${set.id}`)}
-                    className="flex flex-col items-center justify-center gap-3 p-6 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-2xl transition-all hover:scale-105 group"
-                  >
-                    <Mic className="w-8 h-8 text-rose-400 group-hover:animate-bounce" />
-                    <span className="font-bold text-white">Speaking</span>
-                  </button>
-
-                  <button 
-                    onClick={() => router.push(`/test/${set.id}`)}
-                    className="flex flex-col items-center justify-center gap-3 p-6 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 rounded-2xl transition-all hover:scale-105 group"
-                  >
-                    <FileText className="w-8 h-8 text-indigo-400 group-hover:animate-bounce" />
-                    <span className="font-bold text-white">Test</span>
-                  </button>
-
-                  <button 
-                    onClick={() => router.push(`/match/${set.id}`)}
-                    className="flex flex-col items-center justify-center gap-3 p-6 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 rounded-2xl transition-all hover:scale-105 group"
-                  >
-                    <Copy className="w-8 h-8 text-cyan-400 group-hover:animate-bounce" />
-                    <span className="font-bold text-white">Match</span>
-                  </button>
+                  {GAME_MODES.map((mode) => (
+                    <button
+                      key={mode.id}
+                      onClick={() => !mode.disabled && router.push(mode.href === '/learn' ? `/flashcards/${set.id}/learn` : `${mode.href}/${set.id}`)}
+                      disabled={mode.disabled}
+                      className={`group relative overflow-hidden bg-gradient-to-br ${mode.bg} backdrop-blur-xl border ${mode.border} ${mode.disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-card/80 hover:-translate-y-1 cursor-pointer'} p-4 rounded-2xl transition-all duration-300 flex flex-col items-center justify-center text-center`}
+                    >
+                      <div className="w-12 h-12 rounded-full bg-background/50 border border-white/5 flex items-center justify-center mb-3 shadow-inner">
+                        {/* Smaller icon for modal */}
+                        <div className="scale-75">
+                          {mode.icon}
+                        </div>
+                      </div>
+                      <h3 className="text-sm font-bold text-white mb-1">{mode.name}</h3>
+                      <p className="text-[10px] text-muted-foreground font-medium leading-tight">{mode.desc}</p>
+                    </button>
+                  ))}
                 </div>
               </DialogContent>
             </Dialog>
@@ -388,9 +383,21 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
             <p className="text-center text-muted-foreground text-sm mb-4">Select a flashcard set to begin</p>
           </DialogHeader>
 
-          <div className="flex flex-col gap-3 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
-            {sets.length > 0 || savedSets.length > 0 ? (
-              [...sets, ...savedSets].filter((v, i, a) => a.findIndex(t => (t.id === v.id)) === i).map((set) => (
+          {/* Search Input for Dialog */}
+          <div className="px-1 mb-4 relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search your sets..."
+              value={dialogSearchQuery}
+              onChange={(e) => setDialogSearchQuery(e.target.value)}
+              className="w-full bg-card/50 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-muted-foreground focus:outline-none focus:border-[#4255ff]/50 focus:bg-card/80 transition-all"
+            />
+          </div>
+
+          <div className="flex flex-col gap-3 max-h-[340px] overflow-y-auto pr-2 custom-scrollbar">
+            {filteredDialogSets.length > 0 ? (
+              filteredDialogSets.map((set) => (
                 <button
                   key={set.id}
                   onMouseEnter={() => {
@@ -405,7 +412,16 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
                   className="flex items-center justify-between p-4 bg-card/50 hover:bg-card/80 border border-white/5 hover:border-[#b892ff]/50 rounded-xl transition-all text-left cursor-pointer group"
                 >
                   <div className="flex flex-col overflow-hidden pr-4">
-                    <span className="font-bold text-white text-base truncate group-hover:text-[#b892ff] transition-colors">{set.title}</span>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-bold text-white text-base truncate group-hover:text-[#b892ff] transition-colors">{set.title}</span>
+                      {set.user_id === user?.id ? (
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-[#b892ff] bg-[#b892ff]/10 border border-[#b892ff]/20 px-2 py-0.5 rounded-full shrink-0">Yours</span>
+                      ) : (
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-[#b892ff] bg-[#b892ff]/10 border border-[#b892ff]/20 px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
+                          <Bookmark className="w-3 h-3" /> Saved
+                        </span>
+                      )}
+                    </div>
                     {set.description && <span className="text-sm text-muted-foreground truncate">{set.description}</span>}
                   </div>
                   <span className="text-xs font-bold text-[#b892ff] bg-[#b892ff]/10 px-3 py-1 rounded-full shrink-0">
@@ -413,6 +429,10 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
                   </span>
                 </button>
               ))
+            ) : dialogSearchQuery ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground text-sm">No sets found matching "{dialogSearchQuery}"</p>
+              </div>
             ) : (
               <div className="flex flex-col gap-6 pt-2">
                 <div className="text-center py-6 bg-card/10 rounded-2xl border border-white/5 border-dashed">
@@ -426,14 +446,14 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
                   </Link>
                 </div>
 
-                {suggestedPublicSets && suggestedPublicSets.length > 0 && (
+                {filteredSuggestedSets && filteredSuggestedSets.length > 0 && (
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center gap-3 mb-1">
                       <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-white/10"></div>
                       <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Or try these public sets</span>
                       <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-white/10"></div>
                     </div>
-                    {suggestedPublicSets.map((set) => (
+                    {filteredSuggestedSets.map((set) => (
                       <button
                         key={set.id}
                         onMouseEnter={() => {
