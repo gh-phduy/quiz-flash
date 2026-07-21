@@ -37,10 +37,22 @@ function fallbackToSpeechSynthesis(text?: string | null) {
   const englishVoices = voices.filter(v => v.lang.startsWith('en'));
   
   if (englishVoices.length > 0) {
-    // Prefer Google US English or standard US English
-    const preferredVoice = englishVoices.find(v => v.name.includes('Google') || v.name.includes('Siri')) 
-      || englishVoices.find(v => v.lang === 'en-US') 
-      || englishVoices[0];
+    // Look for known clear male voices across different platforms
+    // Google: "Google UK English Male"
+    // Windows: "Microsoft David", "Microsoft Mark"
+    // Apple/macOS: "Daniel", "Alex", "Fred"
+    const maleVoiceNames = ['Google UK English Male', 'David', 'Mark', 'Daniel', 'Alex', 'Fred'];
+    
+    let preferredVoice = englishVoices.find(v => 
+      maleVoiceNames.some(name => v.name.includes(name))
+    );
+
+    // Fallback if no specific male voice is found
+    if (!preferredVoice) {
+      preferredVoice = englishVoices.find(v => v.lang === 'en-US' && v.name.toLowerCase().includes('male'))
+        || englishVoices.find(v => v.lang === 'en-US') 
+        || englishVoices[0];
+    }
     
     if (preferredVoice) {
       utterance.voice = preferredVoice;
