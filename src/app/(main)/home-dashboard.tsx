@@ -382,6 +382,14 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
               [...sets, ...savedSets].filter((v, i, a) => a.findIndex(t => (t.id === v.id)) === i).map((set) => (
                 <button
                   key={set.id}
+                  onMouseEnter={() => {
+                    if (selectedMode) {
+                      const path = selectedMode.href === '/learn' 
+                        ? `/flashcards/${set.id}/learn` 
+                        : `${selectedMode.href.startsWith('/') ? selectedMode.href : `/${selectedMode.href}`}/${set.id}`;
+                      router.prefetch(path);
+                    }
+                  }}
                   onClick={() => handleSetClickForMode(set.id)}
                   className="flex items-center justify-between p-4 bg-card/50 hover:bg-card/80 border border-white/5 hover:border-[#b892ff]/50 rounded-xl transition-all text-left cursor-pointer group"
                 >
@@ -417,6 +425,14 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
                     {suggestedPublicSets.map((set) => (
                       <button
                         key={set.id}
+                        onMouseEnter={() => {
+                          if (selectedMode) {
+                            const path = selectedMode.href === '/learn' 
+                              ? `/flashcards/${set.id}/learn` 
+                              : `${selectedMode.href.startsWith('/') ? selectedMode.href : `/${selectedMode.href}`}/${set.id}`;
+                            router.prefetch(path);
+                          }
+                        }}
                         onClick={() => handleSetClickForMode(set.id)}
                         className="flex items-center justify-between p-4 bg-card/30 hover:bg-card/60 border border-white/5 hover:border-[#b892ff]/40 rounded-xl transition-all text-left cursor-pointer group"
                       >

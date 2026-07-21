@@ -77,8 +77,8 @@ export default function ReviewGame({ cards }: ReviewGameProps) {
       setIncorrectCount(prev => prev + 1);
     }
 
-    // Record review: 4 if correct, 1 if incorrect
-    await recordCardReview(currentCard.id, isCorrect ? 4 : 1).catch(err => {
+    // Record review in background (Optimistic UI - Zero Latency)
+    recordCardReview(currentCard.id, isCorrect ? 4 : 1).catch(err => {
       console.error('Failed to record card review:', err);
     });
 
@@ -103,7 +103,7 @@ export default function ReviewGame({ cards }: ReviewGameProps) {
     // Award 10 points per correct answer, 2 per incorrect
     const earned = (correctCount * 10) + (incorrectCount * 2);
     setPointsEarned(earned);
-    await recordPoints(earned);
+    recordPoints(earned).catch(console.error);
     
     import('canvas-confetti').then(({ default: confetti }) => {
       confetti({

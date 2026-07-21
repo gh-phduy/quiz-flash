@@ -14,29 +14,46 @@ export default async function Home() {
   let dueCount = 0;
   
   if (user) {
-    // 1. Fetch user profile
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const [
+      { data: profileData },
+      { data: setsData },
+      { data: userSavedSets },
+      { count: dueReviewsCount }
+    ] = await Promise.all([
+      // 1. Fetch user profile
+      supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single(),
+      
+      // 2. Fetch created sets
+      supabase
+        .from('sets')
+        .select('*, cards(count)')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false }),
+        
+      // 3. Fetch saved sets
+      supabase
+        .from('user_saved_sets')
+        .select('set_id, sets(*, cards(count), profiles!sets_user_id_fkey(id, email, avatar_url, full_name))')
+        .eq('user_id', user.id)
+        .order('saved_at', { ascending: false }),
+        
+      // 5. Fetch due reviews count
+      supabase
+        .from('card_reviews')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .lte('next_review_date', todayStr)
+    ]);
+
     profile = profileData;
-
-    // 2. Fetch created sets
-    const { data: setsData } = await supabase
-      .from('sets')
-      .select('*, cards(count)')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
     if (setsData) sets = setsData;
-
-    // 3. Fetch saved sets
-    const { data: userSavedSets } = await supabase
-      .from('user_saved_sets')
-      .select('set_id, sets(*, cards(count), profiles!sets_user_id_fkey(id, email, avatar_url, full_name))')
-      .eq('user_id', user.id)
-      .order('saved_at', { ascending: false });
-
+    
     if (userSavedSets) {
       savedSetIds = userSavedSets.map(s => s.set_id);
       savedSets = userSavedSets.map(s => {
@@ -49,6 +66,8 @@ export default async function Home() {
       }).filter(Boolean);
     }
     
+    dueCount = dueReviewsCount || 0;
+
     // 4. Fetch suggested public sets (if user has very few sets)
     if (sets.length + savedSets.length < 3) {
       const { data: pubSets } = await supabase
@@ -76,16 +95,6 @@ export default async function Home() {
         }));
       }
     }
-    
-    // 5. Fetch due reviews count
-    const todayStr = new Date().toISOString().split('T')[0];
-    const { count } = await supabase
-      .from('card_reviews')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .lte('next_review_date', todayStr);
-    
-    dueCount = count || 0;
   }
 
   return (
