@@ -54,7 +54,7 @@ export default async function Home() {
     profile = profileData;
     if (setsData) sets = setsData;
     
-    if (userSavedSets && !userSavedSets.error) {
+    if (userSavedSets && Array.isArray(userSavedSets)) {
       savedSetIds = userSavedSets.map((s: any) => s.set_id);
       
       const rawSavedSets = userSavedSets.map((s: any) => {
