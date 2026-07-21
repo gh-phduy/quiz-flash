@@ -1,21 +1,14 @@
-export function playAudio(audioUrl?: string | null, textToSpeak?: string | null) {
-  // If there's an audio URL from the dictionary, play it directly
-  if (audioUrl) {
-    try {
-      const audio = new Audio(audioUrl);
-      audio.play().catch(e => {
-        console.warn('Failed to play audio URL, falling back to synthesis:', e);
-        fallbackToSpeechSynthesis(textToSpeak);
-      });
-      return;
-    } catch (e) {
-      console.warn('Error creating Audio object, falling back to synthesis:', e);
-      fallbackToSpeechSynthesis(textToSpeak);
-      return;
-    }
-  }
+// Preload voices to prevent empty voices array on first call
+if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+  window.speechSynthesis.getVoices();
+  window.speechSynthesis.onvoiceschanged = () => {
+    window.speechSynthesis.getVoices();
+  };
+}
 
-  // Otherwise, use Web Speech API
+export function playAudio(audioUrl?: string | null, textToSpeak?: string | null) {
+  // Ignore audioUrl (dictionary APIs have different speakers, causing inconsistent voices).
+  // Force SpeechSynthesis for a single, consistent voice.
   fallbackToSpeechSynthesis(textToSpeak);
 }
 
@@ -31,23 +24,28 @@ function fallbackToSpeechSynthesis(text?: string | null) {
 
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = 'en-US';
+  utterance.rate = 0.95; // Slightly slower for clear pronunciation
+  utterance.pitch = 1.0;
   
-  // Try to find a natural-sounding English voice
   const voices = window.speechSynthesis.getVoices();
   const englishVoices = voices.filter(v => v.lang.startsWith('en'));
   
   if (englishVoices.length > 0) {
-    // Look for known clear male voices across different platforms
-    // Google: "Google UK English Male"
-    // Windows: "Microsoft David", "Microsoft Mark"
-    // Apple/macOS: "Daniel", "Alex", "Fred"
-    const maleVoiceNames = ['Google UK English Male', 'David', 'Mark', 'Daniel', 'Alex', 'Fred'];
+    // Prioritize clear US Male voices as requested previously, or clear standard US voices
+    const preferredVoiceNames = [
+      'Google US English', // Chrome
+      'Microsoft David', // Windows US Male
+      'Microsoft Mark', // Windows US Male
+      'Alex', // macOS US Male
+      'Fred', // macOS US Male
+      'Daniel' // macOS UK Male (fallback)
+    ];
     
     let preferredVoice = englishVoices.find(v => 
-      maleVoiceNames.some(name => v.name.includes(name))
+      preferredVoiceNames.some(name => v.name.includes(name))
     );
 
-    // Fallback if no specific male voice is found
+    // Fallback if no specific voice is found
     if (!preferredVoice) {
       preferredVoice = englishVoices.find(v => v.lang === 'en-US' && v.name.toLowerCase().includes('male'))
         || englishVoices.find(v => v.lang === 'en-US') 
