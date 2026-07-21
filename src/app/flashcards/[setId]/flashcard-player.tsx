@@ -458,8 +458,8 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
                 </button>
               </div>
               
-              <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-6 p-6 min-h-0 overflow-y-auto">
-                <h2 className="text-3xl md:text-4xl font-medium text-foreground text-center break-words">
+              <div className="flex-1 flex flex-col md:flex-row items-center justify-evenly gap-8 p-6 md:p-12 w-full min-h-0 overflow-y-auto">
+                <h2 className="text-3xl md:text-4xl font-medium text-foreground text-center break-words max-w-full md:max-w-[45%]">
                   {currentCard.definition}
                 </h2>
                 {currentCard.image_url && (
