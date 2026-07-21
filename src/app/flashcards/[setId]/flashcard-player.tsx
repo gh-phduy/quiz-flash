@@ -417,7 +417,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
               </div>
               
               {/* Footer Front */}
-              <div className="h-14 bg-[#b892ff]/90 rounded-b-2xl flex items-center justify-center gap-3 text-[#0a092d] font-semibold text-sm">
+              <div className="h-14 w-full bg-[#b892ff]/90 rounded-b-2xl flex items-center justify-center gap-3 text-[#0a092d] font-semibold text-sm">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-bold border border-[#0a092d]/20 px-1.5 py-0.5 rounded shadow-sm bg-border">⌨</span>
                   Shortcut
@@ -444,7 +444,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
               </div>
               
               <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-8 p-8">
-                <h2 className="text-3xl md:text-4xl font-medium text-foreground text-center flex-1 break-words">
+                <h2 className="text-3xl md:text-4xl font-medium text-foreground text-center break-words">
                   {currentCard.definition}
                 </h2>
                 {currentCard.image_url && (
@@ -460,7 +460,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
               </div>
               
               {/* Footer Back */}
-              <div className="h-14 bg-[#b892ff]/90 rounded-b-2xl flex items-center justify-center gap-3 text-[#0a092d] font-semibold text-sm">
+              <div className="h-14 w-full bg-[#b892ff]/90 rounded-b-2xl flex items-center justify-center gap-3 text-[#0a092d] font-semibold text-sm">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-bold border border-[#0a092d]/20 px-1.5 py-0.5 rounded shadow-sm bg-border">⌨</span>
                   Shortcut
