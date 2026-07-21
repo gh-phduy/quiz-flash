@@ -17,7 +17,7 @@ export function useSpeechRecognition() {
   const lastTranscriptRef = useRef('');
 
   const isSupported = typeof window !== 'undefined' &&
-    !!(window.SpeechRecognition || (window as any).webkitSpeechRecognition);
+    !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
 
   const start = useCallback(() => {
     if (!isSupported) {
@@ -30,7 +30,7 @@ export function useSpeechRecognition() {
       try { recognitionRef.current.abort(); } catch {}
     }
 
-    const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-US';
     recognition.continuous = false;

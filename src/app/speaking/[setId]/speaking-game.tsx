@@ -7,7 +7,7 @@ import confetti from 'canvas-confetti';
 import { ModeSwitcher } from '@/components/shared/mode-switcher';
 import { useSpeechRecognition } from '@/hooks/use-speech-recognition';
 import { recordStudyActivity } from '@/actions/study';
-import { updateGameScores } from '@/actions/game';
+
 
 interface SetData {
   id: string;
@@ -163,10 +163,7 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
       try {
         const accuracy = Math.round((score / cards.length) * 100);
         const xp = Math.round(score * 10);
-        await Promise.all([
-          recordStudyActivity(set.id, 'test', cards.length, score),
-          updateGameScores('test', accuracy, xp),
-        ]);
+        await recordStudyActivity(set.id, xp, cards.length, 'speaking');
       } catch (e) {
         console.warn('Lỗi khi lưu kết quả:', e);
       } finally {

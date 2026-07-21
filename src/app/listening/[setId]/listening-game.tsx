@@ -6,7 +6,7 @@ import { Headphones, X, SkipForward, Home, RefreshCw, Trophy, CheckCircle2, XCir
 import confetti from 'canvas-confetti';
 import { ModeSwitcher } from '@/components/shared/mode-switcher';
 import { recordStudyActivity } from '@/actions/study';
-import { updateGameScores } from '@/actions/game';
+
 import { playAudio } from '@/lib/speech';
 
 interface SetData {
@@ -70,10 +70,7 @@ export default function ListeningGame({ set, cards }: ListeningGameProps) {
       try {
         const accuracy = Math.round((score / cards.length) * 100);
         const xp = Math.round(score * 10);
-        await Promise.all([
-          recordStudyActivity(set.id, 'test', cards.length, score),
-          updateGameScores('test', accuracy, xp),
-        ]);
+        await recordStudyActivity(set.id, xp, cards.length, 'listening');
       } catch (e) {
         console.warn('Error saving results:', e);
       } finally {
