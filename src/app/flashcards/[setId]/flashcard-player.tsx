@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   X, Settings, Maximize, RotateCcw, 
-  Lightbulb, Volume2, ChevronDown, Home
+  Lightbulb, Volume2, VolumeX, ChevronDown, Home
 } from 'lucide-react';
 import Image from 'next/image';
 import { ModeSwitcher } from '@/components/shared/mode-switcher';
@@ -40,6 +40,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [learningCount, setLearningCount] = useState(0);
   const [knownCount, setKnownCount] = useState(0);
+  const [isAutoPlay, setIsAutoPlay] = useState(true);
   const [showProgress, setShowProgress] = useState(true);
   const [isFinished, setIsFinished] = useState(false);
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | 'reset' | null>(null);
@@ -62,14 +63,12 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
   const currentCard = cards[currentIndex];
 
   useEffect(() => {
-    if (currentCard && !isFinished) {
-      // Auto-play audio when card appears (wait for slide animation)
-      const timer = setTimeout(() => {
-        playAudio(currentCard.audio_url, currentCard.term);
-      }, 400);
-      return () => clearTimeout(timer);
+    if (isAutoPlay && cards.length > 0 && !isFinished) {
+      setTimeout(() => {
+        playAudio(cards[currentIndex].audio_url, cards[currentIndex].term);
+      }, 400); // Small delay to let the slide animation finish
     }
-  }, [currentIndex, currentCard, isFinished]);
+  }, [currentIndex, cards, isFinished, isAutoPlay]);
 
   const handleNext = useCallback((status: 'known' | 'learning') => {
     // Record review for SM-2
@@ -338,7 +337,19 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
           <span className="text-sm font-bold text-muted-foreground">{set.title}</span>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <button 
+            onClick={() => setIsAutoPlay(!isAutoPlay)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition cursor-pointer text-sm font-semibold border ${
+              isAutoPlay 
+                ? 'bg-[#b892ff]/20 text-[#b892ff] border-[#b892ff]/30' 
+                : 'bg-transparent text-muted-foreground border-white/10 hover:text-foreground'
+            }`}
+          >
+            {isAutoPlay ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            <span className="hidden sm:inline">Auto-play</span>
+          </button>
+
           <button className="text-muted-foreground hover:text-foreground transition cursor-pointer">
             <Settings className="w-5 h-5" />
           </button>
@@ -413,7 +424,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
                   <span className="text-sm font-bold">Get a hint</span>
                 </button>
                 <button 
-                  className="hover:bg-white/10 p-2 rounded-full transition z-10 relative cursor-pointer text-[#9fa6ff] hover:text-white"
+                  className="hover:bg-[#b892ff]/20 p-2 rounded-full transition z-10 relative cursor-pointer text-white/70 hover:text-[#b892ff]"
                   onClick={(e) => {
                     e.stopPropagation();
                     playAudio(currentCard.audio_url, currentCard.term);
@@ -448,7 +459,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
               <div className="flex justify-between items-center p-6 text-muted-foreground">
                 <div />
                 <button 
-                  className="hover:bg-white/10 p-2 rounded-full transition z-10 relative cursor-pointer text-[#9fa6ff] hover:text-white"
+                  className="hover:bg-[#b892ff]/20 p-2 rounded-full transition z-10 relative cursor-pointer text-white/70 hover:text-[#b892ff]"
                   onClick={(e) => {
                     e.stopPropagation();
                     playAudio(null, currentCard.definition); // We usually don't have audio_url for definition, so use TTS
