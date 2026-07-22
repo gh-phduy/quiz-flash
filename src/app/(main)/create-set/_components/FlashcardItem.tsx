@@ -54,11 +54,12 @@ export const FlashcardItem = React.memo(function FlashcardItem({
 
   const handleTermBlur = async () => {
     if (!card.term) return;
-    // Auto fetch if phonetic is empty
-    if (!card.phonetic) {
+    // Auto fetch if phonetic or part_of_speech is empty
+    if (!card.phonetic || !card.part_of_speech) {
       const data = await fetchWordData(card.term);
       if (data) {
-        if (data.phonetic) onChange(card.id, 'phonetic', data.phonetic);
+        if (data.phonetic && !card.phonetic) onChange(card.id, 'phonetic', data.phonetic);
+        if (data.partOfSpeech && !card.part_of_speech) onChange(card.id, 'part_of_speech', data.partOfSpeech);
         if (data.audioUrl) onChange(card.id, 'audio_url', data.audioUrl);
       }
     }
@@ -145,6 +146,17 @@ export const FlashcardItem = React.memo(function FlashcardItem({
           </div>
           <div className="flex justify-between items-center mt-2">
             <span className="text-[11px] font-bold tracking-widest text-muted-foreground">DEFINITION</span>
+            
+            {/* Part of Speech Input */}
+            <div className="relative w-1/2 ml-4">
+              <input 
+                type="text" 
+                placeholder="POS / Từ loại (optional)" 
+                value={card.part_of_speech || ''}
+                onChange={(e) => onChange(card.id, 'part_of_speech', e.target.value)}
+                className="w-full bg-background/50 border-b border-transparent focus:border-[#4255ff] px-2 py-1 text-muted-foreground text-[13px] outline-none transition-colors"
+              />
+            </div>
           </div>
         </div>
         

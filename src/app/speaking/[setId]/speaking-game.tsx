@@ -25,6 +25,7 @@ interface CardData {
   term: string;
   definition: string;
   phonetic?: string | null;
+  part_of_speech?: string | null;
   audio_url?: string | null;
   image_url?: string | null;
 }
@@ -367,8 +368,17 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
             {currentCard.term}
           </h2>
 
-          {currentCard.phonetic && (
-            <p className="text-base font-mono text-muted-foreground mb-4">{currentCard.phonetic}</p>
+          {(currentCard.phonetic || currentCard.part_of_speech) && (
+            <div className="flex items-center justify-center gap-2 mb-4">
+              {currentCard.phonetic && (
+                <span className="text-base font-mono text-muted-foreground">{currentCard.phonetic}</span>
+              )}
+              {currentCard.part_of_speech && (
+                <span className="text-xs font-semibold px-2 py-0.5 rounded bg-white/10 text-purple-300 italic">
+                  {currentCard.part_of_speech}
+                </span>
+              )}
+            </div>
           )}
 
           {/* Definition Box */}

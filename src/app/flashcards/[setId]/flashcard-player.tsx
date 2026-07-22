@@ -28,6 +28,7 @@ interface CardData {
   definition: string;
   image_url?: string | null;
   phonetic?: string | null;
+  part_of_speech?: string | null;
   audio_url?: string | null;
 }
 
@@ -471,8 +472,17 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
                 <h2 className="text-4xl md:text-5xl font-medium text-foreground text-center break-words">
                   {currentCard.term}
                 </h2>
-                {currentCard.phonetic && (
-                  <span className="text-muted-foreground text-lg">{currentCard.phonetic}</span>
+                {(currentCard.phonetic || currentCard.part_of_speech) && (
+                  <div className="flex items-center gap-2">
+                    {currentCard.phonetic && (
+                      <span className="text-muted-foreground text-lg">{currentCard.phonetic}</span>
+                    )}
+                    {currentCard.part_of_speech && (
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded bg-white/10 text-purple-300 italic">
+                        {currentCard.part_of_speech}
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
               

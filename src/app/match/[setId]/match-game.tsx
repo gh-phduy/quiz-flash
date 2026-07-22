@@ -20,6 +20,7 @@ interface CardData {
   id: string;
   term: string;
   definition: string;
+  part_of_speech?: string | null;
   image_url?: string | null;
 }
 
@@ -36,6 +37,7 @@ interface TileData {
   type: 'term' | 'definition';
   text: string;
   imageUrl?: string | null;
+  partOfSpeech?: string | null;
   status: TileStatus;
 }
 
@@ -143,6 +145,7 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
         type: 'definition',
         text: card.definition,
         imageUrl: card.image_url,
+        partOfSpeech: card.part_of_speech,
         status: 'idle'
       });
     });
@@ -403,12 +406,26 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      {tile.text && <span className="font-semibold text-sm md:text-base line-clamp-2">{tile.text}</span>}
+                      <div className="flex flex-col items-center gap-1">
+                        {tile.text && <span className="font-semibold text-sm md:text-base line-clamp-2">{tile.text}</span>}
+                        {tile.partOfSpeech && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/10 text-purple-300 italic">
+                            {tile.partOfSpeech}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   ) : (
-                    <span className="font-semibold text-base md:text-xl break-words w-full line-clamp-5">
-                      {tile.text}
-                    </span>
+                    <div className="flex flex-col items-center gap-1.5 break-words w-full">
+                      <span className="font-semibold text-base md:text-xl line-clamp-5">
+                        {tile.text}
+                      </span>
+                      {tile.partOfSpeech && (
+                        <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-white/10 text-purple-300 italic">
+                          {tile.partOfSpeech}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
               );

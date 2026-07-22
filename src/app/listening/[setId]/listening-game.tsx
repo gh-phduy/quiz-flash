@@ -22,6 +22,8 @@ interface CardData {
   id: string;
   term: string;
   definition: string;
+  phonetic?: string | null;
+  part_of_speech?: string | null;
   audio_url?: string | null;
 }
 
@@ -278,11 +280,23 @@ export default function ListeningGame({ set, cards }: ListeningGameProps) {
           
           <button 
             onClick={() => playAudio(currentCard.audio_url, currentCard.term)}
-            className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 mb-10 shadow-lg cursor-pointer hover:scale-105 ${replayAudioBtnClass}`}
+            className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 mb-6 shadow-lg cursor-pointer hover:scale-105 ${replayAudioBtnClass}`}
             title="Play Audio"
           >
             <Volume2 className="w-10 h-10" />
           </button>
+
+          {/* Definition Hint */}
+          <div className="text-center max-w-md mb-6">
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              {currentCard.definition}
+              {currentCard.part_of_speech && (
+                <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded bg-white/10 text-purple-300 italic">
+                  {currentCard.part_of_speech}
+                </span>
+              )}
+            </p>
+          </div>
 
           <form onSubmit={handleSubmit} className="w-full max-w-md flex flex-col items-center gap-6">
              <input

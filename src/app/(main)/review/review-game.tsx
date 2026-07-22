@@ -20,6 +20,7 @@ interface ReviewCard {
     term: string;
     definition: string;
     phonetic?: string;
+    part_of_speech?: string;
   };
 }
 
@@ -199,7 +200,14 @@ export default function ReviewGame({ cards }: ReviewGameProps) {
       {/* Card Definition */}
       <div className="bg-card/40 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 md:p-12 min-h-[250px] flex flex-col items-center justify-center text-center mb-8 relative overflow-hidden shadow-2xl">
         <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#b892ff]/30 to-transparent"></div>
-        <h3 className="text-3xl md:text-4xl font-bold text-white leading-tight mb-4">{currentCard.definition}</h3>
+        <div className="flex flex-col items-center gap-3">
+          <h3 className="text-3xl md:text-4xl font-bold text-white leading-tight">{currentCard.definition}</h3>
+          {currentCard.part_of_speech && (
+            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-white/10 text-purple-300 italic w-fit">
+              {currentCard.part_of_speech}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Input Section */}
@@ -255,7 +263,16 @@ export default function ReviewGame({ cards }: ReviewGameProps) {
               <div className="mb-4">
                 <p className="text-red-300 font-medium mb-1">Correct answer:</p>
                 <p className="text-2xl font-bold text-white">{currentCard.term}</p>
-                {currentCard.phonetic && <p className="text-sm text-muted-foreground mt-1">{currentCard.phonetic}</p>}
+                {(currentCard.phonetic || currentCard.part_of_speech) && (
+                  <div className="flex items-center justify-center gap-2 mt-1">
+                    {currentCard.phonetic && <span className="text-sm text-muted-foreground">{currentCard.phonetic}</span>}
+                    {currentCard.part_of_speech && (
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded bg-white/10 text-purple-300 italic">
+                        {currentCard.part_of_speech}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             )}
             

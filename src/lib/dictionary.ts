@@ -1,5 +1,6 @@
 export interface WordData {
   phonetic?: string;
+  partOfSpeech?: string;
   audioUrl?: string;
 }
 
@@ -40,6 +41,9 @@ export async function fetchWordData(word: string, retries = 3): Promise<WordData
       }
     }
 
+    // Extract part of speech
+    let partOfSpeech = entry.meanings?.[0]?.partOfSpeech;
+
     // Extract audio url
     let audioUrl = '';
     if (entry.phonetics && entry.phonetics.length > 0) {
@@ -55,6 +59,7 @@ export async function fetchWordData(word: string, retries = 3): Promise<WordData
 
     return {
       phonetic,
+      partOfSpeech,
       audioUrl
     };
   } catch (error) {

@@ -34,12 +34,13 @@ export default async function EditSetPage({ params }: { params: Promise<{ setId:
       image_url: c.image_url,
       image_file: null,
       phonetic: c.phonetic,
+      part_of_speech: c.part_of_speech,
       audio_url: c.audio_url
     }));
   } else {
     cards = [
-      { id: 'card-1', term: '', definition: '', image_url: null, image_file: null, phonetic: null, audio_url: null },
-      { id: 'card-2', term: '', definition: '', image_url: null, image_file: null, phonetic: null, audio_url: null },
+      { id: 'card-1', term: '', definition: '', image_url: null, image_file: null, phonetic: null, part_of_speech: null, audio_url: null },
+      { id: 'card-2', term: '', definition: '', image_url: null, image_file: null, phonetic: null, part_of_speech: null, audio_url: null },
     ];
   }
 

@@ -273,7 +273,8 @@ export async function getStatusDashboard(targetUserId?: string) {
           card:cards (
             term,
             definition,
-            phonetic
+            phonetic,
+            part_of_speech
           )
         `)
         .eq('user_id', targetId)
@@ -503,7 +504,8 @@ export async function getDueCardsToReview() {
           set_id,
           term,
           definition,
-          phonetic
+          phonetic,
+          part_of_speech
         )
       `)
       .eq('user_id', user.id)

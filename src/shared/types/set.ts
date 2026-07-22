@@ -6,6 +6,7 @@ export const cardSchema = z.object({
   definition: z.string().min(1, 'Definition is required'),
   image_url: z.string().nullable().refine((val) => val !== null, 'Image is required'),
   phonetic: z.string().nullable().optional(),
+  part_of_speech: z.string().nullable().optional(),
   audio_url: z.string().nullable().optional(),
 });
 
@@ -28,5 +29,7 @@ export interface CardItem {
   image_url: string | null;
   image_file?: File | null; // Lưu trữ file thực tế để upload sau khi ấn Create
   phonetic?: string | null;
+  part_of_speech?: string | null;
   audio_url?: string | null;
 }
+

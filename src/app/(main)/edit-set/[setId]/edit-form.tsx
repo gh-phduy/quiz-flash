@@ -71,7 +71,7 @@ export default function EditSetForm({ initialSet, initialCards, initialCollabSta
 
   const handleAddCard = () => {
     const newId = `card-${Math.random().toString(36).substring(2, 9)}`;
-    setCards([{ id: newId, term: '', definition: '', image_url: null, image_file: null, phonetic: null, audio_url: null }, ...cards]);
+    setCards([{ id: newId, term: '', definition: '', image_url: null, image_file: null, phonetic: null, part_of_speech: null, audio_url: null }, ...cards]);
   };
 
   const handleDeleteCard = useCallback((id: string) => {
@@ -107,13 +107,13 @@ export default function EditSetForm({ initialSet, initialCards, initialCollabSta
   }, []);
 
   const handleBulkAutoFill = async () => {
-    const cardsToUpdate = cards.filter(c => c.term && !c.phonetic);
+    const cardsToUpdate = cards.filter(c => c.term && (!c.phonetic || !c.part_of_speech));
     if (cardsToUpdate.length === 0) {
-      toast.info("Không có thẻ nào cần điền phiên âm.");
+      toast.info("Không có thẻ nào cần điền phiên âm hoặc từ loại.");
       return;
     }
 
-    toast.loading(`Đang điền phiên âm cho ${cardsToUpdate.length} thẻ...`, { id: 'bulk-phonetic' });
+    toast.loading(`Đang điền dữ liệu cho ${cardsToUpdate.length} thẻ...`, { id: 'bulk-phonetic' });
     let successCount = 0;
 
     const newCards = [...cards];
@@ -123,12 +123,13 @@ export default function EditSetForm({ initialSet, initialCards, initialCollabSta
       const card = cardsToUpdate[i];
       const data = await fetchWordData(card.term);
       
-      if (data && (data.phonetic || data.audioUrl)) {
+      if (data && (data.phonetic || data.partOfSpeech || data.audioUrl)) {
         const index = newCards.findIndex(c => c.id === card.id);
         if (index !== -1) {
           newCards[index] = {
             ...newCards[index],
             phonetic: data.phonetic || newCards[index].phonetic,
+            part_of_speech: data.partOfSpeech || newCards[index].part_of_speech,
             audio_url: data.audioUrl || newCards[index].audio_url
           };
           successCount++;
@@ -138,7 +139,7 @@ export default function EditSetForm({ initialSet, initialCards, initialCollabSta
 
     setCards(newCards);
     toast.dismiss('bulk-phonetic');
-    toast.success(`Đã điền phiên âm cho ${successCount}/${cardsToUpdate.length} thẻ!`);
+    toast.success(`Đã tự động điền dữ liệu cho ${successCount}/${cardsToUpdate.length} thẻ!`);
   };
 
   const handleImageUpload = useCallback((id: string, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -302,14 +303,24 @@ export default function EditSetForm({ initialSet, initialCards, initialCollabSta
           image_url: finalImageUrl,
           order_index: i,
           phonetic: card.phonetic,
+          part_of_speech: card.part_of_speech,
           audio_url: card.audio_url
         });
       }
 
       // 5. Insert lại toàn bộ cards
-      const { error: cardsError } = await supabase
+      let { error: cardsError } = await supabase
         .from('cards')
         .insert(cardsToInsert);
+
+      // Nếu cơ sở dữ liệu Supabase chưa tạo cột part_of_speech, tự động fallback lưu không có part_of_speech
+      if (cardsError && (cardsError.message?.includes('part_of_speech') || (cardsError as any).details?.includes('part_of_speech'))) {
+        const fallbackCards = cardsToInsert.map(({ part_of_speech, ...rest }) => rest);
+        const { error: retryError } = await supabase
+          .from('cards')
+          .insert(fallbackCards);
+        cardsError = retryError;
+      }
 
       if (cardsError) throw cardsError;
 
@@ -321,9 +332,9 @@ export default function EditSetForm({ initialSet, initialCards, initialCollabSta
       router.push(`/user/${user.id}`);
 
     } catch (error: any) {
-      console.error("Update set error:", error);
+      console.error("Update set error:", error?.message || error);
       toast.error("Thất bại!", {
-        description: error.message || "Đã xảy ra lỗi không xác định.",
+        description: error?.message || "Đã xảy ra lỗi không xác định.",
       });
     } finally {
       setIsSubmitting(false);

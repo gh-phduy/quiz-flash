@@ -33,6 +33,7 @@ interface CardData {
   id: string;
   term: string;
   definition: string;
+  part_of_speech?: string | null;
   image_url?: string | null;
 }
 
@@ -49,6 +50,7 @@ interface Question {
   type: QuestionType;
   prompt: string;
   promptImage?: string | null;
+  partOfSpeech?: string | null;
   correctAnswer?: string;
   options?: string[]; // for multiple choice and matching
   statement?: string; // for true/false
@@ -141,6 +143,7 @@ export default function TestGame({ set, cards }: TestGameProps) {
           type: 'multiple_choice' as QuestionType,
           prompt: promptText,
           promptImage: card.image_url,
+          partOfSpeech: card.part_of_speech,
           correctAnswer: answerText,
           options
         };
@@ -159,6 +162,7 @@ export default function TestGame({ set, cards }: TestGameProps) {
           type: 'matching' as QuestionType,
           prompt: promptText,
           promptImage: card.image_url,
+          partOfSpeech: card.part_of_speech,
           correctAnswer: answerText,
           options
         };
@@ -169,6 +173,7 @@ export default function TestGame({ set, cards }: TestGameProps) {
           type: 'written' as QuestionType,
           prompt: promptText,
           promptImage: card.image_url,
+          partOfSpeech: card.part_of_speech,
           correctAnswer: answerText
         };
       } else {
@@ -187,6 +192,7 @@ export default function TestGame({ set, cards }: TestGameProps) {
           type: 'true_false' as QuestionType,
           prompt: promptText,
           promptImage: card.image_url,
+          partOfSpeech: card.part_of_speech,
           statement,
           isTrue
         };
@@ -400,7 +406,14 @@ export default function TestGame({ set, cards }: TestGameProps) {
 
                   {/* Question Prompt */}
                   <div className="flex flex-col md:flex-row justify-between gap-6 mb-8">
-                    <h3 className="text-xl md:text-2xl font-normal text-foreground">{q.prompt}</h3>
+                    <div className="flex flex-col gap-2">
+                      <h3 className="text-xl md:text-2xl font-normal text-foreground">{q.prompt}</h3>
+                      {q.partOfSpeech && (
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded bg-white/10 text-purple-300 italic w-fit">
+                          {q.partOfSpeech}
+                        </span>
+                      )}
+                    </div>
                     {q.promptImage && (
                       <div className="w-32 h-32 rounded-lg overflow-hidden shrink-0">
                         <img src={q.promptImage} alt="Prompt" className="w-full h-full object-cover" />
