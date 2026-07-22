@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Volume2, Sparkles, CheckCircle2, XCircle, ArrowRight, Zap, Play } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { playAudio } from '@/lib/speech';
+import { VoiceSettingsSidebar, VoiceSettingsTriggerButton } from '@/components/shared/voice-settings-sidebar';
 
 export interface WarmupCard {
   id: string;
@@ -147,14 +148,17 @@ export function NewWordsWarmup({ newCards, allSetCards = [], onComplete, onSkip 
           </span>
         </div>
 
-        {onSkip && (
-          <button
-            onClick={onSkip}
-            className="text-xs font-bold text-white/50 hover:text-white transition"
-          >
-            Skip Warm-Up →
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          <VoiceSettingsTriggerButton />
+          {onSkip && (
+            <button
+              onClick={onSkip}
+              className="text-xs font-bold text-white/50 hover:text-white transition"
+            >
+              Skip Warm-Up →
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Main Warm-Up Card Container */}
@@ -252,6 +256,7 @@ export function NewWordsWarmup({ newCards, allSetCards = [], onComplete, onSkip 
           </div>
         )}
       </div>
+      <VoiceSettingsSidebar />
     </div>
   );
 }

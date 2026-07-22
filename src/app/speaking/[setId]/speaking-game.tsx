@@ -13,6 +13,7 @@ import { recordStudyActivity } from '@/actions/study';
 import { recordBulkCardReviews } from '@/actions/review';
 import { logGameSession, checkNewCardsForSession } from '@/actions/game';
 import { NewWordsWarmup } from '@/components/shared/new-words-warmup';
+import { VoiceSettingsSidebar, VoiceSettingsTriggerButton } from '@/components/shared/voice-settings-sidebar';
 
 interface SetData {
   id: string;
@@ -331,6 +332,7 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
         </div>
 
         <div className="flex items-center gap-3">
+          <VoiceSettingsTriggerButton />
           <button
             onClick={() => router.push('/')}
             className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white transition"
@@ -534,6 +536,7 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
           )}
         </div>
       </main>
+      <VoiceSettingsSidebar />
     </div>
   );
 }

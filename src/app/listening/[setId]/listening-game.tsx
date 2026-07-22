@@ -9,6 +9,7 @@ import { recordStudyActivity } from '@/actions/study';
 import { recordBulkCardReviews } from '@/actions/review';
 import { logGameSession, checkNewCardsForSession } from '@/actions/game';
 import { NewWordsWarmup } from '@/components/shared/new-words-warmup';
+import { VoiceSettingsSidebar, VoiceSettingsTriggerButton } from '@/components/shared/voice-settings-sidebar';
 
 import { playAudio } from '@/lib/speech';
 
@@ -261,12 +262,15 @@ export default function ListeningGame({ set, cards }: ListeningGameProps) {
           <span className="text-sm font-bold text-muted-foreground">{set.title}</span>
         </div>
 
-        <button
-          onClick={() => router.push('/')}
-          className="text-muted-foreground hover:text-foreground transition cursor-pointer"
-        >
-          <X className="w-6 h-6" />
-        </button>
+        <div className="flex items-center gap-3">
+          <VoiceSettingsTriggerButton />
+          <button
+            onClick={() => router.push('/')}
+            className="text-muted-foreground hover:text-foreground transition cursor-pointer"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 max-w-3xl mx-auto w-full relative z-10">
@@ -333,6 +337,7 @@ export default function ListeningGame({ set, cards }: ListeningGameProps) {
           Skip <SkipForward className="w-4 h-4" />
         </button>
       </main>
+      <VoiceSettingsSidebar />
     </div>
   );
 }

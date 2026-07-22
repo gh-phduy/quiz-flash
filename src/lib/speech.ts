@@ -1,3 +1,5 @@
+import { useVoiceStore } from '@/store/useVoiceStore';
+
 // Preload voices to prevent empty voices array on first call
 if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
   window.speechSynthesis.getVoices();
@@ -6,13 +8,17 @@ if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
   };
 }
 
-export function playAudio(audioUrl?: string | null, textToSpeak?: string | null, volume: number = 1.0) {
-  fallbackToSpeechSynthesis(textToSpeak, volume);
+export function playAudio(
+  audioUrl?: string | null,
+  textToSpeak?: string | null,
+  volumeOverride?: number
+) {
+  fallbackToSpeechSynthesis(textToSpeak, volumeOverride);
 }
 
-function fallbackToSpeechSynthesis(text?: string | null, volume: number = 1.0) {
+export function fallbackToSpeechSynthesis(text?: string | null, volumeOverride?: number) {
   if (!text) return;
-  if (!('speechSynthesis' in window)) {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
     console.warn('SpeechSynthesis API not supported in this browser.');
     return;
   }
@@ -20,39 +26,86 @@ function fallbackToSpeechSynthesis(text?: string | null, volume: number = 1.0) {
   // Cancel any ongoing speech
   window.speechSynthesis.cancel();
 
+  const storeSettings = useVoiceStore.getState();
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'en-US';
-  utterance.rate = 0.95; // Slightly slower for clear pronunciation
-  utterance.pitch = 1.0;
-  utterance.volume = Math.max(0, Math.min(1, volume));
-  
-  const voices = window.speechSynthesis.getVoices();
-  const englishVoices = voices.filter(v => v.lang.startsWith('en'));
-  
-  if (englishVoices.length > 0) {
-    const preferredVoiceNames = [
-      'Google US English', // Chrome
-      'Microsoft David', // Windows US Male
-      'Microsoft Mark', // Windows US Male
-      'Alex', // macOS US Male
-      'Fred', // macOS US Male
-      'Daniel' // macOS UK Male (fallback)
-    ];
-    
-    let preferredVoice = englishVoices.find(v => 
-      preferredVoiceNames.some(name => v.name.includes(name))
-    );
 
-    if (!preferredVoice) {
-      preferredVoice = englishVoices.find(v => v.lang === 'en-US' && v.name.toLowerCase().includes('male'))
-        || englishVoices.find(v => v.lang === 'en-US') 
-        || englishVoices[0];
-    }
-    
-    if (preferredVoice) {
-      utterance.voice = preferredVoice;
-    }
+  const selectedURI = storeSettings.selectedVoiceURI || 'uk_female';
+  const voices = window.speechSynthesis.getVoices();
+
+  let targetPitch = 1.0;
+  let targetLang = 'en-GB';
+  let targetVoice: SpeechSynthesisVoice | undefined;
+
+  const getVoiceByKeywords = (keywords: string[], langPrefix?: string) => {
+    return voices.find((v) => {
+      const name = v.name.toLowerCase();
+      const lang = v.lang.toLowerCase();
+      const matchLang = langPrefix ? lang.startsWith(langPrefix) : true;
+      return matchLang && keywords.some((kw) => name.includes(kw));
+    });
+  };
+
+  switch (selectedURI) {
+    case 'uk_female':
+    case 'google_tts_en-GB':
+      targetLang = 'en-GB';
+      targetPitch = 1.25;
+      targetVoice =
+        getVoiceByKeywords(['hazel', 'female', 'victoria', 'google uk english female', 'georgia'], 'en') ||
+        voices.find((v) => v.lang.toLowerCase().includes('gb') || v.lang.toLowerCase().includes('uk')) ||
+        voices[0];
+      break;
+
+    case 'uk_male':
+    case 'google_tts_en-GB_male':
+      targetLang = 'en-GB';
+      targetPitch = 0.78;
+      targetVoice =
+        getVoiceByKeywords(['george', 'male', 'daniel', 'oliver', 'google uk english male'], 'en') ||
+        voices.find((v) => v.lang.toLowerCase().includes('gb') || v.lang.toLowerCase().includes('uk')) ||
+        voices[0];
+      break;
+
+    case 'us_female':
+    case 'google_tts_en-US':
+      targetLang = 'en-US';
+      targetPitch = 1.22;
+      targetVoice =
+        getVoiceByKeywords(['zira', 'female', 'samantha', 'google us english'], 'en') ||
+        voices.find((v) => v.lang.toLowerCase().includes('us')) ||
+        voices[0];
+      break;
+
+    case 'david':
+      targetLang = 'en-US';
+      targetPitch = 1.0;
+      targetVoice = getVoiceByKeywords(['david']) || voices[0];
+      break;
+
+    case 'mark':
+      targetLang = 'en-US';
+      targetPitch = 0.82;
+      targetVoice = getVoiceByKeywords(['mark']) || voices[0];
+      break;
+
+    default:
+      targetVoice = voices.find((v) => v.voiceURI === selectedURI);
+      break;
   }
+
+  if (targetVoice) {
+    utterance.voice = targetVoice;
+    utterance.lang = targetVoice.lang || targetLang;
+  } else {
+    utterance.lang = targetLang;
+  }
+
+  utterance.rate = storeSettings.rate ?? 0.95;
+  utterance.pitch = (storeSettings.pitch ?? 1.0) * targetPitch;
+
+  const targetVolume =
+    volumeOverride !== undefined ? volumeOverride : storeSettings.volume ?? 1.0;
+  utterance.volume = Math.max(0, Math.min(1, targetVolume));
 
   window.speechSynthesis.speak(utterance);
 }

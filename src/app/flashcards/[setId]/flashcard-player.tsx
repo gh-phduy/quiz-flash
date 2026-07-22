@@ -14,6 +14,7 @@ import { recordBulkCardReviews } from '@/actions/review';
 import { updateGameScores, logGameSession, checkNewCardsForSession } from '@/actions/game';
 import { NewWordsWarmup } from '@/components/shared/new-words-warmup';
 import { getSmartEvaluation, EvaluationResult } from '@/utils/evaluation';
+import { VoiceSettingsSidebar, VoiceSettingsTriggerButton } from '@/components/shared/voice-settings-sidebar';
 
 interface SetData {
   id: string;
@@ -207,21 +208,10 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
     e.currentTarget.releasePointerCapture(e.pointerId);
   };
 
-  if (showWarmup && newCardsForWarmup.length > 0) {
-    return (
-      <NewWordsWarmup
-        newCards={newCardsForWarmup}
-        allSetCards={cards}
-        onComplete={() => setShowWarmup(false)}
-        onSkip={() => setShowWarmup(false)}
-      />
-    );
-  }
-
   // Xử lý phím tắt bàn phím
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isFinished) return;
+      if (isFinished || showWarmup) return;
       
       switch(e.code) {
         case 'Space':
@@ -243,7 +233,18 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleFlip, handleNext, isFinished, isFlipped]);
+  }, [handleFlip, handleNext, isFinished, isFlipped, showWarmup]);
+
+  if (showWarmup && newCardsForWarmup.length > 0) {
+    return (
+      <NewWordsWarmup
+        newCards={newCardsForWarmup}
+        allSetCards={cards}
+        onComplete={() => setShowWarmup(false)}
+        onSkip={() => setShowWarmup(false)}
+      />
+    );
+  }
 
   if (isFinished) {
     if (isSaving) {
@@ -385,12 +386,10 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
             <span className="hidden sm:inline">Auto-play</span>
           </button>
 
-          <button className="text-muted-foreground hover:text-foreground transition cursor-pointer">
-            <Settings className="w-5 h-5" />
-          </button>
+          <VoiceSettingsTriggerButton />
           <button 
             onClick={() => router.push('/')}
-            className="text-muted-foreground hover:text-foreground transition"
+            className="text-muted-foreground hover:text-foreground transition cursor-pointer"
           >
             <X className="w-6 h-6" />
           </button>
@@ -574,6 +573,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
           </div>
         </div>
       </main>
+      <VoiceSettingsSidebar />
     </div>
   );
 }
