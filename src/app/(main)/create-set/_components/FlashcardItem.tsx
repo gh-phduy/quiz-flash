@@ -209,24 +209,26 @@ export const FlashcardItem = React.memo(function FlashcardItem({
             </button>
           </div>
           
-          <div className="flex w-full gap-4 items-stretch h-20">
+          <div className="flex w-full gap-3 items-center h-24 overflow-hidden">
             {isLoadingImages ? (
               <div className="flex items-center gap-2 text-muted-foreground text-sm flex-1">
-                <Loader2 className="w-4 h-4 animate-spin" /> Searching...
+                <Loader2 className="w-4 h-4 animate-spin" /> Searching high quality images...
               </div>
             ) : suggestedImages.length > 0 ? (
-              suggestedImages.map((imgUrl, i) => (
-                <button
-                  key={i}
-                  onClick={() => {
-                    onExternalImageSelect?.(card.id, imgUrl);
-                    setShowImageSuggestions(false);
-                  }}
-                  className="flex-1 rounded-md overflow-hidden border-2 border-transparent hover:border-blue-500 transition-colors shadow-sm relative group bg-black/20"
-                >
-                  <img src={imgUrl} alt="suggestion" className="absolute inset-0 w-full h-full object-cover" />
-                </button>
-              ))
+              <div className="flex gap-2.5 items-center overflow-x-auto flex-1 h-full py-0.5 no-scrollbar">
+                {suggestedImages.map((imgUrl, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      onExternalImageSelect?.(card.id, imgUrl);
+                      setShowImageSuggestions(false);
+                    }}
+                    className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 border-transparent hover:border-blue-500 hover:scale-105 transition-all shadow-md relative group bg-black/30"
+                  >
+                    <img src={imgUrl} alt="suggestion" className="absolute inset-0 w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
             ) : (
               <div className="flex items-center text-sm text-muted-foreground flex-1">No images found.</div>
             )}
@@ -236,7 +238,7 @@ export const FlashcardItem = React.memo(function FlashcardItem({
                 document.getElementById(`file-input-${card.id}`)?.click();
                 setShowImageSuggestions(false);
               }}
-              className="flex-shrink-0 w-32 flex flex-col items-center justify-center text-muted-foreground hover:text-foreground hover:border-white transition-all bg-background/50 hover:bg-background cursor-pointer rounded-md border-[2px] border-dashed border-[#939bb4]/60 shadow-sm"
+              className="flex-shrink-0 w-24 h-20 flex flex-col items-center justify-center text-muted-foreground hover:text-foreground hover:border-white transition-all bg-background/50 hover:bg-background cursor-pointer rounded-lg border-[2px] border-dashed border-[#939bb4]/60 shadow-sm"
             >
               <Upload className="h-5 w-5 mb-1" />
               <span className="text-[11px] font-bold">Upload</span>
