@@ -18,6 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { DemonModeCard } from '@/components/shared/demon-mode-card';
 
 interface HomeDashboardProps {
   user: any;
@@ -27,9 +28,10 @@ interface HomeDashboardProps {
   initialSavedSetIds: string[];
   suggestedPublicSets?: any[];
   dueCount?: number;
+  dailyGoal?: any;
 }
 
-export default function HomeDashboard({ user, profile, sets, savedSets, initialSavedSetIds, suggestedPublicSets = [], dueCount = 0 }: HomeDashboardProps) {
+export default function HomeDashboard({ user, profile, sets, savedSets, initialSavedSetIds, suggestedPublicSets = [], dueCount = 0, dailyGoal }: HomeDashboardProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'created' | 'saved'>('created');
   const [savedSetIds, setSavedSetIds] = useState<Set<string>>(new Set(initialSavedSetIds));
@@ -134,6 +136,9 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
         </div>
       </div>
       
+      {/* Demon Mode Card */}
+      <DemonModeCard dailyGoal={dailyGoal} sets={sets} />
+
       {/* Daily Review Banner */}
       {dueCount > 0 && (
         <div className="mb-12 relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-[#9fa6ff]/20 to-[#b892ff]/20 border border-[#b892ff]/30 p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-8 group">

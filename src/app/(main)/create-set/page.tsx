@@ -148,10 +148,9 @@ export default function CreateSetPage() {
     toast.success(`Đã tự động điền dữ liệu cho ${successCount}/${cardsToUpdate.length} thẻ!`);
   };
 
-  // Tải ảnh lên và tạo Preview (Chỉ chạy ở Client, chưa lưu lên Supabase)
-  const handleImageUpload = useCallback((id: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Xử lý tệp hình ảnh được chọn, dán hoặc kéo thả vào thẻ
+  const handleFileSelect = useCallback((id: string, file: File) => {
+    if (!file || !file.type.startsWith('image/')) return;
 
     // Khởi tạo URL xem trước tạm thời ngay trên trình duyệt (local)
     const previewUrl = URL.createObjectURL(file);
@@ -180,10 +179,17 @@ export default function CreateSetPage() {
         }
       };
     });
+  }, []);
 
+  // Tải ảnh lên qua file input
+  const handleImageUpload = useCallback((id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileSelect(id, file);
+    }
     // Reset input value để có thể chọn lại chính file đó nếu vừa xóa
     e.target.value = '';
-  }, []);
+  }, [handleFileSelect]);
 
   // Xóa ảnh đã chọn
   const handleRemoveImage = useCallback((id: string) => {
@@ -483,6 +489,7 @@ export default function CreateSetPage() {
                   onDelete={handleDeleteCard}
                   onChange={handleCardChange}
                   onImageUpload={handleImageUpload}
+                  onFileSelect={handleFileSelect}
                   onRemoveImage={handleRemoveImage}
                   onExternalImageSelect={handleExternalImageSelect}
                 />

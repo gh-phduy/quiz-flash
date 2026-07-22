@@ -142,9 +142,8 @@ export default function EditSetForm({ initialSet, initialCards, initialCollabSta
     toast.success(`Đã tự động điền dữ liệu cho ${successCount}/${cardsToUpdate.length} thẻ!`);
   };
 
-  const handleImageUpload = useCallback((id: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFileSelect = useCallback((id: string, file: File) => {
+    if (!file || !file.type.startsWith('image/')) return;
 
     const previewUrl = URL.createObjectURL(file);
 
@@ -171,9 +170,16 @@ export default function EditSetForm({ initialSet, initialCards, initialCollabSta
         }
       };
     });
+  }, []);
+
+  const handleImageUpload = useCallback((id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileSelect(id, file);
+    }
 
     e.target.value = '';
-  }, []);
+  }, [handleFileSelect]);
 
   const handleRemoveImage = useCallback((id: string) => {
     setCards(prev => prev.map(card => {
@@ -499,6 +505,7 @@ export default function EditSetForm({ initialSet, initialCards, initialCollabSta
                   onDelete={handleDeleteCard}
                   onChange={handleCardChange}
                   onImageUpload={handleImageUpload}
+                  onFileSelect={handleFileSelect}
                   onRemoveImage={handleRemoveImage}
                   onExternalImageSelect={handleExternalImageSelect}
                 />

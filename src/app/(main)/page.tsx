@@ -12,6 +12,7 @@ export default async function Home() {
   
   let suggestedPublicSets: any[] = [];
   let dueCount = 0;
+  let dailyGoal = null;
   
   if (user) {
     const todayStr = new Date().toISOString().split('T')[0];
@@ -20,7 +21,8 @@ export default async function Home() {
       { data: profileData },
       { data: setsData },
       { data: userSavedSets },
-      { count: dueReviewsCount }
+      { count: dueReviewsCount },
+      { data: dailyGoalData }
     ] = await Promise.all([
       // 1. Fetch user profile
       supabase
@@ -43,15 +45,24 @@ export default async function Home() {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false }),
         
-      // 5. Fetch due reviews count
+      // 4. Fetch due reviews count
       supabase
         .from('card_reviews')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .lte('next_review_date', todayStr)
+        .lte('next_review_date', todayStr),
+
+      // 5. Fetch daily goals for today
+      supabase
+        .from('daily_goals')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('goal_date', todayStr)
+        .maybeSingle()
     ]);
 
     profile = profileData;
+    dailyGoal = dailyGoalData;
     if (setsData) sets = setsData;
     
     if (userSavedSets && Array.isArray(userSavedSets)) {
@@ -78,7 +89,7 @@ export default async function Home() {
     
     dueCount = dueReviewsCount || 0;
 
-    // 4. Fetch suggested public sets (if user has very few sets)
+    // Fetch suggested public sets (if user has very few sets)
     if (sets.length + savedSets.length < 3) {
       const { data: pubSets } = await supabase
         .from('sets')
@@ -88,7 +99,6 @@ export default async function Home() {
         .limit(20);
         
       if (pubSets && pubSets.length > 0) {
-        // Sort by card count descending and take top 3
         const sortedPubSets = pubSets
           .sort((a: any, b: any) => (b.cards?.[0]?.count || 0) - (a.cards?.[0]?.count || 0))
           .slice(0, 3);
@@ -108,16 +118,15 @@ export default async function Home() {
   }
 
   return (
-    <main className="min-h-[calc(100vh-56px)] bg-background text-foreground font-sans">
-      <HomeDashboard 
-        user={user}
-        profile={profile}
-        sets={sets} 
-        savedSets={savedSets} 
-        initialSavedSetIds={savedSetIds}
-        suggestedPublicSets={suggestedPublicSets}
-        dueCount={dueCount}
-      />
-    </main>
+    <HomeDashboard
+      user={user}
+      profile={profile}
+      sets={sets}
+      savedSets={savedSets}
+      initialSavedSetIds={savedSetIds}
+      suggestedPublicSets={suggestedPublicSets}
+      dueCount={dueCount}
+      dailyGoal={dailyGoal}
+    />
   );
 }
