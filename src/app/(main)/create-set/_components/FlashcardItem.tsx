@@ -150,7 +150,7 @@ export const FlashcardItem = React.memo(function FlashcardItem({
         
         {/* Image Upload Box */}
         <div className="w-[84px] flex flex-col gap-1 flex-shrink-0 mt-0 relative">
-          <div className={`w-full aspect-square rounded-lg ${error?.image ? 'border-2 border-red-500' : ''}`}>
+          <div className={`w-[84px] h-[84px] flex-shrink-0 rounded-lg overflow-hidden relative ${error?.image ? 'border-2 border-red-500' : ''}`}>
             <input 
               type="file" 
               id={`file-input-${card.id}`}
