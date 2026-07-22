@@ -1,6 +1,7 @@
 {
   "name": "quiz-flash",
   "version": "0.1.0",
+  "description": "QuizFlash Spaced Repetition Learning App",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -43,6 +44,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.11",
+    "@opennextjs/cloudflare": "^1.20.2",
+    "wrangler": "^3.114.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
