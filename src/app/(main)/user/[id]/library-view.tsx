@@ -137,7 +137,7 @@ export function LibraryView({
             {filteredSavedSets.length > 0 ? (
               filteredSavedSets.map((set: any) => {
                 const authorAvatar = set.author?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${set.user_id}`;
-                const authorName = set.author?.full_name || (set.author?.email ? set.author.email.split('@')[0] : 'Anonymous');
+                const authorName = set.author?.full_name || (set.author?.email ? set.author.email.split('@')[0] : (set.user_id ? 'Anonymous' : 'QuizFlash'));
                 
                 return (
                 <div 

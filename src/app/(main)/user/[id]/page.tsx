@@ -44,7 +44,7 @@ export default async function UserLibraryPage({ params }: { params: Promise<{ id
       
     if (savedSetsResultData && savedSetsResultData.length > 0) {
       // Fetch authors for saved sets
-      const authorIds = [...new Set(savedSetsResultData.map(s => s.user_id))];
+      const authorIds = [...new Set(savedSetsResultData.map(s => s.user_id))].filter(Boolean);
       const { data: authors } = await supabase
         .from('profiles')
         .select('id, email, avatar_url, full_name')

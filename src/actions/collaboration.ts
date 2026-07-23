@@ -220,7 +220,7 @@ export async function getNotifications() {
   if (!data || data.length === 0) return [];
 
   // Fetch senders' profiles
-  const senderIds = [...new Set(data.map(n => n.sender_id))];
+  const senderIds = [...new Set(data.map(n => n.sender_id))].filter(Boolean);
   const { data: profiles } = await supabase
     .from('profiles')
     .select('id, full_name, avatar_url, email')

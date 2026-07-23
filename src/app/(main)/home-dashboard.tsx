@@ -300,13 +300,13 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
                         height={20} 
                         className="rounded-full object-cover"
                       />
-                    ) : (
+                     ) : (
                       <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold">
-                        {(set.author?.full_name || set.author?.email || 'U')[0].toUpperCase()}
+                        {(set.author?.full_name || set.author?.email || (set.user_id ? 'User' : 'QuizFlash'))[0].toUpperCase()}
                       </div>
                     )}
                     <span className="font-medium truncate max-w-[120px]">
-                      {set.author?.full_name || set.author?.email?.split('@')[0] || 'User'}
+                      {set.author?.full_name || set.author?.email?.split('@')[0] || (set.user_id ? 'User' : 'QuizFlash')}
                     </span>
                   </div>
                   

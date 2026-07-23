@@ -157,14 +157,14 @@ export default function ExploreGrid({ sets, initialSavedSetIds = [] }: ExploreGr
                       ) : (
                         <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center border border-white/10 shadow-sm shrink-0">
                           <span className="text-white text-sm font-bold uppercase">
-                            {((set.author?.full_name || set.author?.email || 'A')[0])}
+                            {((set.author?.full_name || set.author?.email || (set.user_id ? 'Anonymous' : 'QuizFlash'))[0])}
                           </span>
                         </div>
                       )}
                       
                       <div className="flex flex-col justify-center">
                         <span className="text-sm text-white font-medium truncate max-w-[150px] leading-tight">
-                          {set.author?.full_name || (set.author?.email ? set.author.email.split('@')[0] : 'Anonymous')}
+                          {set.author?.full_name || (set.author?.email ? set.author.email.split('@')[0] : (set.user_id ? 'Anonymous' : 'QuizFlash'))}
                         </span>
                         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/80 font-medium mt-0.5">
                           <Clock className="w-3 h-3" />

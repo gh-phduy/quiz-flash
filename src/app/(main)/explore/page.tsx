@@ -40,7 +40,7 @@ export default async function ExplorePage() {
 
   // Fetch author profiles nếu có sets
   if (sets.length > 0) {
-    const userIds = [...new Set(sets.map((s: any) => s.user_id))];
+    const userIds = [...new Set(sets.map((s: any) => s.user_id))].filter(Boolean);
     
     const { data: profiles } = await supabase
       .from('profiles')

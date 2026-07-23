@@ -63,7 +63,7 @@ export default async function Home() {
       }).filter(Boolean);
 
       if (rawSavedSets.length > 0) {
-        const savedUserIds = [...new Set(rawSavedSets.map((s: any) => s.user_id))];
+        const savedUserIds = [...new Set(rawSavedSets.map((s: any) => s.user_id))].filter(Boolean);
         const { data: savedProfiles } = await supabase
           .from('profiles')
           .select('id, email, avatar_url, full_name')
@@ -92,7 +92,7 @@ export default async function Home() {
           .sort((a: any, b: any) => (b.cards?.[0]?.count || 0) - (a.cards?.[0]?.count || 0))
           .slice(0, 3);
           
-        const userIds = [...new Set(sortedPubSets.map((s: any) => s.user_id))];
+        const userIds = [...new Set(sortedPubSets.map((s: any) => s.user_id))].filter(Boolean);
         const { data: profiles } = await supabase
           .from('profiles')
           .select('id, email, avatar_url, full_name')
