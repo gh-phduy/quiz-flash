@@ -7,7 +7,6 @@ import { UserAvatar } from '@/components/shared/user-avatar';
 import EditDisplayName from '../_components/edit-display-name';
 import ModePerformance from '../_components/mode-performance';
 import DailyGoalCard from '../_components/daily-goal-card';
-import ResetProgressButton from '../_components/reset-progress-button';
 import { createClient } from '@/utils/supabase/server';
 
 export const revalidate = 0; // Fresh stats on each load
@@ -113,12 +112,7 @@ export default async function UserStatusPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Action Bar below header line */}
-      {isOwner && (
-        <div className="flex justify-end -mt-2">
-          <ResetProgressButton />
-        </div>
-      )}
+
 
       {/* Daily Goal Target Section */}
       <DailyGoalCard dailyGoal={dailyGoal} />
