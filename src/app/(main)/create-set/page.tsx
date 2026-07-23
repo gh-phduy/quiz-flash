@@ -115,11 +115,11 @@ export default function CreateSetPage() {
   const handleBulkAutoFill = async () => {
     const cardsToUpdate = cards.filter(c => c.term && (!c.phonetic || !c.part_of_speech));
     if (cardsToUpdate.length === 0) {
-      toast.info("Không có thẻ nào cần điền phiên âm hoặc từ loại.");
+      toast.info("No cards need auto-fill for phonetics or part of speech.");
       return;
     }
 
-    toast.loading(`Đang điền dữ liệu cho ${cardsToUpdate.length} thẻ...`, { id: 'bulk-phonetic' });
+    toast.loading(`Filling data for ${cardsToUpdate.length} cards...`, { id: 'bulk-phonetic' });
     let successCount = 0;
 
     const newCards = [...cards];
@@ -145,7 +145,7 @@ export default function CreateSetPage() {
 
     setCards(newCards);
     toast.dismiss('bulk-phonetic');
-    toast.success(`Đã tự động điền dữ liệu cho ${successCount}/${cardsToUpdate.length} thẻ!`);
+    toast.success(`Auto-filled data for ${successCount}/${cardsToUpdate.length} cards!`);
   };
 
   // Xử lý tệp hình ảnh được chọn, dán hoặc kéo thả vào thẻ
@@ -258,6 +258,9 @@ export default function CreateSetPage() {
       });
       
       setErrors(formattedErrors);
+      toast.error("Please fill in all required fields!", {
+        description: "Please check missing title, terms, or definitions.",
+      });
       return;
     }
 
@@ -339,15 +342,15 @@ export default function CreateSetPage() {
 
       if (cardsError) throw cardsError;
 
-      toast.success("Thành công!", {
-        description: "Bộ từ vựng đã được lưu an toàn trên Supabase.",
+      toast.success("Success!", {
+        description: "Your study set has been created successfully.",
       });
 
       // Tùy chọn: Reset form hoặc chuyển hướng sau khi lưu thành công
     } catch (error: any) {
       console.error("Create set error:", error?.message || error);
-      toast.error("Thất bại!", {
-        description: error?.message || "Đã xảy ra lỗi không xác định.",
+      toast.error("Failed!", {
+        description: error?.message || "An unknown error occurred.",
       });
     } finally {
       setIsSubmitting(false);
@@ -430,6 +433,15 @@ export default function CreateSetPage() {
             >
               <Wand2 className="mr-2 h-4 w-4" /> Auto-fill Phonetics
             </button>
+            <div className="flex items-center px-4 py-2 rounded-full bg-[#2e3856] text-white text-sm font-semibold select-none border border-white/5 shadow-sm">
+              <span>
+                {searchQuery ? (
+                  <>Found: <strong className="text-[#4255ff]">{filteredCards.length}</strong>/{cards.length}</>
+                ) : (
+                  <>Cards: <strong className="text-[#4255ff]">{cards.length}</strong></>
+                )}
+              </span>
+            </div>
           </div>
           
           <div className="flex items-center gap-4">

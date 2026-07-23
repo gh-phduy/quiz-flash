@@ -4,7 +4,7 @@ export const cardSchema = z.object({
   id: z.string(),
   term: z.string().min(1, 'Term is required'),
   definition: z.string().min(1, 'Definition is required'),
-  image_url: z.string().nullable().refine((val) => val !== null, 'Image is required'),
+  image_url: z.string().nullable().optional(),
   phonetic: z.string().nullable().optional(),
   part_of_speech: z.string().nullable().optional(),
   audio_url: z.string().nullable().optional(),

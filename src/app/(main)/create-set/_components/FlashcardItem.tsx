@@ -294,7 +294,7 @@ export const FlashcardItem = React.memo(function FlashcardItem({
             <div className="relative w-1/2 ml-4">
               <input 
                 type="text" 
-                placeholder="POS / Từ loại (optional)" 
+                placeholder="POS (optional)" 
                 value={card.part_of_speech || ''}
                 onChange={(e) => onChange(card.id, 'part_of_speech', e.target.value)}
                 className="w-full bg-background/50 border-b border-transparent focus:border-[#4255ff] px-2 py-1 text-muted-foreground text-[13px] outline-none transition-colors"
@@ -305,7 +305,7 @@ export const FlashcardItem = React.memo(function FlashcardItem({
         
         {/* Image Area: Có 3 ô/nút chọn chuyên biệt: Dán ảnh, Tải ảnh, Tìm online */}
         <div className="w-[110px] flex flex-col gap-1 flex-shrink-0 mt-0 relative">
-          <div className={`w-[110px] h-[98px] flex-shrink-0 rounded-xl overflow-hidden relative ${card.image_url ? 'border border-border' : 'border border-[#939bb4]/30 bg-background/40 p-1'} ${error?.image ? 'border-2 border-red-500' : ''}`}>
+          <div className={`w-[110px] h-[98px] flex-shrink-0 rounded-xl overflow-hidden relative ${card.image_url ? 'border border-border' : 'border border-[#939bb4]/30 bg-background/40 p-1'}`}>
             <input 
               type="file" 
               id={`file-input-${card.id}`}
@@ -339,33 +339,33 @@ export const FlashcardItem = React.memo(function FlashcardItem({
                 <button 
                   type="button"
                   onClick={handlePasteFromClipboard}
-                  title="Bấm để dán ảnh đã copy từ Clipboard (hoặc bấm Ctrl+V)"
+                  title="Click to paste image from clipboard (or press Ctrl+V)"
                   className="flex-1 w-full bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 hover:text-emerald-300 border border-emerald-500/30 rounded-md flex items-center justify-center gap-1.5 transition-all text-[11px] font-semibold cursor-pointer"
                 >
                   <ClipboardPaste className="h-3.5 w-3.5" />
-                  <span>Dán ảnh</span>
+                  <span>Paste</span>
                 </button>
 
                 {/* Nút 2: Tải ảnh từ máy tính */}
                 <button 
                   type="button"
                   onClick={() => document.getElementById(`file-input-${card.id}`)?.click()}
-                  title="Tải ảnh từ máy tính"
+                  title="Upload image from computer"
                   className="flex-1 w-full bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 hover:text-blue-300 border border-blue-500/30 rounded-md flex items-center justify-center gap-1.5 transition-all text-[11px] font-semibold cursor-pointer"
                 >
                   <Upload className="h-3.5 w-3.5" />
-                  <span>Tải ảnh</span>
+                  <span>Upload</span>
                 </button>
 
                 {/* Nút 3: Tìm ảnh online */}
                 <button 
                   type="button"
                   onClick={handleSearchImages}
-                  title="Tìm kiếm ảnh online"
+                  title="Search images online"
                   className="flex-1 w-full bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 hover:text-amber-300 border border-amber-500/30 rounded-md flex items-center justify-center gap-1.5 transition-all text-[11px] font-semibold cursor-pointer"
                 >
                   <Search className="h-3.5 w-3.5" />
-                  <span>Tìm online</span>
+                  <span>Search online</span>
                 </button>
               </div>
             )}
@@ -373,11 +373,11 @@ export const FlashcardItem = React.memo(function FlashcardItem({
 
           {!card.image_url && (
             <span className="text-[9px] text-muted-foreground/70 text-center font-medium leading-tight">
-              Hoặc kéo thả vào đây
+              Or drag & drop here
             </span>
           )}
 
-          {error?.image && <span className="text-red-500 text-[10px] font-bold text-center leading-tight">Required</span>}
+          {/* Image is optional, no required message here */}
         </div>
 
       </div>
