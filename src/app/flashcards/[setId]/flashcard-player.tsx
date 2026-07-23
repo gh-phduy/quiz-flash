@@ -4,14 +4,15 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   X, Settings, Maximize, RotateCcw, 
-  Lightbulb, Volume2, VolumeX, ChevronDown, Home
+  Lightbulb, Volume2, VolumeX, ChevronDown, Home,
+  Sparkles, SlidersHorizontal, Play
 } from 'lucide-react';
 import Image from 'next/image';
 import { ModeSwitcher } from '@/components/shared/mode-switcher';
 import { playAudio } from '@/lib/speech';
 import { recordStudyActivity } from '@/actions/study';
 import { recordBulkCardReviews } from '@/actions/review';
-import { updateGameScores, logGameSession, checkNewCardsForSession } from '@/actions/game';
+import { updateGameScores, logGameSession, checkNewCardsForSession, generateGameSession } from '@/actions/game';
 import { NewWordsWarmup } from '@/components/shared/new-words-warmup';
 import { getSmartEvaluation, EvaluationResult } from '@/utils/evaluation';
 import { VoiceSettingsSidebar, VoiceSettingsTriggerButton } from '@/components/shared/voice-settings-sidebar';
@@ -28,7 +29,9 @@ interface CardData {
   definition: string;
   image_url?: string | null;
   phonetic?: string | null;
+  phonetic_uk?: string | null;
   part_of_speech?: string | null;
+  cefr_level?: string | null;
   audio_url?: string | null;
 }
 
@@ -39,6 +42,12 @@ interface FlashcardPlayerProps {
 
 export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
   const router = useRouter();
+  const [activeCards, setActiveCards] = useState<CardData[]>(() => cards.slice(0, Math.min(20, cards.length)));
+  const [showSetup, setShowSetup] = useState<boolean>(() => cards.length > 20);
+  const [selectedLimit, setSelectedLimit] = useState<number>(() => Math.min(20, cards.length));
+  const [selectedStrategy, setSelectedStrategy] = useState<'smart' | 'random' | 'sequential'>('smart');
+  const [isPreparing, setIsPreparing] = useState<boolean>(false);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [learningCount, setLearningCount] = useState(0);
@@ -62,6 +71,40 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
   const [newCardsForWarmup, setNewCardsForWarmup] = useState<any[]>([]);
   const [showWarmup, setShowWarmup] = useState(false);
 
+  const handleStartSession = async (limitOverride?: number) => {
+    const limit = limitOverride || selectedLimit;
+    setIsPreparing(true);
+    let newBatch: CardData[] = [];
+
+    if (selectedStrategy === 'smart') {
+      const res = await generateGameSession(set.id, limit);
+      if (res.success && res.cards && res.cards.length > 0) {
+        newBatch = res.cards as CardData[];
+      }
+    }
+
+    if (newBatch.length === 0) {
+      if (selectedStrategy === 'random') {
+        newBatch = [...cards].sort(() => 0.5 - Math.random()).slice(0, limit);
+      } else {
+        newBatch = cards.slice(0, limit);
+      }
+    }
+
+    setActiveCards(newBatch);
+    setCurrentIndex(0);
+    setIsFinished(false);
+    setKnownCount(0);
+    setLearningCount(0);
+    setIsFlipped(false);
+    setStartTime(Date.now());
+    setEvaluation(null);
+    setSlideDirection(null);
+    cardReviewsRef.current = [];
+    setIsPreparing(false);
+    setShowSetup(false);
+  };
+
   useEffect(() => {
     if (cards && cards.length > 0) {
       checkNewCardsForSession(cards.map(c => c.id)).then(unreviewed => {
@@ -77,15 +120,17 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
     setStartTime(Date.now());
   }, []);
 
-  const currentCard = cards[currentIndex];
+  const currentCard = activeCards[currentIndex] || cards[currentIndex];
 
   useEffect(() => {
-    if (isAutoPlay && cards.length > 0 && !isFinished) {
+    if (isAutoPlay && activeCards.length > 0 && !isFinished && !showSetup) {
       setTimeout(() => {
-        playAudio(cards[currentIndex].audio_url, cards[currentIndex].term);
+        if (activeCards[currentIndex]) {
+          playAudio(activeCards[currentIndex].audio_url, activeCards[currentIndex].term);
+        }
       }, 400); // Small delay to let the slide animation finish
     }
-  }, [currentIndex, cards, isFinished, isAutoPlay]);
+  }, [currentIndex, activeCards, isFinished, isAutoPlay, showSetup]);
 
   const handleNext = useCallback((status: 'known' | 'learning') => {
     // Record review for SM-2
@@ -137,13 +182,13 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
 
         // Record activity
         const [res, bulkRes] = await Promise.all([
-          recordStudyActivity(set.id, earned, cards.length, 'flashcards'),
+          recordStudyActivity(set.id, earned, activeCards.length, 'flashcards'),
           recordBulkCardReviews(cardReviewsRef.current, 'flashcards'),
           updateGameScores(correctCards, incorrectCards),
           logGameSession({
             setId: set.id,
             mode: 'flashcards',
-            totalCards: cards.length,
+            totalCards: activeCards.length,
             correctCount: finalKnown,
             incorrectCount: finalLearning,
             durationSeconds,
@@ -236,6 +281,125 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleFlip, handleNext, isFinished, isFlipped, showWarmup]);
 
+  if (showSetup) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-6 relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-[#4255ff]/10 rounded-full blur-[120px] pointer-events-none" />
+        
+        <div className="w-full max-w-lg bg-card/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl relative z-10 flex flex-col items-center animate-in fade-in zoom-in duration-300">
+          <div className="w-14 h-14 rounded-2xl bg-[#4255ff]/20 text-[#9fa6ff] border border-[#4255ff]/30 flex items-center justify-center mb-5 shadow-lg">
+            <Sparkles className="w-7 h-7" />
+          </div>
+
+          <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-white/70 text-center mb-1">
+            Study Session Setup
+          </h2>
+          <p className="text-sm text-muted-foreground text-center mb-8 font-medium">
+            {set.title} • {cards.length} cards total
+          </p>
+
+          {/* Quantity Presets */}
+          <div className="w-full mb-6">
+            <div className="flex items-center justify-between mb-2.5">
+              <label className="text-xs font-black uppercase tracking-wider text-white/70">
+                Cards Per Session
+              </label>
+              <span className="text-xs font-bold text-[#9fa6ff]">{selectedLimit} cards</span>
+            </div>
+            <div className="grid grid-cols-5 gap-2">
+              {[15, 30, 50, 100, cards.length].map((qty, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setSelectedLimit(qty)}
+                  className={`py-3 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+                    selectedLimit === qty
+                      ? 'bg-[#4255ff] text-white shadow-[0_0_15px_rgba(66,85,255,0.4)] border border-white/20'
+                      : 'bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white border border-white/5'
+                  }`}
+                >
+                  {qty === cards.length ? 'All' : qty}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Algorithm Selection */}
+          <div className="w-full mb-8">
+            <label className="text-xs font-black uppercase tracking-wider text-white/70 block mb-2.5">
+              Algorithm Strategy
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setSelectedStrategy('smart')}
+                className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                  selectedStrategy === 'smart'
+                    ? 'bg-[#4255ff]/15 border-[#4255ff] text-white shadow-lg'
+                    : 'bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10'
+                }`}
+              >
+                <span className="font-bold text-sm text-white flex items-center gap-1.5 mb-1">
+                  🧠 Smart Waterfall
+                </span>
+                <span className="text-[11px] leading-snug opacity-80">
+                  Prioritizes due reviews, weak words & new cards
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedStrategy('random')}
+                className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                  selectedStrategy === 'random'
+                    ? 'bg-[#4255ff]/15 border-[#4255ff] text-white shadow-lg'
+                    : 'bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10'
+                }`}
+              >
+                <span className="font-bold text-sm text-white flex items-center gap-1.5 mb-1">
+                  🔀 Random Shuffle
+                </span>
+                <span className="text-[11px] leading-snug opacity-80">
+                  Randomly selects words across the entire set
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex gap-3 w-full">
+            {cards.length <= 20 && (
+              <button
+                type="button"
+                onClick={() => setShowSetup(false)}
+                className="px-6 py-4 bg-white/5 hover:bg-white/10 text-white font-bold rounded-2xl border border-white/10 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => handleStartSession()}
+              disabled={isPreparing}
+              className="flex-1 py-4 bg-[#4255ff] hover:bg-[#5b6aff] text-white font-bold rounded-2xl transition shadow-[0_0_25px_rgba(66,85,255,0.4)] flex items-center justify-center gap-2 text-base cursor-pointer"
+            >
+              {isPreparing ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  Preparing Waterfall...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <Play className="w-5 h-5 fill-current" />
+                  Start Session ({selectedLimit} Cards)
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (showWarmup && newCardsForWarmup.length > 0) {
     return (
       <NewWordsWarmup
@@ -326,30 +490,27 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-4 w-full">
+          <div className="flex flex-col sm:flex-row gap-3 w-full">
             <button 
-              onClick={() => {
-                setCurrentIndex(0);
-                setIsFinished(false);
-                setKnownCount(0);
-                setLearningCount(0);
-                setIsFlipped(false);
-                setStartTime(Date.now());
-                setEvaluation(null);
-                setSlideDirection(null);
-                cardReviewsRef.current = [];
-              }}
-              className="px-8 py-3.5 bg-[#4255ff] text-white font-bold rounded-xl hover:bg-[#5b6aff] transition shadow-[0_0_20px_rgba(66,85,255,0.3)] hover:shadow-[0_0_30px_rgba(66,85,255,0.5)] hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full flex-1"
+              onClick={() => handleStartSession()}
+              className="px-6 py-3.5 bg-[#4255ff] text-white font-bold rounded-xl hover:bg-[#5b6aff] transition shadow-[0_0_20px_rgba(66,85,255,0.3)] hover:shadow-[0_0_30px_rgba(66,85,255,0.5)] hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full flex-1 cursor-pointer"
             >
-              <RotateCcw className="w-5 h-5" />
-              Study Again
+              <Sparkles className="w-5 h-5" />
+              Next Batch ({selectedLimit} Words)
+            </button>
+            <button 
+              onClick={() => setShowSetup(true)}
+              className="px-6 py-3.5 bg-white/10 text-white font-bold rounded-xl hover:bg-white/20 transition border border-white/10 flex items-center justify-center gap-2 w-full flex-1 cursor-pointer"
+            >
+              <SlidersHorizontal className="w-5 h-5" />
+              Change Size ({selectedLimit})
             </button>
             <button 
               onClick={() => router.push('/')}
-              className="px-8 py-3.5 bg-white/5 text-white font-bold rounded-xl hover:bg-white/10 transition border border-white/10 flex items-center justify-center gap-2 w-full flex-1"
+              className="px-6 py-3.5 bg-white/5 text-white font-bold rounded-xl hover:bg-white/10 transition border border-white/10 flex items-center justify-center gap-2 w-full shrink-0 sm:w-auto cursor-pointer"
             >
               <Home className="w-5 h-5" />
-              Back to Home
+              Home
             </button>
           </div>
         </div>
@@ -369,12 +530,20 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
 
         <div className="flex flex-col items-center absolute left-1/2 -translate-x-1/2">
           <span className="text-sm font-bold text-foreground mb-1">
-            {currentIndex + 1} / {cards.length}
+            {currentIndex + 1} / {activeCards.length}
           </span>
           <span className="text-sm font-bold text-muted-foreground">{set.title}</span>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4">
+          <button
+            onClick={() => setShowSetup(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white/5 hover:bg-white/10 border border-white/10 text-muted-foreground hover:text-white transition cursor-pointer"
+            title="Configure Session Size & Algorithm"
+          >
+            <SlidersHorizontal className="w-4 h-4 text-[#9fa6ff]" />
+            <span className="hidden sm:inline font-bold">{activeCards.length} Cards</span>
+          </button>
           <button 
             onClick={() => setIsAutoPlay(!isAutoPlay)}
             className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition cursor-pointer text-sm font-semibold border ${
@@ -472,14 +641,26 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
                 <h2 className="text-4xl md:text-5xl font-medium text-foreground text-center break-words">
                   {currentCard.term}
                 </h2>
-                {(currentCard.phonetic || currentCard.part_of_speech) && (
-                  <div className="flex items-center gap-2">
-                    {currentCard.phonetic && (
-                      <span className="text-muted-foreground text-lg">{currentCard.phonetic}</span>
+                {(currentCard.phonetic || currentCard.phonetic_uk || currentCard.part_of_speech || currentCard.cefr_level) && (
+                  <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
+                    {currentCard.cefr_level && (
+                      <span className="text-xs font-black px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wide">
+                        {currentCard.cefr_level}
+                      </span>
                     )}
                     {currentCard.part_of_speech && (
                       <span className="text-xs font-semibold px-2 py-0.5 rounded bg-white/10 text-purple-300 italic">
                         {currentCard.part_of_speech}
+                      </span>
+                    )}
+                    {currentCard.phonetic && (
+                      <span className="text-muted-foreground text-sm font-mono bg-white/5 px-2 py-0.5 rounded border border-white/10">
+                        🇺🇸 {currentCard.phonetic}
+                      </span>
+                    )}
+                    {currentCard.phonetic_uk && (
+                      <span className="text-muted-foreground text-sm font-mono bg-white/5 px-2 py-0.5 rounded border border-white/10">
+                        🇬🇧 {currentCard.phonetic_uk}
                       </span>
                     )}
                   </div>

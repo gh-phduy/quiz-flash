@@ -274,7 +274,9 @@ export async function getStatusDashboard(targetUserId?: string) {
             term,
             definition,
             phonetic,
-            part_of_speech
+            phonetic_uk,
+            part_of_speech,
+            cefr_level
           )
         `)
         .eq('user_id', targetId)
@@ -505,7 +507,9 @@ export async function getDueCardsToReview() {
           term,
           definition,
           phonetic,
-          part_of_speech
+          phonetic_uk,
+          part_of_speech,
+          cefr_level
         )
       `)
       .eq('user_id', user.id)

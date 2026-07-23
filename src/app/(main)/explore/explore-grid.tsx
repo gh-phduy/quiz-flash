@@ -23,14 +23,25 @@ interface ExploreGridProps {
 
 export default function ExploreGrid({ sets, initialSavedSetIds = [] }: ExploreGridProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCefr, setSelectedCefr] = useState<string>('all');
   const [savedSets, setSavedSets] = useState<Set<string>>(new Set(initialSavedSetIds));
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const router = useRouter();
 
-  const filteredSets = sets.filter(set => 
-    set.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    (set.description && set.description.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const CEFR_LEVELS = ['all', 'A1', 'A2', 'B1', 'B2', 'C1'];
+
+  const filteredSets = sets.filter(set => {
+    const matchesSearch = set.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      (set.description && set.description.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    if (selectedCefr === 'all') return matchesSearch;
+    
+    const titleLower = set.title.toLowerCase();
+    const descLower = (set.description || '').toLowerCase();
+    const target = selectedCefr.toLowerCase();
+
+    return matchesSearch && (titleLower.includes(target) || descLower.includes(target));
+  });
 
   const GAME_MODES: { id: string; name: string; desc: string; icon: any; href: string; bg: string; border: string; disabled?: boolean }[] = [
     { id: 'flashcards', name: 'Flashcards', desc: 'Review terms & definitions', icon: <Layers className="w-8 h-8 text-blue-400 group-hover:scale-110 transition-transform" />, href: '/flashcards', bg: 'from-blue-500/10 to-blue-600/5', border: 'border-blue-500/20 hover:border-blue-500/40' },
@@ -86,17 +97,37 @@ export default function ExploreGrid({ sets, initialSavedSetIds = [] }: ExploreGr
           </p>
         </div>
 
-        <div className="relative w-full md:w-96">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-muted-foreground" />
+        <div className="flex flex-col gap-3 w-full md:w-auto">
+          <div className="relative w-full md:w-96">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search by title or topic..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-11 pr-4 py-3 bg-card/50 backdrop-blur-md border border-white/10 rounded-2xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#4255ff]/50 focus:border-[#4255ff]/50 transition-all shadow-lg"
+            />
           </div>
-          <input
-            type="text"
-            placeholder="Search by title or topic..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 bg-card/50 backdrop-blur-md border border-white/10 rounded-2xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#4255ff]/50 focus:border-[#4255ff]/50 transition-all shadow-lg"
-          />
+
+          {/* CEFR Level Filter Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            <span className="text-xs font-bold text-muted-foreground shrink-0 mr-1">Level:</span>
+            {CEFR_LEVELS.map(level => (
+              <button
+                key={level}
+                onClick={() => setSelectedCefr(level)}
+                className={`px-3 py-1 rounded-full text-xs font-extrabold uppercase transition-all shrink-0 cursor-pointer ${
+                  selectedCefr === level
+                    ? 'bg-[#4255ff] text-white shadow-[0_0_15px_rgba(66,85,255,0.4)]'
+                    : 'bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white border border-white/5'
+                }`}
+              >
+                {level === 'all' ? 'All Sets' : level}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

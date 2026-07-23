@@ -23,7 +23,9 @@ interface CardData {
   term: string;
   definition: string;
   phonetic?: string | null;
+  phonetic_uk?: string | null;
   part_of_speech?: string | null;
+  cefr_level?: string | null;
   audio_url?: string | null;
 }
 
@@ -287,7 +289,12 @@ export default function ListeningGame({ set, cards }: ListeningGameProps) {
           </button>
 
           {/* Definition Hint */}
-          <div className="text-center max-w-md mb-6">
+          <div className="text-center max-w-md mb-6 flex flex-col items-center gap-2">
+            {currentCard.cefr_level && (
+              <span className="text-xs font-black px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase tracking-wide">
+                {currentCard.cefr_level}
+              </span>
+            )}
             <p className="text-muted-foreground text-sm leading-relaxed">
               {currentCard.definition}
               {currentCard.part_of_speech && (
@@ -318,9 +325,15 @@ export default function ListeningGame({ set, cards }: ListeningGameProps) {
              {/* Feedback area */}
              <div className="min-h-[40px] flex flex-col items-center justify-center w-full">
                 {status === 'correct' && (
-                  <div className="flex items-center gap-2 text-emerald-400 font-bold text-lg animate-in zoom-in duration-300">
-                    <CheckCircle2 className="w-5 h-5" />
-                    <span>Correct! 🎉</span>
+                  <div className="flex flex-col items-center gap-1 animate-in zoom-in duration-300">
+                    <div className="flex items-center gap-2 text-emerald-400 font-bold text-lg">
+                      <CheckCircle2 className="w-5 h-5" />
+                      <span>Correct! 🎉 ({currentCard.term})</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
+                      {currentCard.phonetic && <span>🇺🇸 {currentCard.phonetic}</span>}
+                      {currentCard.phonetic_uk && <span>🇬🇧 {currentCard.phonetic_uk}</span>}
+                    </div>
                   </div>
                 )}
 

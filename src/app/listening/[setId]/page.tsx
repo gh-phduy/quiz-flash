@@ -8,7 +8,7 @@ export default async function ListeningPage({ params }: { params: Promise<{ setI
   
   const [setResult, cardsResult] = await Promise.all([
     supabase.from('sets').select('id, title, description').eq('id', setId).single(),
-    supabase.from('cards').select('id, term, definition, image_url, phonetic, part_of_speech, audio_url').eq('set_id', setId).order('order_index', { ascending: true }),
+    supabase.from('cards').select('id, term, definition, image_url, phonetic, phonetic_uk, part_of_speech, cefr_level, audio_url').eq('set_id', setId).order('order_index', { ascending: true }),
   ]);
 
   if (setResult.error || !setResult.data) {

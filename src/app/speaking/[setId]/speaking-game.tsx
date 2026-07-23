@@ -25,7 +25,9 @@ interface CardData {
   term: string;
   definition: string;
   phonetic?: string | null;
+  phonetic_uk?: string | null;
   part_of_speech?: string | null;
+  cefr_level?: string | null;
   audio_url?: string | null;
   image_url?: string | null;
 }
@@ -368,14 +370,26 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
             {currentCard.term}
           </h2>
 
-          {(currentCard.phonetic || currentCard.part_of_speech) && (
-            <div className="flex items-center justify-center gap-2 mb-4">
-              {currentCard.phonetic && (
-                <span className="text-base font-mono text-muted-foreground">{currentCard.phonetic}</span>
+          {(currentCard.phonetic || currentCard.phonetic_uk || currentCard.part_of_speech || currentCard.cefr_level) && (
+            <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
+              {currentCard.cefr_level && (
+                <span className="text-xs font-black px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 uppercase tracking-wide">
+                  {currentCard.cefr_level}
+                </span>
               )}
               {currentCard.part_of_speech && (
                 <span className="text-xs font-semibold px-2 py-0.5 rounded bg-white/10 text-purple-300 italic">
                   {currentCard.part_of_speech}
+                </span>
+              )}
+              {currentCard.phonetic && (
+                <span className="text-sm font-mono text-muted-foreground bg-white/5 px-2 py-0.5 rounded border border-white/10">
+                  🇺🇸 {currentCard.phonetic}
+                </span>
+              )}
+              {currentCard.phonetic_uk && (
+                <span className="text-sm font-mono text-muted-foreground bg-white/5 px-2 py-0.5 rounded border border-white/10">
+                  🇬🇧 {currentCard.phonetic_uk}
                 </span>
               )}
             </div>

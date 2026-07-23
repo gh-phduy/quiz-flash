@@ -20,7 +20,10 @@ interface CardData {
   id: string;
   term: string;
   definition: string;
+  phonetic?: string | null;
+  phonetic_uk?: string | null;
   part_of_speech?: string | null;
+  cefr_level?: string | null;
   image_url?: string | null;
 }
 
