@@ -363,6 +363,119 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
           )}
         </div>
       )}
+
+      {/* Mode Selection Dialog */}
+      <Dialog open={isModeDialogOpen} onOpenChange={setIsModeDialogOpen}>
+        <DialogContent className="bg-background text-foreground border border-white/10 sm:max-w-xl w-[90vw] rounded-2xl shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-center mb-2 bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
+              Play {selectedMode?.name}
+            </DialogTitle>
+            <p className="text-center text-muted-foreground text-sm mb-4">Select a flashcard set to begin</p>
+          </DialogHeader>
+
+          {/* Search Input for Dialog */}
+          <div className="px-1 mb-4 relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search your sets..."
+              value={dialogSearchQuery}
+              onChange={(e) => setDialogSearchQuery(e.target.value)}
+              className="w-full bg-card/50 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-muted-foreground focus:outline-none focus:border-[#4255ff]/50 focus:bg-card/80 transition-all"
+            />
+          </div>
+
+          <div className="flex flex-col gap-3 max-h-[340px] overflow-y-auto pr-2 custom-scrollbar">
+            {filteredDialogSets.length > 0 ? (
+              filteredDialogSets.map((set) => (
+                <button
+                  key={set.id}
+                  onMouseEnter={() => {
+                    if (selectedMode) {
+                      const path = selectedMode.href === '/learn' 
+                        ? `/flashcards/${set.id}/learn` 
+                        : `${selectedMode.href.startsWith('/') ? selectedMode.href : `/${selectedMode.href}`}/${set.id}`;
+                      router.prefetch(path);
+                    }
+                  }}
+                  onClick={() => handleSetClickForMode(set.id)}
+                  className="flex items-center justify-between p-4 bg-card/50 hover:bg-card/80 border border-white/5 hover:border-[#b892ff]/50 rounded-xl transition-all text-left cursor-pointer group"
+                >
+                  <div className="flex flex-col overflow-hidden pr-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-bold text-white text-base truncate group-hover:text-[#b892ff] transition-colors">{set.title}</span>
+                      {set.user_id === user?.id ? (
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-[#b892ff] bg-[#b892ff]/10 border border-[#b892ff]/20 px-2 py-0.5 rounded-full shrink-0">Yours</span>
+                      ) : (
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-[#b892ff] bg-[#b892ff]/10 border border-[#b892ff]/20 px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
+                          <Bookmark className="w-3 h-3" /> Saved
+                        </span>
+                      )}
+                    </div>
+                    {set.description && <span className="text-sm text-muted-foreground truncate">{set.description}</span>}
+                  </div>
+                  <span className="text-xs font-bold text-[#b892ff] bg-[#b892ff]/10 px-3 py-1 rounded-full shrink-0">
+                    {set.cards?.[0]?.count || 0} Terms
+                  </span>
+                </button>
+              ))
+            ) : dialogSearchQuery ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground text-sm">No sets found matching "{dialogSearchQuery}"</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-6 pt-2">
+                <div className="text-center py-6 bg-card/10 rounded-2xl border border-white/5 border-dashed">
+                  <p className="text-muted-foreground mb-4 text-sm">You don't have any flashcard sets yet.</p>
+                  <Link 
+                    href="/create-set"
+                    onClick={() => setIsModeDialogOpen(false)}
+                    className="inline-block px-5 py-2.5 bg-[#4255ff] text-white font-bold rounded-xl hover:bg-[#5b6aff] transition shadow-lg hover:shadow-[#4255ff]/20 hover:-translate-y-0.5"
+                  >
+                    Create a new set
+                  </Link>
+                </div>
+
+                {filteredSuggestedSets && filteredSuggestedSets.length > 0 && (
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-3 mb-1">
+                      <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-white/10"></div>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Or try these public sets</span>
+                      <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-white/10"></div>
+                    </div>
+                    {filteredSuggestedSets.map((set) => (
+                      <button
+                        key={set.id}
+                        onMouseEnter={() => {
+                          if (selectedMode) {
+                            const path = selectedMode.href === '/learn' 
+                              ? `/flashcards/${set.id}/learn` 
+                              : `${selectedMode.href.startsWith('/') ? selectedMode.href : `/${selectedMode.href}`}/${set.id}`;
+                            router.prefetch(path);
+                          }
+                        }}
+                        onClick={() => handleSetClickForMode(set.id)}
+                        className="flex items-center justify-between p-4 bg-card/30 hover:bg-card/60 border border-white/5 hover:border-[#b892ff]/40 rounded-xl transition-all text-left cursor-pointer group"
+                      >
+                        <div className="flex flex-col overflow-hidden pr-4">
+                          <span className="font-bold text-white text-base truncate group-hover:text-[#b892ff] transition-colors">{set.title}</span>
+                          <span className="text-xs text-muted-foreground mt-0.5 truncate">
+                            By {set.author?.full_name || set.author?.email?.split('@')[0] || 'Community'}
+                          </span>
+                        </div>
+                        <span className="text-xs font-bold text-white/40 bg-white/5 px-3 py-1 rounded-full shrink-0 group-hover:bg-[#b892ff]/10 group-hover:text-[#b892ff] transition-colors">
+                          {set.cards?.[0]?.count || 0} Terms
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
