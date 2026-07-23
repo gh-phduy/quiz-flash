@@ -12,7 +12,6 @@ export default async function Home() {
   
   let suggestedPublicSets: any[] = [];
   let dueCount = 0;
-  let dailyGoal = null;
   
   if (user) {
     const todayStr = new Date().toISOString().split('T')[0];
@@ -21,8 +20,7 @@ export default async function Home() {
       { data: profileData },
       { data: setsData },
       { data: userSavedSets },
-      { count: dueReviewsCount },
-      { data: dailyGoalData }
+      { count: dueReviewsCount }
     ] = await Promise.all([
       // 1. Fetch user profile
       supabase
@@ -50,19 +48,10 @@ export default async function Home() {
         .from('card_reviews')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .lte('next_review_date', todayStr),
-
-      // 5. Fetch daily goals for today
-      supabase
-        .from('daily_goals')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('goal_date', todayStr)
-        .maybeSingle()
+        .lte('next_review_date', todayStr)
     ]);
 
     profile = profileData;
-    dailyGoal = dailyGoalData;
     if (setsData) sets = setsData;
     
     if (userSavedSets && Array.isArray(userSavedSets)) {
@@ -126,7 +115,6 @@ export default async function Home() {
       initialSavedSetIds={savedSetIds}
       suggestedPublicSets={suggestedPublicSets}
       dueCount={dueCount}
-      dailyGoal={dailyGoal}
     />
   );
 }
