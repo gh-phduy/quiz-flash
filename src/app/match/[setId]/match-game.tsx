@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { X, RotateCcw, Home, Lightbulb, Volume2, VolumeX } from 'lucide-react';
 import { ModeSwitcher } from '@/components/shared/mode-switcher';
 import { recordStudyActivity } from '@/actions/study';
-import { recordBulkCardReviews } from '@/actions/review';
+import { recordCardReview } from '@/actions/review';
 import { updateGameScores, logGameSession, checkNewCardsForSession } from '@/actions/game';
 import { NewWordsWarmup } from '@/components/shared/new-words-warmup';
 import { getMatchEvaluation, EvaluationResult } from '@/utils/evaluation';
@@ -76,9 +76,9 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
       const earned = Math.round(basePoints + timeBonus) + cards.length;
       setPointsEarned(earned);
       
-      const evalResult = getMatchEvaluation(timeMs / 1000, cards.length, incorrectAttempts);
+       const evalResult = getMatchEvaluation(timeMs / 1000, cards.length, incorrectAttempts);
       setEvaluation(evalResult);
-      
+
       if (evalResult.performance === 'perfect') {
         import('canvas-confetti').then(({ default: confetti }) => {
           confetti({
@@ -90,23 +90,12 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
         });
       }
 
-      // Prepare bulk reviews for the cards played in this session
-      const playedCardIds = Array.from(new Set(tiles.map(t => t.cardId)));
-      const reviews = playedCardIds.map(cardId => {
-        const mistakes = mistakesPerCard[cardId] || 0;
-        let quality = 4;
-        if (mistakes === 1) quality = 3;
-        else if (mistakes === 2) quality = 2;
-        else if (mistakes >= 3) quality = 1;
-        return { cardId, quality };
-      });
-
+      const playedCardIds = Object.keys(mistakesPerCard);
       const correctCards = playedCardIds.filter(id => !mistakesPerCard[id]);
       const incorrectCards = playedCardIds.filter(id => mistakesPerCard[id] > 0);
 
       Promise.all([
         recordStudyActivity(set.id, earned, playedCardIds.length, 'match'),
-        recordBulkCardReviews(reviews, 'match'),
         updateGameScores(correctCards, incorrectCards),
         logGameSession({
           setId: set.id,
@@ -232,6 +221,7 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
 
       if (tile1.cardId === tile2.cardId) {
         // MATCH!
+        recordCardReview(tile1.cardId, 4, 'match').catch(console.error);
         setTimeout(() => {
           setTiles(prev => {
             const nextTiles = prev.map(t => 
@@ -248,6 +238,8 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
         }, 300);
       } else {
         // MISMATCH!
+        recordCardReview(tile1.cardId, 1, 'match').catch(console.error);
+        recordCardReview(tile2.cardId, 1, 'match').catch(console.error);
         setTiles(prev => prev.map(t => 
           newSelectedIds.includes(t.id) ? { ...t, status: 'error' as TileStatus } : t
         ));

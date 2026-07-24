@@ -10,7 +10,7 @@ import confetti from 'canvas-confetti';
 import { ModeSwitcher } from '@/components/shared/mode-switcher';
 import { playAudio } from '@/lib/speech';
 import { recordStudyActivity } from '@/actions/study';
-import { recordBulkCardReviews } from '@/actions/review';
+import { recordCardReview } from '@/actions/review';
 import { updateGameScores, logGameSession, checkNewCardsForSession, generateGameSession } from '@/actions/game';
 import { NewWordsWarmup } from '@/components/shared/new-words-warmup';
 import { VoiceSettingsSidebar, VoiceSettingsTriggerButton } from '@/components/shared/voice-settings-sidebar';
@@ -61,14 +61,14 @@ export default function ListeningGame({ set, cards }: ListeningGameProps) {
   const [score, setScore] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [startTime, setStartTime] = useState<number | null>(null);
+   const [startTime, setStartTime] = useState<number | null>(null);
 
   const [status, setStatus] = useState<'idle' | 'correct' | 'wrong'>('idle');
   const [userInput, setUserInput] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   const correctCardsRef = useRef<Set<string>>(new Set());
-  const cardReviewsRef = useRef<{ cardId: string; quality: number }[]>([]);
+  const cardReviewsRef = useRef<Array<{ cardId: string; quality: number }>>([]);
 
   const [newCardsForWarmup, setNewCardsForWarmup] = useState<any[]>([]);
   const [showWarmup, setShowWarmup] = useState(false);
@@ -111,7 +111,7 @@ export default function ListeningGame({ set, cards }: ListeningGameProps) {
       setActiveCards(newBatch);
     }
 
-    setCurrentIndex(0);
+     setCurrentIndex(0);
     setScore(0);
     setIsFinished(false);
     setStatus('idle');
@@ -148,13 +148,6 @@ export default function ListeningGame({ set, cards }: ListeningGameProps) {
       try {
         const totalSecs = startTime ? Math.round((Date.now() - startTime) / 1000) : 0;
         const xp = Math.round(score * 10);
-        
-        const reviews = cardReviewsRef.current.length > 0
-          ? cardReviewsRef.current
-          : activeCards.map(c => ({
-              cardId: c.id,
-              quality: correctCardsRef.current.has(c.id) ? 5 : 1
-            }));
 
         const incorrectCardIds = activeCards
           .filter(c => !correctCardsRef.current.has(c.id))
@@ -162,7 +155,6 @@ export default function ListeningGame({ set, cards }: ListeningGameProps) {
 
         await Promise.all([
           recordStudyActivity(set.id, xp, activeCards.length, 'listening'),
-          recordBulkCardReviews(reviews, 'listening'),
           updateGameScores(Array.from(correctCardsRef.current), incorrectCardIds),
           logGameSession({
             setId: set.id,
@@ -193,6 +185,7 @@ export default function ListeningGame({ set, cards }: ListeningGameProps) {
       if (currentCard) {
         correctCardsRef.current.add(currentCard.id);
         cardReviewsRef.current.push({ cardId: currentCard.id, quality: 5 });
+        recordCardReview(currentCard.id, 5, 'listening').catch(console.error);
       }
       confetti({
         particleCount: 120,
@@ -214,6 +207,7 @@ export default function ListeningGame({ set, cards }: ListeningGameProps) {
       setStatus('wrong');
       if (currentCard) {
         cardReviewsRef.current.push({ cardId: currentCard.id, quality: 1 });
+        recordCardReview(currentCard.id, 1, 'listening').catch(console.error);
       }
       if (inputRef.current) {
         inputRef.current.select();
@@ -224,6 +218,7 @@ export default function ListeningGame({ set, cards }: ListeningGameProps) {
   const handleSkip = () => {
     if (currentCard) {
       cardReviewsRef.current.push({ cardId: currentCard.id, quality: 1 });
+      recordCardReview(currentCard.id, 1, 'listening').catch(console.error);
     }
     const nextIndex = currentIndex + 1;
     if (nextIndex < activeCards.length) {

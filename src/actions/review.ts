@@ -55,6 +55,7 @@ export async function recordCardReview(
     const totalReviews = prevTotalReviews + 1;
     const correctCount = prevCorrectCount + (quality >= 3 ? 1 : 0);
     const incorrectCount = (currentReview?.incorrect_count ?? 0) + (quality < 3 ? 1 : 0);
+    const prevNextReviewDateStr = currentReview?.next_review_date ?? null;
 
     // 2. Calculate new SM-2 state with mastery_score & mode_stats
     const sm2 = calculateSM2(
@@ -68,7 +69,9 @@ export async function recordCardReview(
       prevStreakIncorrect,
       prevLastReviewedAt,
       prevModeStats,
-      mode
+      mode,
+      false,
+      prevNextReviewDateStr
     );
 
     let updatePayload: any = {
@@ -224,6 +227,7 @@ export async function recordBulkCardReviews(
       const prevStreakIncorrect = current?.streak_incorrect ?? 0;
       const prevLastReviewedAt = current?.last_reviewed_at ? new Date(current.last_reviewed_at) : null;
       const prevModeStats = current?.mode_stats ?? {};
+      const prevNextReviewDateStr = current?.next_review_date ?? null;
 
       const totalReviews = prevTotalReviews + 1;
       const correctCount = prevCorrectCount + (review.quality >= 3 ? 1 : 0);
@@ -240,7 +244,9 @@ export async function recordBulkCardReviews(
         prevStreakIncorrect,
         prevLastReviewedAt,
         prevModeStats,
-        mode
+        mode,
+        false,
+        prevNextReviewDateStr
       );
 
       return {

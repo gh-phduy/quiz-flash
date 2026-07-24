@@ -4,9 +4,6 @@ import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
 import UserMenu from './user-menu';
 import SidebarToggle from './sidebar-toggle';
-import { Pacifico } from 'next/font/google';
-
-const pacifico = Pacifico({ weight: '400', subsets: ['latin'] });
 
 export default async function Header() {
   const supabase = await createClient();
@@ -33,7 +30,7 @@ export default async function Header() {
       {/* Left */}
       <div className="flex items-center gap-5 shrink-0">
         <SidebarToggle />
-        <Link href="/" className={`${pacifico.className} text-[24px] bg-gradient-to-r from-[#b892ff] via-[#6d7bff] to-[#4255ff] text-transparent bg-clip-text hover:brightness-125 transition-all drop-shadow-[0_2px_10px_rgba(184,146,255,0.3)] pr-4`}>
+        <Link href="/" className="text-[24px] font-black tracking-tight bg-gradient-to-r from-[#b892ff] via-[#6d7bff] to-[#4255ff] text-transparent bg-clip-text hover:brightness-125 transition-all drop-shadow-[0_2px_10px_rgba(184,146,255,0.3)] pr-4">
           Quiz Flash
         </Link>
       </div>

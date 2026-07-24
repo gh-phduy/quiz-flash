@@ -11,7 +11,7 @@ import Image from 'next/image';
 import { ModeSwitcher } from '@/components/shared/mode-switcher';
 import { playAudio } from '@/lib/speech';
 import { recordStudyActivity } from '@/actions/study';
-import { recordBulkCardReviews } from '@/actions/review';
+import { recordCardReview } from '@/actions/review';
 import { updateGameScores, logGameSession, checkNewCardsForSession, generateGameSession } from '@/actions/game';
 import { NewWordsWarmup } from '@/components/shared/new-words-warmup';
 import { getSmartEvaluation, EvaluationResult } from '@/utils/evaluation';
@@ -58,17 +58,16 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
   const [showProgress, setShowProgress] = useState(true);
   const [isFinished, setIsFinished] = useState(false);
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | 'reset' | null>(null);
-  const [startTime, setStartTime] = useState<number | null>(null);
+   const [startTime, setStartTime] = useState<number | null>(null);
   const [timeSpent, setTimeSpent] = useState(0);
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
   const [pointsEarned, setPointsEarned] = useState(0);
   const [newRank, setNewRank] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  
-  const cardReviewsRef = useRef<{cardId: string, quality: number}[]>([]);
 
   const [dragOffset, setDragOffset] = useState(0);
   const dragStartX = useRef<number | null>(null);
+  const cardReviewsRef = useRef<Array<{ cardId: string; quality: number }>>([]);
 
   const [newCardsForWarmup, setNewCardsForWarmup] = useState<any[]>([]);
   const [showWarmup, setShowWarmup] = useState(false);
@@ -108,7 +107,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
       setActiveCards(newBatch);
     }
 
-    setCurrentIndex(0);
+     setCurrentIndex(0);
     setIsFinished(false);
     setKnownCount(0);
     setLearningCount(0);
@@ -157,10 +156,12 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
 
   const handleNext = useCallback((status: 'known' | 'learning') => {
     // Record review for SM-2
+    const quality = status === 'known' ? 4 : 1;
     cardReviewsRef.current.push({
       cardId: currentCard.id,
-      quality: status === 'known' ? 4 : 1
+      quality
     });
+    recordCardReview(currentCard.id, quality, 'flashcards').catch(console.error);
 
     // Start sliding out animation
     setSlideDirection(status === 'known' ? 'right' : 'left');
@@ -193,20 +194,19 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
         const finalKnown = status === 'known' ? knownCount + 1 : knownCount;
         const finalLearning = status === 'learning' ? learningCount + 1 : learningCount;
         
-        setIsFinished(true);
+         setIsFinished(true);
         setIsSaving(true);
-        
+
         // Calculate points: 10 per known card, 5 per learning card
         const earned = (finalKnown * 10) + (finalLearning * 5);
         setPointsEarned(earned);
 
-        const correctCards = cardReviewsRef.current.filter(r => r.quality === 4).map(r => r.cardId);
-        const incorrectCards = cardReviewsRef.current.filter(r => r.quality === 1).map(r => r.cardId);
+        const correctCards = finalKnown > 0 ? activeCards.filter(c => c).map(c => c.id) : [];
+        const incorrectCards = finalLearning > 0 ? activeCards.filter(c => c).map(c => c.id) : [];
 
         // Record activity
         const [res, bulkRes] = await Promise.all([
           recordStudyActivity(set.id, earned, activeCards.length, 'flashcards'),
-          recordBulkCardReviews(cardReviewsRef.current, 'flashcards'),
           updateGameScores(correctCards, incorrectCards),
           logGameSession({
             setId: set.id,

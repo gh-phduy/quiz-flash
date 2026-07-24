@@ -78,7 +78,8 @@ export function calculateSM2(
   prevLastReviewedAt: Date | null = null,
   prevModeStats: Partial<ModeStats> = {},
   mode?: GameModeType,
-  isReviewMode: boolean = false
+  isReviewMode: boolean = false,
+  prevNextReviewDateStr?: string | null
 ): SM2Result {
   let easinessFactor = prevEF;
   let repetitions = prevRepetitions;
@@ -122,19 +123,29 @@ export function calculateSM2(
     }
   } else {
     // STAGE 3+: Standard SM-2 Spaced Repetition for established cards (repetitions >= 1)
-    if (isCorrect) {
-      if (repetitions === 1) {
-        intervalDays = 6; // 6 days interval on second consecutive correct answer!
-      } else {
-        intervalDays = Math.max(1, Math.round(prevIntervalDays * easinessFactor));
+    if (!inReviewSession) {
+      if (!isCorrect) {
+        // Incorrect answer on an established card in a game: reset repetitions to 0, push to TOMORROW for re-learning
+        repetitions = 0;
+        intervalDays = 1;
+        daysToAdd = 1;
       }
-      repetitions = repetitions + 1;
-      daysToAdd = Math.max(1, intervalDays);
+      // If isCorrect is true, we freeze the interval and repetitions (handled below in section 5)
     } else {
-      // Incorrect answer on an established card: reset repetitions to 0, push to TOMORROW for re-learning
-      repetitions = 0;
-      intervalDays = 1;
-      daysToAdd = 1;
+      if (isCorrect) {
+        if (repetitions === 1) {
+          intervalDays = 6; // 6 days interval on second consecutive correct answer!
+        } else {
+          intervalDays = Math.max(1, Math.round(prevIntervalDays * easinessFactor));
+        }
+        repetitions = repetitions + 1;
+        daysToAdd = Math.max(1, intervalDays);
+      } else {
+        // Incorrect answer on an established card: reset repetitions to 0, push to TOMORROW for re-learning
+        repetitions = 0;
+        intervalDays = 1;
+        daysToAdd = 1;
+      }
     }
   }
 
@@ -164,9 +175,19 @@ export function calculateSM2(
   }
 
   // 5. Calculate Next Review Date
-  const nextReviewDate = new Date();
-  nextReviewDate.setDate(nextReviewDate.getDate() + daysToAdd);
-  nextReviewDate.setHours(0, 0, 0, 0);
+  let nextReviewDate = new Date();
+  let nextReviewDateStr = '';
+
+  const shouldFreeze = !inReviewSession && isCorrect && prevRepetitions >= 1;
+
+  if (shouldFreeze && prevNextReviewDateStr) {
+    nextReviewDate = new Date(prevNextReviewDateStr);
+    nextReviewDateStr = prevNextReviewDateStr;
+  } else {
+    nextReviewDate.setDate(nextReviewDate.getDate() + daysToAdd);
+    nextReviewDate.setHours(0, 0, 0, 0);
+    nextReviewDateStr = formatDateToYYYYMMDD(nextReviewDate);
+  }
 
   // 6. Calculate Weakness Level (1 to 5)
   let weaknessLevel = 5;
@@ -193,7 +214,7 @@ export function calculateSM2(
     repetitions,
     intervalDays,
     nextReviewDate,
-    nextReviewDateStr: formatDateToYYYYMMDD(nextReviewDate),
+    nextReviewDateStr,
     masteryLevel,
     weaknessLevel,
     masteryScore,

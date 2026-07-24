@@ -10,7 +10,7 @@ import confetti from 'canvas-confetti';
 import { ModeSwitcher } from '@/components/shared/mode-switcher';
 import { playAudio } from '@/lib/speech';
 import { recordStudyActivity } from '@/actions/study';
-import { recordBulkCardReviews } from '@/actions/review';
+import { recordCardReview } from '@/actions/review';
 import { updateGameScores, logGameSession, checkNewCardsForSession, generateGameSession } from '@/actions/game';
 import { NewWordsWarmup } from '@/components/shared/new-words-warmup';
 import { VoiceSettingsSidebar, VoiceSettingsTriggerButton } from '@/components/shared/voice-settings-sidebar';
@@ -56,7 +56,7 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
   const [score, setScore] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [startTime, setStartTime] = useState<number | null>(null);
+   const [startTime, setStartTime] = useState<number | null>(null);
 
   // Card state
   const [step, setStep] = useState<StepState>('ready');
@@ -76,7 +76,7 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const correctCardsRef = useRef<Set<string>>(new Set());
-  const cardReviewsRef = useRef<{ cardId: string; quality: number }[]>([]);
+  const cardReviewsRef = useRef<Array<{ cardId: string; quality: number }>>([]);
 
   const [newCardsForWarmup, setNewCardsForWarmup] = useState<any[]>([]);
   const [showWarmup, setShowWarmup] = useState(false);
@@ -119,7 +119,7 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
       setActiveCards(newBatch);
     }
 
-    setCurrentIndex(0);
+     setCurrentIndex(0);
     setScore(0);
     setIsFinished(false);
     setStep('ready');
@@ -162,13 +162,6 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
       try {
         const totalSecs = startTime ? Math.round((Date.now() - startTime) / 1000) : 0;
         const xp = Math.round(score * 12);
-        
-        const reviews = cardReviewsRef.current.length > 0
-          ? cardReviewsRef.current
-          : activeCards.map(c => ({
-              cardId: c.id,
-              quality: correctCardsRef.current.has(c.id) ? 5 : 1
-            }));
 
         const incorrectCardIds = activeCards
           .filter(c => !correctCardsRef.current.has(c.id))
@@ -176,7 +169,6 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
 
         await Promise.all([
           recordStudyActivity(set.id, xp, activeCards.length, 'speaking'),
-          recordBulkCardReviews(reviews, 'speaking'),
           updateGameScores(Array.from(correctCardsRef.current), incorrectCardIds),
           logGameSession({
             setId: set.id,
@@ -278,6 +270,7 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
     if (currentCard) {
       correctCardsRef.current.add(currentCard.id);
       cardReviewsRef.current.push({ cardId: currentCard.id, quality: 5 });
+      recordCardReview(currentCard.id, 5, 'speaking').catch(console.error);
     }
     setScore(prev => prev + 1);
     handleNextCard();
@@ -286,6 +279,7 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
   const handleRateIncorrect = () => {
     if (currentCard) {
       cardReviewsRef.current.push({ cardId: currentCard.id, quality: 1 });
+      recordCardReview(currentCard.id, 1, 'speaking').catch(console.error);
     }
     handleNextCard();
   };

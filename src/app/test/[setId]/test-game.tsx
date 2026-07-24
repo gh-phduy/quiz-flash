@@ -11,9 +11,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { ModeSwitcher } from '@/components/shared/mode-switcher';
+ import { ModeSwitcher } from '@/components/shared/mode-switcher';
 import { recordStudyActivity } from '@/actions/study';
-import { recordBulkCardReviews } from '@/actions/review';
+import { recordCardReview } from '@/actions/review';
 import { updateGameScores, logGameSession, checkNewCardsForSession } from '@/actions/game';
 import { NewWordsWarmup } from '@/components/shared/new-words-warmup';
 import {
@@ -644,27 +644,24 @@ export default function TestGame({ set, cards }: TestGameProps) {
                 });
               }
 
-              setIsSubmitted(true);
-              
-              const reviews = Object.keys(cardQualities).map(cardId => {
-                // Take the minimum quality if a card appears in multiple questions
-                const minQuality = Math.min(...cardQualities[cardId]);
-                return { cardId, quality: minQuality };
-              });
+         setIsSubmitted(true);
 
-              Promise.all([
-                recordStudyActivity(set.id, earned, Object.keys(cardQualities).length, 'test'),
-                recordBulkCardReviews(reviews, 'test'),
-                updateGameScores(finalCorrect, finalIncorrect),
-                logGameSession({
-                  setId: set.id,
-                  mode: 'test',
-                  totalCards: Object.keys(cardQualities).length,
-                  correctCount: finalCorrect.length,
-                  incorrectCount: finalIncorrect.length,
-                  pointsEarned: earned
-                })
-              ]);
+        Promise.all([
+          recordStudyActivity(set.id, earned, Object.keys(cardQualities).length, 'test'),
+          ...Object.keys(cardQualities).map(cardId => {
+            const minQuality = Math.min(...cardQualities[cardId]);
+            return recordCardReview(cardId, minQuality, 'test');
+          }),
+          updateGameScores(finalCorrect, finalIncorrect),
+          logGameSession({
+            setId: set.id,
+            mode: 'test',
+            totalCards: Object.keys(cardQualities).length,
+            correctCount: finalCorrect.length,
+            incorrectCount: finalIncorrect.length,
+            pointsEarned: earned
+          })
+        ]);
             }}
             className="px-12 py-4 bg-[#4255ff] text-foreground text-lg font-bold rounded-full hover:bg-[#5b6aff] shadow-lg transition-transform hover:scale-105 active:scale-95"
           >
