@@ -9,7 +9,8 @@ import {
   Bell,
   Compass,
   Trophy,
-  BarChart3
+  BarChart3,
+  GraduationCap
 } from 'lucide-react';
 import Link from 'next/link';
 import NotificationsPopover from './notifications-popover';
@@ -85,6 +86,7 @@ export default function Sidebar() {
   const topNavItems = [
     { href: '/', icon: Home, label: 'Home', isMatch: pathname === '/' },
     { href: userId ? `/user/${userId}` : '/login', icon: Folder, label: 'Your library', isMatch: pathname.startsWith('/user') },
+    { href: '/oxford', icon: GraduationCap, label: 'Oxford Levels', isMatch: pathname.startsWith('/oxford') },
     { href: '/leaderboard', icon: Trophy, label: 'Leaderboard', isMatch: pathname.startsWith('/leaderboard') },
     { href: '/status', icon: BarChart3, label: 'Status', isMatch: pathname.startsWith('/status') },
   ];
