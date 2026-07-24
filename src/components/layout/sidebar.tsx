@@ -10,7 +10,7 @@ import {
   Compass,
   Trophy,
   BarChart3,
-  GraduationCap
+  LineChart
 } from 'lucide-react';
 import Link from 'next/link';
 import NotificationsPopover from './notifications-popover';
@@ -86,7 +86,7 @@ export default function Sidebar() {
   const topNavItems = [
     { href: '/', icon: Home, label: 'Home', isMatch: pathname === '/' },
     { href: userId ? `/user/${userId}` : '/login', icon: Folder, label: 'Your library', isMatch: pathname.startsWith('/user') },
-    { href: '/set-analytics', icon: GraduationCap, label: 'Set Analytics', isMatch: pathname.startsWith('/set-analytics') },
+    { href: '/set-analytics', icon: LineChart, label: 'Set Analytics', isMatch: pathname.startsWith('/set-analytics') },
     { href: '/leaderboard', icon: Trophy, label: 'Leaderboard', isMatch: pathname.startsWith('/leaderboard') },
     { href: '/status', icon: BarChart3, label: 'Status', isMatch: pathname.startsWith('/status') },
   ];
