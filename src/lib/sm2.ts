@@ -3,7 +3,7 @@ export interface ModeStatItem {
   total: number;
 }
 
-export type GameModeType = 'flashcards' | 'listening' | 'speaking' | 'test' | 'match';
+export type GameModeType = 'flashcards' | 'listening' | 'speaking' | 'test' | 'match' | 'review';
 
 export type ModeStats = Record<GameModeType, ModeStatItem>;
 
@@ -13,6 +13,7 @@ export const DEFAULT_MODE_STATS: ModeStats = {
   speaking: { correct: 0, total: 0 },
   test: { correct: 0, total: 0 },
   match: { correct: 0, total: 0 },
+  review: { correct: 0, total: 0 },
 };
 
 export interface SM2Result {
@@ -20,12 +21,20 @@ export interface SM2Result {
   repetitions: number;
   intervalDays: number;
   nextReviewDate: Date;
+  nextReviewDateStr: string;
   masteryLevel: 'new' | 'learning' | 'reviewing' | 'mastered';
   weaknessLevel: number; // 1 to 5
   masteryScore: number;  // 0 to 100
   streakCorrect: number;
   streakIncorrect: number;
   modeStats: ModeStats;
+}
+
+export function formatDateToYYYYMMDD(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export function calculateMasteryScore(params: {
@@ -68,7 +77,8 @@ export function calculateSM2(
   prevStreakIncorrect: number = 0,
   prevLastReviewedAt: Date | null = null,
   prevModeStats: Partial<ModeStats> = {},
-  mode?: GameModeType
+  mode?: GameModeType,
+  isReviewMode: boolean = false
 ): SM2Result {
   let easinessFactor = prevEF;
   let repetitions = prevRepetitions;
@@ -80,23 +90,52 @@ export function calculateSM2(
     easinessFactor = 1.3;
   }
 
-  // 2. Calculate Repetitions and Interval
+  // 2. Calculate Repetitions and Interval (Two-Stage Immediate Review Queue System)
   const isCorrect = quality >= 3;
   let streakCorrect = isCorrect ? prevStreakCorrect + 1 : 0;
   let streakIncorrect = !isCorrect ? prevStreakIncorrect + 1 : 0;
 
-  if (isCorrect) {
-    if (repetitions === 0) {
-      intervalDays = 1;
-    } else if (repetitions === 1) {
-      intervalDays = 6;
+  let daysToAdd = 1;
+  const inReviewSession = isReviewMode || mode === 'review';
+
+  if (prevRepetitions === 0) {
+    // STAGE 1 & 2 FOR NEW CARDS:
+    // If playing in a Game Mode (not explicit Review Mode):
+    //   -> Queue IMMEDIATELY for TODAY (daysToAdd = 0, repetitions = 0) so the user can review it in the Review Queue today.
+    // If reviewing in Review Mode:
+    //   -> If Correct: promote to repetitions = 1, interval = 1 day, schedule for TOMORROW (daysToAdd = 1) -> Pass queue!
+    //   -> If Incorrect: keep repetitions = 0, interval = 0 days, stay in TODAY queue (daysToAdd = 0) until answered correctly, while recording total_reviews & error stats!
+    if (!inReviewSession) {
+      repetitions = 0;
+      intervalDays = 0;
+      daysToAdd = 0; // TODAY
     } else {
-      intervalDays = Math.round(prevIntervalDays * easinessFactor);
+      if (isCorrect) {
+        repetitions = 1;
+        intervalDays = 1;
+        daysToAdd = 1; // TOMORROW (Pass queue)
+      } else {
+        repetitions = 0;
+        intervalDays = 0;
+        daysToAdd = 0; // TODAY (Stay in queue until correct)
+      }
     }
-    repetitions = repetitions + 1;
   } else {
-    repetitions = 0;
-    intervalDays = 1;
+    // STAGE 3+: Standard SM-2 Spaced Repetition for established cards (repetitions >= 1)
+    if (isCorrect) {
+      if (repetitions === 1) {
+        intervalDays = 6; // 6 days interval on second consecutive correct answer!
+      } else {
+        intervalDays = Math.max(1, Math.round(prevIntervalDays * easinessFactor));
+      }
+      repetitions = repetitions + 1;
+      daysToAdd = Math.max(1, intervalDays);
+    } else {
+      // Incorrect answer on an established card: reset repetitions to 0, push to TOMORROW for re-learning
+      repetitions = 0;
+      intervalDays = 1;
+      daysToAdd = 1;
+    }
   }
 
   // 3. Update Mode Stats
@@ -114,8 +153,8 @@ export function calculateSM2(
 
   // 4. Determine Mastery Level
   let masteryLevel: 'new' | 'learning' | 'reviewing' | 'mastered' = 'learning';
-  if (repetitions === 0) {
-    masteryLevel = 'new';
+  if (prevTotalReviews === 0 && repetitions === 0 && daysToAdd === 0) {
+    masteryLevel = 'learning';
   } else if (repetitions <= 2) {
     masteryLevel = 'learning';
   } else if (repetitions <= 5) {
@@ -126,7 +165,7 @@ export function calculateSM2(
 
   // 5. Calculate Next Review Date
   const nextReviewDate = new Date();
-  nextReviewDate.setDate(nextReviewDate.getDate() + intervalDays);
+  nextReviewDate.setDate(nextReviewDate.getDate() + daysToAdd);
   nextReviewDate.setHours(0, 0, 0, 0);
 
   // 6. Calculate Weakness Level (1 to 5)
@@ -154,6 +193,7 @@ export function calculateSM2(
     repetitions,
     intervalDays,
     nextReviewDate,
+    nextReviewDateStr: formatDateToYYYYMMDD(nextReviewDate),
     masteryLevel,
     weaknessLevel,
     masteryScore,
