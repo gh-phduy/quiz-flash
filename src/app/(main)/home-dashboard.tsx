@@ -138,7 +138,7 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
       
       {/* Daily Review Banner */}
       {dueCount > 0 && (
-        <div className="mb-12 relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-[#9fa6ff]/20 to-[#b892ff]/20 border border-[#b892ff]/30 p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-8 group">
+        <div className="mb-6 relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-[#9fa6ff]/20 to-[#b892ff]/20 border border-[#b892ff]/30 p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-8 group">
           <div className="absolute inset-0 bg-gradient-to-r from-[#9fa6ff]/10 to-[#b892ff]/10 mix-blend-overlay group-hover:opacity-70 transition-opacity"></div>
           <div className="relative z-10">
             <h2 className="text-3xl font-extrabold text-white mb-2 flex items-center gap-3">

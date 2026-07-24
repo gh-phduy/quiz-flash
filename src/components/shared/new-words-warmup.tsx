@@ -1,16 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Volume2, Sparkles, CheckCircle2, XCircle, ArrowRight, Zap, Play } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { playAudio } from '@/lib/speech';
 import { VoiceSettingsSidebar, VoiceSettingsTriggerButton } from '@/components/shared/voice-settings-sidebar';
+import { useVoiceStore } from '@/store/useVoiceStore';
 
 export interface WarmupCard {
   id: string;
   term: string;
   definition: string;
   phonetic?: string | null;
+  phonetic_uk?: string | null;
   part_of_speech?: string | null;
   audio_url?: string | null;
   image_url?: string | null;
@@ -24,6 +26,7 @@ interface NewWordsWarmupProps {
 }
 
 export function NewWordsWarmup({ newCards, allSetCards = [], onComplete, onSkip }: NewWordsWarmupProps) {
+  const { preferredAccent } = useVoiceStore();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [phase, setPhase] = useState<'preview' | 'quiz' | 'complete'>('preview');
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
@@ -32,6 +35,9 @@ export function NewWordsWarmup({ newCards, allSetCards = [], onComplete, onSkip 
   const [countdown, setCountdown] = useState(3);
 
   const currentCard = newCards[currentIndex];
+  const displayPhonetic = preferredAccent === 'UK'
+    ? (currentCard?.phonetic_uk || currentCard?.phonetic)
+    : (currentCard?.phonetic || currentCard?.phonetic_uk);
 
   // Auto play audio when viewing preview card
   useEffect(() => {
@@ -88,6 +94,11 @@ export function NewWordsWarmup({ newCards, allSetCards = [], onComplete, onSkip 
     }
   };
 
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
   // Countdown timer on completion phase
   useEffect(() => {
     if (phase === 'complete') {
@@ -95,7 +106,7 @@ export function NewWordsWarmup({ newCards, allSetCards = [], onComplete, onSkip 
         setCountdown(prev => {
           if (prev <= 1) {
             clearInterval(timer);
-            onComplete();
+            onCompleteRef.current();
             return 0;
           }
           return prev - 1;
@@ -104,7 +115,7 @@ export function NewWordsWarmup({ newCards, allSetCards = [], onComplete, onSkip 
 
       return () => clearInterval(timer);
     }
-  }, [phase, onComplete]);
+  }, [phase]);
 
   if (!currentCard && phase !== 'complete') {
     onComplete();
@@ -192,10 +203,13 @@ export function NewWordsWarmup({ newCards, allSetCards = [], onComplete, onSkip 
                 </button>
               </div>
 
-              {(currentCard.phonetic || currentCard.part_of_speech) && (
+              {(displayPhonetic || currentCard.part_of_speech) && (
                 <div className="flex items-center justify-center gap-2 mb-4">
-                  {currentCard.phonetic && (
-                    <span className="text-sm font-mono text-muted-foreground">{currentCard.phonetic}</span>
+                  {displayPhonetic && (
+                    <span className="text-sm font-mono text-muted-foreground bg-white/5 px-2.5 py-0.5 rounded-lg border border-white/10 flex items-center gap-1.5">
+                      <span>{preferredAccent === 'UK' ? '🇬🇧' : '🇺🇸'}</span>
+                      <span>{displayPhonetic}</span>
+                    </span>
                   )}
                   {currentCard.part_of_speech && (
                     <span className="text-xs font-semibold px-2 py-0.5 rounded bg-white/10 text-purple-300 italic">

@@ -45,6 +45,8 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
   const [activeCards, setActiveCards] = useState<CardData[]>(() => cards.slice(0, Math.min(20, cards.length)));
   const [showSetup, setShowSetup] = useState<boolean>(() => cards.length > 20);
   const [selectedLimit, setSelectedLimit] = useState<number>(() => Math.min(20, cards.length));
+  const [isCustomLimit, setIsCustomLimit] = useState<boolean>(false);
+  const [customVal, setCustomVal] = useState<number>(() => Math.min(20, cards.length));
   const [selectedStrategy, setSelectedStrategy] = useState<'smart' | 'random' | 'sequential'>('smart');
   const [isPreparing, setIsPreparing] = useState<boolean>(false);
 
@@ -91,7 +93,21 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
       }
     }
 
-    setActiveCards(newBatch);
+    // Check for unreviewed new cards in this active batch
+    const unreviewed = await checkNewCardsForSession(newBatch.map(c => c.id));
+    if (unreviewed && unreviewed.length > 0) {
+      setNewCardsForWarmup(unreviewed);
+      setShowWarmup(true);
+
+      // Re-order activeCards: put warmup new cards first, followed by the rest
+      const unreviewedIdSet = new Set(unreviewed.map((c: any) => c.id));
+      const remainingCards = newBatch.filter(c => !unreviewedIdSet.has(c.id));
+      setActiveCards([...unreviewed, ...remainingCards]);
+    } else {
+      setShowWarmup(false);
+      setActiveCards(newBatch);
+    }
+
     setCurrentIndex(0);
     setIsFinished(false);
     setKnownCount(0);
@@ -106,18 +122,25 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
   };
 
   useEffect(() => {
-    if (cards && cards.length > 0) {
-      checkNewCardsForSession(cards.map(c => c.id)).then(unreviewed => {
+    if (cards && cards.length > 0 && !showSetup) {
+      const initialBatch = cards.slice(0, Math.min(20, cards.length));
+      checkNewCardsForSession(initialBatch.map(c => c.id)).then(unreviewed => {
         if (unreviewed && unreviewed.length > 0) {
           setNewCardsForWarmup(unreviewed);
           setShowWarmup(true);
         }
       });
     }
-  }, [cards]);
+  }, [cards, showSetup]);
 
   useEffect(() => {
     setStartTime(Date.now());
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('autoplay_flashcards');
+      if (stored !== null) {
+        setIsAutoPlay(stored === 'true');
+      }
+    }
   }, []);
 
   const currentCard = activeCards[currentIndex] || cards[currentIndex];
@@ -306,22 +329,74 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
               </label>
               <span className="text-xs font-bold text-[#9fa6ff]">{selectedLimit} cards</span>
             </div>
-            <div className="grid grid-cols-5 gap-2">
-              {[15, 30, 50, 100, cards.length].map((qty, idx) => (
+            <div className="grid grid-cols-6 gap-2">
+              {[15, 30, 50, 100].map((qty) => (
                 <button
-                  key={idx}
+                  key={qty}
                   type="button"
-                  onClick={() => setSelectedLimit(qty)}
+                  onClick={() => {
+                    setSelectedLimit(Math.min(qty, cards.length));
+                    setIsCustomLimit(false);
+                  }}
                   className={`py-3 rounded-xl font-bold text-xs transition-all cursor-pointer ${
-                    selectedLimit === qty
+                    selectedLimit === Math.min(qty, cards.length) && !isCustomLimit
                       ? 'bg-[#4255ff] text-white shadow-[0_0_15px_rgba(66,85,255,0.4)] border border-white/20'
                       : 'bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white border border-white/5'
                   }`}
                 >
-                  {qty === cards.length ? 'All' : qty}
+                  {qty}
                 </button>
               ))}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCustomLimit(true);
+                  setSelectedLimit(customVal);
+                }}
+                className={`py-3 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+                  isCustomLimit
+                    ? 'bg-[#4255ff] text-white shadow-[0_0_15px_rgba(66,85,255,0.4)] border border-white/20'
+                    : 'bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white border border-white/5'
+                }`}
+              >
+                Custom
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedLimit(cards.length);
+                  setIsCustomLimit(false);
+                }}
+                className={`py-3 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+                  selectedLimit === cards.length && !isCustomLimit
+                    ? 'bg-[#4255ff] text-white shadow-[0_0_15px_rgba(66,85,255,0.4)] border border-white/20'
+                    : 'bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white border border-white/5'
+                }`}
+              >
+                All
+              </button>
             </div>
+
+            {isCustomLimit && (
+              <div className="mt-4 p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-white">Custom Count</span>
+                  <span className="text-[10px] text-muted-foreground">Enter between 1 and {cards.length}</span>
+                </div>
+                <input
+                  type="number"
+                  min={1}
+                  max={cards.length}
+                  value={customVal}
+                  onChange={(e) => {
+                    const val = Math.max(1, Math.min(cards.length, parseInt(e.target.value) || 1));
+                    setCustomVal(val);
+                    setSelectedLimit(val);
+                  }}
+                  className="w-24 bg-slate-900/90 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#4255ff] text-center font-bold"
+                />
+              </div>
+            )}
           </div>
 
           {/* Algorithm Selection */}
@@ -536,16 +611,14 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4">
-          <button
-            onClick={() => setShowSetup(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white/5 hover:bg-white/10 border border-white/10 text-muted-foreground hover:text-white transition cursor-pointer"
-            title="Configure Session Size & Algorithm"
-          >
-            <SlidersHorizontal className="w-4 h-4 text-[#9fa6ff]" />
-            <span className="hidden sm:inline font-bold">{activeCards.length} Cards</span>
-          </button>
           <button 
-            onClick={() => setIsAutoPlay(!isAutoPlay)}
+            onClick={() => {
+              const newVal = !isAutoPlay;
+              setIsAutoPlay(newVal);
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('autoplay_flashcards', String(newVal));
+              }
+            }}
             className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition cursor-pointer text-sm font-semibold border ${
               isAutoPlay 
                 ? 'bg-[#b892ff]/20 text-[#b892ff] border-[#b892ff]/30' 
@@ -622,47 +695,59 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
           >
             {/* Front Side */}
             <div className="absolute inset-0 w-full h-full bg-card rounded-2xl shadow-xl flex flex-col [backface-visibility:hidden] select-none">
-              <div className="flex justify-between items-center p-6 text-muted-foreground">
-                <button className="flex items-center gap-2 hover:text-foreground transition">
-                  <Lightbulb className="w-5 h-5" />
-                  <span className="text-sm font-bold">Get a hint</span>
-                </button>
-                <button 
-                  className="hover:bg-[#b892ff]/20 p-2 rounded-full transition z-10 relative cursor-pointer text-white/70 hover:text-[#b892ff]"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    playAudio(currentCard.audio_url, currentCard.term);
-                  }}
-                >
-                  <Volume2 className="w-8 h-8" />
-                </button>
+              <div className="flex justify-between items-center p-4 sm:p-6 text-muted-foreground flex-wrap gap-2">
+                <div className="flex items-center gap-2 z-10">
+                  {currentCard.cefr_level && (
+                    <span className="text-xs font-black px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wide shadow-sm">
+                      {currentCard.cefr_level}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 z-10">
+                  {/* US Audio Button & Phonetic */}
+                  <button
+                    className="hover:bg-purple-500/20 hover:border-purple-400/40 px-2.5 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 text-xs font-mono text-white/90 bg-white/5 border border-white/10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      playAudio(currentCard.audio_url, currentCard.term, undefined, 'US');
+                    }}
+                    title="US Pronunciation"
+                  >
+                    <span className="font-bold text-purple-300">US</span>
+                    {currentCard.phonetic && (
+                      <span className="text-muted-foreground">{currentCard.phonetic}</span>
+                    )}
+                    <Volume2 className="w-4 h-4 text-purple-300" />
+                  </button>
+
+                  {/* UK Audio Button & Phonetic */}
+                  <button
+                    className="hover:bg-sky-500/20 hover:border-sky-400/40 px-2.5 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 text-xs font-mono text-white/90 bg-white/5 border border-white/10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      playAudio(currentCard.audio_url, currentCard.term, undefined, 'UK');
+                    }}
+                    title="UK Pronunciation"
+                  >
+                    <span className="font-bold text-sky-300">UK</span>
+                    {currentCard.phonetic_uk && (
+                      <span className="text-muted-foreground">{currentCard.phonetic_uk}</span>
+                    )}
+                    <Volume2 className="w-4 h-4 text-sky-300" />
+                  </button>
+                </div>
               </div>
+
               <div className="flex-1 flex flex-col items-center justify-center p-8 gap-2 min-h-0 overflow-y-auto">
                 <h2 className="text-4xl md:text-5xl font-medium text-foreground text-center break-words">
                   {currentCard.term}
                 </h2>
-                {(currentCard.phonetic || currentCard.phonetic_uk || currentCard.part_of_speech || currentCard.cefr_level) && (
-                  <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
-                    {currentCard.cefr_level && (
-                      <span className="text-xs font-black px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wide">
-                        {currentCard.cefr_level}
-                      </span>
-                    )}
-                    {currentCard.part_of_speech && (
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded bg-white/10 text-purple-300 italic">
-                        {currentCard.part_of_speech}
-                      </span>
-                    )}
-                    {currentCard.phonetic && (
-                      <span className="text-muted-foreground text-sm font-mono bg-white/5 px-2 py-0.5 rounded border border-white/10">
-                        🇺🇸 {currentCard.phonetic}
-                      </span>
-                    )}
-                    {currentCard.phonetic_uk && (
-                      <span className="text-muted-foreground text-sm font-mono bg-white/5 px-2 py-0.5 rounded border border-white/10">
-                        🇬🇧 {currentCard.phonetic_uk}
-                      </span>
-                    )}
+                {currentCard.part_of_speech && (
+                  <div className="flex items-center justify-center gap-2 mt-2">
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded bg-white/10 text-purple-300 italic border border-white/5">
+                      {currentCard.part_of_speech}
+                    </span>
                   </div>
                 )}
               </div>
@@ -765,6 +850,8 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
         </div>
       </main>
       <VoiceSettingsSidebar />
+
+
     </div>
   );
 }

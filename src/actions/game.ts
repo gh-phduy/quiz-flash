@@ -157,8 +157,26 @@ export async function logGameSession(params: {
       .eq('goal_date', todayStr)
       .maybeSingle();
 
-    const actualNew = (existingGoal?.actual_new_words || 0) + (params.newCardsCount || 0);
-    const actualReview = (existingGoal?.actual_review_words || 0) + (params.reviewCardsCount || 0);
+    let incNew = params.newCardsCount || 0;
+    let incReview = params.reviewCardsCount || 0;
+
+    if (incNew === 0 && incReview === 0 && params.totalCards > 0) {
+      const todayISO = new Date().toISOString().split('T')[0];
+      const { count: newCount } = await supabase
+        .from('card_reviews')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('created_at', todayISO);
+
+      incNew = Math.min(params.totalCards, newCount || 0);
+      incReview = Math.max(0, params.totalCards - incNew);
+      if (incNew === 0 && incReview === 0) {
+        incReview = params.totalCards;
+      }
+    }
+
+    const actualNew = (existingGoal?.actual_new_words || 0) + incNew;
+    const actualReview = (existingGoal?.actual_review_words || 0) + incReview;
     const sessionsComp = (existingGoal?.sessions_completed || 0) + 1;
     const studySecs = (existingGoal?.total_study_seconds || 0) + (params.durationSeconds || 0);
 
