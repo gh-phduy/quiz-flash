@@ -16,7 +16,6 @@ import {
   Globe,
   Gauge,
   ChevronDown,
-  Search,
 } from 'lucide-react';
 
 export interface CustomVoiceInfo {
@@ -32,8 +31,7 @@ export interface CustomVoiceInfo {
   };
 }
 
-// UK Voices placed at the top of the list
-const DISTINCT_VOICES: CustomVoiceInfo[] = [
+const UK_VOICES: CustomVoiceInfo[] = [
   {
     voiceURI: 'uk_female',
     name: 'UK English Female',
@@ -58,6 +56,9 @@ const DISTINCT_VOICES: CustomVoiceInfo[] = [
       colorClass: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
     },
   },
+];
+
+const US_VOICES: CustomVoiceInfo[] = [
   {
     voiceURI: 'us_female',
     name: 'US English Female',
@@ -100,8 +101,12 @@ export function VoiceSettingsSidebar() {
   const {
     isOpen,
     setIsOpen,
-    selectedVoiceURI,
-    setSelectedVoiceURI,
+    ukVoiceURI,
+    setUkVoiceURI,
+    usVoiceURI,
+    setUsVoiceURI,
+    preferredAccent,
+    setPreferredAccent,
     rate,
     setRate,
     volume,
@@ -109,36 +114,44 @@ export function VoiceSettingsSidebar() {
     resetToDefault,
   } = useVoiceStore();
 
-  const [voices] = useState<CustomVoiceInfo[]>(DISTINCT_VOICES);
-  const [isPlayingTest, setIsPlayingTest] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isUkDropdownOpen, setIsUkDropdownOpen] = useState(false);
+  const [isUsDropdownOpen, setIsUsDropdownOpen] = useState(false);
+  const [isPlayingUkTest, setIsPlayingUkTest] = useState(false);
+  const [isPlayingUsTest, setIsPlayingUsTest] = useState(false);
 
-  // Close dropdown on click outside
+  const ukDropdownRef = useRef<HTMLDivElement>(null);
+  const usDropdownRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
+      if (ukDropdownRef.current && !ukDropdownRef.current.contains(event.target as Node)) {
+        setIsUkDropdownOpen(false);
+      }
+      if (usDropdownRef.current && !usDropdownRef.current.contains(event.target as Node)) {
+        setIsUsDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Default selection fallback to UK Female
-  useEffect(() => {
-    if (!selectedVoiceURI && DISTINCT_VOICES.length > 0) {
-      setSelectedVoiceURI('uk_female');
-    }
-  }, [selectedVoiceURI, setSelectedVoiceURI]);
+  const selectedUkVoice = UK_VOICES.find((v) => v.voiceURI === ukVoiceURI) || UK_VOICES[0];
+  const selectedUsVoice = US_VOICES.find((v) => v.voiceURI === usVoiceURI) || US_VOICES[0];
 
-  const handleTestVoice = () => {
-    setIsPlayingTest(true);
-    playAudio(null, 'Hello! This is a test of your selected voice model and speed.');
+  const handleTestUkVoice = () => {
+    setIsPlayingUkTest(true);
+    playAudio(null, 'Hello! This is a test of your UK voice model.', undefined, 'UK');
     setTimeout(() => {
-      setIsPlayingTest(false);
-    }, 2800);
+      setIsPlayingUkTest(false);
+    }, 2500);
+  };
+
+  const handleTestUsVoice = () => {
+    setIsPlayingUsTest(true);
+    playAudio(null, 'Hello! This is a test of your US voice model.', undefined, 'US');
+    setTimeout(() => {
+      setIsPlayingUsTest(false);
+    }, 2500);
   };
 
   const speedPresets = [
@@ -148,16 +161,6 @@ export function VoiceSettingsSidebar() {
     { label: '1.25x', value: 1.25 },
     { label: '1.5x', value: 1.5 },
   ];
-
-  const selectedVoice = voices.find((v) => v.voiceURI === selectedVoiceURI) || voices[0];
-
-  const filteredVoices = voices.filter(
-    (v) =>
-      v.cleanName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      v.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      v.regionBadge.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      v.lang.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   if (!isOpen) return null;
 
@@ -179,7 +182,7 @@ export function VoiceSettingsSidebar() {
                 <h2 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
                   Voice & Audio Settings
                 </h2>
-                <p className="text-xs text-slate-400">Configure speech voice model, speed & volume</p>
+                <p className="text-xs text-slate-400">Configure UK & US speech voices, speed & volume</p>
               </div>
             </div>
             <button
@@ -191,123 +194,192 @@ export function VoiceSettingsSidebar() {
           </div>
 
           <div className="p-6 space-y-6">
-            {/* 1. Voice Model Selector (Rich Custom Dropdown with SVG Flags) */}
-            <div className="space-y-2 relative" ref={dropdownRef}>
+            {/* Default Accent Selector */}
+            <div className="space-y-2 pb-2 border-b border-white/10">
               <label className="text-sm font-semibold text-purple-300 flex items-center gap-2">
                 <Globe className="w-4 h-4 text-purple-400" />
-                Voice Model
+                Default Pronunciation Accent (Giọng mặc định)
+              </label>
+              <div className="grid grid-cols-2 gap-2 bg-slate-950/80 p-1.5 rounded-2xl border border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setPreferredAccent('US')}
+                  className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    preferredAccent === 'US'
+                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40 border border-blue-400/40'
+                      : 'text-slate-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <FlagIcon country="US" />
+                  <span>US English (Mỹ)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreferredAccent('UK')}
+                  className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    preferredAccent === 'UK'
+                      ? 'bg-rose-600 text-white shadow-lg shadow-rose-900/40 border border-rose-400/40'
+                      : 'text-slate-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <FlagIcon country="UK" />
+                  <span>UK English (Anh)</span>
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-400 px-1">
+                Used as default for games, warm-up mode & general pronunciation.
+              </p>
+            </div>
+
+            {/* 1. UK Voice Model */}
+            <div className="space-y-2 relative" ref={ukDropdownRef}>
+              <label className="text-sm font-semibold text-rose-300 flex items-center gap-2">
+                <Globe className="w-4 h-4 text-rose-400" />
+                UK Voice Model (Anh - UK)
               </label>
 
               <div className="relative">
-                {/* Dropdown Trigger Box */}
                 <button
                   type="button"
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="w-full bg-slate-800/90 hover:bg-slate-800 border border-white/15 hover:border-purple-500/50 rounded-2xl p-3.5 text-left flex items-center justify-between transition-all shadow-md group cursor-pointer"
+                  onClick={() => {
+                    setIsUkDropdownOpen(!isUkDropdownOpen);
+                    setIsUsDropdownOpen(false);
+                  }}
+                  className="w-full bg-slate-800/90 hover:bg-slate-800 border border-white/15 hover:border-rose-500/50 rounded-2xl p-3.5 text-left flex items-center justify-between transition-all shadow-md group cursor-pointer"
                 >
                   <div className="flex items-center gap-3 overflow-hidden">
-                    {selectedVoice && (
-                      <span
-                        className={`px-2 py-1 rounded-lg text-xs font-bold border flex items-center gap-1.5 shrink-0 ${selectedVoice.regionBadge.colorClass}`}
-                      >
-                        <FlagIcon country={selectedVoice.regionBadge.code} />
-                        <span>{selectedVoice.regionBadge.code}</span>
-                      </span>
-                    )}
+                    <span className="px-2 py-1 rounded-lg text-xs font-bold border flex items-center gap-1.5 shrink-0 bg-rose-500/20 text-rose-300 border-rose-500/30">
+                      <FlagIcon country="UK" />
+                      <span>UK</span>
+                    </span>
                     <div className="truncate">
-                      <div className="text-sm font-bold text-white truncate flex items-center gap-2">
-                        <span>{selectedVoice?.cleanName || 'Select Voice'}</span>
+                      <div className="text-sm font-bold text-white truncate">
+                        {selectedUkVoice.cleanName}
                       </div>
                       <div className="text-[11px] text-slate-400 truncate">
-                        {selectedVoice?.regionBadge.label} • {selectedVoice?.lang}
+                        {selectedUkVoice.regionBadge.label} • {selectedUkVoice.lang}
                       </div>
                     </div>
                   </div>
                   <ChevronDown
                     className={`w-4 h-4 text-slate-400 group-hover:text-white transition-transform shrink-0 ${
-                      isDropdownOpen ? 'rotate-180 text-purple-400' : ''
+                      isUkDropdownOpen ? 'rotate-180 text-rose-400' : ''
                     }`}
                   />
                 </button>
 
-                {/* Rich Dropdown Panel */}
-                {isDropdownOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-slate-900/98 border border-white/15 rounded-2xl shadow-2xl backdrop-blur-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                    {/* Search Bar */}
-                    <div className="p-2.5 border-b border-white/10 bg-slate-950/60 flex items-center gap-2">
-                      <Search className="w-4 h-4 text-slate-400 shrink-0" />
-                      <input
-                        type="text"
-                        placeholder="Search voice model (UK, US, Male, Female...)"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-transparent text-xs text-white placeholder:text-slate-500 focus:outline-none"
-                      />
-                      {searchQuery && (
+                {isUkDropdownOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-slate-900/98 border border-white/15 rounded-2xl shadow-2xl backdrop-blur-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 p-1.5 space-y-1">
+                    {UK_VOICES.map((v) => {
+                      const isSelected = v.voiceURI === ukVoiceURI;
+                      return (
                         <button
-                          onClick={() => setSearchQuery('')}
-                          className="text-slate-500 hover:text-white text-xs cursor-pointer"
+                          key={v.voiceURI}
+                          type="button"
+                          onClick={() => {
+                            setUkVoiceURI(v.voiceURI);
+                            setIsUkDropdownOpen(false);
+                          }}
+                          className={`w-full p-2.5 rounded-xl text-left flex items-center justify-between transition-all cursor-pointer ${
+                            isSelected
+                              ? 'bg-rose-600/30 border border-rose-500/50 text-white shadow-sm'
+                              : 'hover:bg-white/5 border border-transparent text-slate-200'
+                          }`}
                         >
-                          ×
+                          <div className="flex items-center gap-2.5 overflow-hidden">
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border flex items-center gap-1.5 shrink-0 bg-rose-500/20 text-rose-300 border-rose-500/30">
+                              <FlagIcon country="UK" />
+                              <span>UK</span>
+                            </span>
+                            <div className="truncate">
+                              <div className="text-xs font-semibold truncate">{v.cleanName}</div>
+                              <div className="text-[10px] text-slate-400 truncate">{v.lang}</div>
+                            </div>
+                          </div>
+                          {isSelected && <Check className="w-4 h-4 text-rose-400 shrink-0" />}
                         </button>
-                      )}
-                    </div>
-
-                    {/* Voices List */}
-                    <div className="max-h-64 overflow-y-auto p-1.5 space-y-1">
-                      {filteredVoices.length === 0 ? (
-                        <div className="p-4 text-xs text-slate-400 text-center">No matching voices found</div>
-                      ) : (
-                        filteredVoices.map((v) => {
-                          const isSelected = v.voiceURI === selectedVoiceURI;
-                          return (
-                            <button
-                              key={v.voiceURI}
-                              type="button"
-                              onClick={() => {
-                                setSelectedVoiceURI(v.voiceURI);
-                                setIsDropdownOpen(false);
-                              }}
-                              className={`w-full p-2.5 rounded-xl text-left flex items-center justify-between transition-all cursor-pointer ${
-                                isSelected
-                                  ? 'bg-purple-600/30 border border-purple-500/50 text-white shadow-sm'
-                                  : 'hover:bg-white/5 border border-transparent text-slate-200'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2.5 overflow-hidden">
-                                <span
-                                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold border flex items-center gap-1.5 shrink-0 ${v.regionBadge.colorClass}`}
-                                >
-                                  <FlagIcon country={v.regionBadge.code} />
-                                  <span>{v.regionBadge.code}</span>
-                                </span>
-                                <div className="truncate">
-                                  <div className="text-xs font-semibold truncate flex items-center gap-1.5">
-                                    <span>{v.cleanName}</span>
-                                  </div>
-                                  <div className="text-[10px] text-slate-400 truncate">
-                                    {v.regionBadge.label} • {v.lang}
-                                  </div>
-                                </div>
-                              </div>
-                              {isSelected && (
-                                <Check className="w-4 h-4 text-purple-400 shrink-0" />
-                              )}
-                            </button>
-                          );
-                        })
-                      )}
-                    </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
-
-              <p className="text-[11px] text-slate-400 px-1">
-                Select your preferred voice model for speech pronunciation in games.
-              </p>
             </div>
 
-            {/* 2. Playback Speed */}
+            {/* 2. US Voice Model */}
+            <div className="space-y-2 relative" ref={usDropdownRef}>
+              <label className="text-sm font-semibold text-blue-300 flex items-center gap-2">
+                <Globe className="w-4 h-4 text-blue-400" />
+                US Voice Model (Anh - US)
+              </label>
+
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsUsDropdownOpen(!isUsDropdownOpen);
+                    setIsUkDropdownOpen(false);
+                  }}
+                  className="w-full bg-slate-800/90 hover:bg-slate-800 border border-white/15 hover:border-blue-500/50 rounded-2xl p-3.5 text-left flex items-center justify-between transition-all shadow-md group cursor-pointer"
+                >
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <span className="px-2 py-1 rounded-lg text-xs font-bold border flex items-center gap-1.5 shrink-0 bg-blue-500/20 text-blue-300 border-blue-500/30">
+                      <FlagIcon country="US" />
+                      <span>US</span>
+                    </span>
+                    <div className="truncate">
+                      <div className="text-sm font-bold text-white truncate">
+                        {selectedUsVoice.cleanName}
+                      </div>
+                      <div className="text-[11px] text-slate-400 truncate">
+                        {selectedUsVoice.regionBadge.label} • {selectedUsVoice.lang}
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronDown
+                    className={`w-4 h-4 text-slate-400 group-hover:text-white transition-transform shrink-0 ${
+                      isUsDropdownOpen ? 'rotate-180 text-blue-400' : ''
+                    }`}
+                  />
+                </button>
+
+                {isUsDropdownOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-slate-900/98 border border-white/15 rounded-2xl shadow-2xl backdrop-blur-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 p-1.5 space-y-1">
+                    {US_VOICES.map((v) => {
+                      const isSelected = v.voiceURI === usVoiceURI;
+                      return (
+                        <button
+                          key={v.voiceURI}
+                          type="button"
+                          onClick={() => {
+                            setUsVoiceURI(v.voiceURI);
+                            setIsUsDropdownOpen(false);
+                          }}
+                          className={`w-full p-2.5 rounded-xl text-left flex items-center justify-between transition-all cursor-pointer ${
+                            isSelected
+                              ? 'bg-blue-600/30 border border-blue-500/50 text-white shadow-sm'
+                              : 'hover:bg-white/5 border border-transparent text-slate-200'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 overflow-hidden">
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold border flex items-center gap-1.5 shrink-0 bg-blue-500/20 text-blue-300 border-blue-500/30">
+                              <FlagIcon country="US" />
+                              <span>US</span>
+                            </span>
+                            <div className="truncate">
+                              <div className="text-xs font-semibold truncate">{v.cleanName}</div>
+                              <div className="text-[10px] text-slate-400 truncate">{v.lang}</div>
+                            </div>
+                          </div>
+                          {isSelected && <Check className="w-4 h-4 text-blue-400 shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 3. Playback Speed */}
             <div className="space-y-3 pt-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-semibold text-purple-300 flex items-center gap-2">
@@ -353,7 +425,7 @@ export function VoiceSettingsSidebar() {
               </div>
             </div>
 
-            {/* 3. Volume slider */}
+            {/* 4. Volume slider */}
             <div className="space-y-3 pt-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-semibold text-purple-300 flex items-center gap-2">
@@ -380,22 +452,40 @@ export function VoiceSettingsSidebar() {
               />
             </div>
 
-            {/* Test Audio Button */}
-            <div className="pt-4">
+            {/* Test Audio Buttons */}
+            <div className="grid grid-cols-2 gap-3 pt-4">
               <button
-                onClick={handleTestVoice}
-                disabled={isPlayingTest}
-                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-purple-900/30 active:scale-[0.98] transition-all border border-purple-400/30 disabled:opacity-50 cursor-pointer"
+                onClick={handleTestUkVoice}
+                disabled={isPlayingUkTest}
+                className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-medium text-xs flex items-center justify-center gap-2 shadow-lg shadow-rose-900/30 active:scale-[0.98] transition-all border border-rose-400/30 disabled:opacity-50 cursor-pointer"
               >
-                {isPlayingTest ? (
+                {isPlayingUkTest ? (
                   <>
-                    <Sparkles className="w-4 h-4 animate-spin text-purple-200" />
-                    <span>Testing sample audio...</span>
+                    <Sparkles className="w-3.5 h-3.5 animate-spin text-rose-200" />
+                    <span>Testing UK...</span>
                   </>
                 ) : (
                   <>
-                    <Play className="w-4 h-4 fill-current text-purple-200" />
-                    <span>Test Sample Audio</span>
+                    <Play className="w-3.5 h-3.5 fill-current text-rose-200" />
+                    <span>Test UK Audio</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={handleTestUsVoice}
+                disabled={isPlayingUsTest}
+                className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium text-xs flex items-center justify-center gap-2 shadow-lg shadow-blue-900/30 active:scale-[0.98] transition-all border border-blue-400/30 disabled:opacity-50 cursor-pointer"
+              >
+                {isPlayingUsTest ? (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5 animate-spin text-blue-200" />
+                    <span>Testing US...</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3.5 h-3.5 fill-current text-rose-200" />
+                    <span>Test US Audio</span>
                   </>
                 )}
               </button>

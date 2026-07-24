@@ -11,12 +11,17 @@ if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
 export function playAudio(
   audioUrl?: string | null,
   textToSpeak?: string | null,
-  volumeOverride?: number
+  volumeOverride?: number,
+  accent?: 'US' | 'UK'
 ) {
-  fallbackToSpeechSynthesis(textToSpeak, volumeOverride);
+  fallbackToSpeechSynthesis(textToSpeak, volumeOverride, accent);
 }
 
-export function fallbackToSpeechSynthesis(text?: string | null, volumeOverride?: number) {
+export function fallbackToSpeechSynthesis(
+  text?: string | null,
+  volumeOverride?: number,
+  accent?: 'US' | 'UK'
+) {
   if (!text) return;
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
     console.warn('SpeechSynthesis API not supported in this browser.');
@@ -29,7 +34,13 @@ export function fallbackToSpeechSynthesis(text?: string | null, volumeOverride?:
   const storeSettings = useVoiceStore.getState();
   const utterance = new SpeechSynthesisUtterance(text);
 
-  const selectedURI = storeSettings.selectedVoiceURI || 'uk_female';
+  const targetAccent = accent || storeSettings.preferredAccent || 'US';
+  let selectedURI = storeSettings.selectedVoiceURI || 'us_female';
+  if (targetAccent === 'US') {
+    selectedURI = storeSettings.usVoiceURI || 'us_female';
+  } else if (targetAccent === 'UK') {
+    selectedURI = storeSettings.ukVoiceURI || 'uk_female';
+  }
   const voices = window.speechSynthesis.getVoices();
 
   let targetPitch = 1.0;
