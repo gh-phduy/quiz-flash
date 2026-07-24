@@ -86,7 +86,7 @@ export default function Sidebar() {
   const topNavItems = [
     { href: '/', icon: Home, label: 'Home', isMatch: pathname === '/' },
     { href: userId ? `/user/${userId}` : '/login', icon: Folder, label: 'Your library', isMatch: pathname.startsWith('/user') },
-    { href: '/oxford', icon: GraduationCap, label: 'Oxford Levels', isMatch: pathname.startsWith('/oxford') },
+    { href: '/set-analytics', icon: GraduationCap, label: 'Set Analytics', isMatch: pathname.startsWith('/set-analytics') },
     { href: '/leaderboard', icon: Trophy, label: 'Leaderboard', isMatch: pathname.startsWith('/leaderboard') },
     { href: '/status', icon: BarChart3, label: 'Status', isMatch: pathname.startsWith('/status') },
   ];

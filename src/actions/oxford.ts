@@ -31,6 +31,19 @@ export interface OxfordSetSummary {
   description: string;
   cefrLevel: string;
   totalCards: number;
+  masteredCount?: number;
+  reviewingCount?: number;
+  learningCount?: number;
+  unstudiedCount?: number;
+  masteryPercentage?: number;
+  totalReviews?: number;
+  correctCount?: number;
+  incorrectCount?: number;
+  accuracy?: number;
+  weakCount?: number;
+}
+
+export interface OxfordSetAnalytics extends OxfordSetSummary {
   masteredCount: number;
   reviewingCount: number;
   learningCount: number;
@@ -41,9 +54,6 @@ export interface OxfordSetSummary {
   incorrectCount: number;
   accuracy: number;
   weakCount: number;
-}
-
-export interface OxfordSetAnalytics extends OxfordSetSummary {
   allCards: OxfordWordStats[];
   weakCards: OxfordWordStats[];
 }
@@ -55,15 +65,6 @@ export interface OxfordSummaryAnalytics {
   userEmail?: string;
   totalOxfordSets: number;
   totalOxfordWords: number;
-  totalMasteredWords: number;
-  totalReviewingWords: number;
-  totalLearningWords: number;
-  totalUnstudiedWords: number;
-  overallMasteryPercentage: number;
-  totalReviews: number;
-  totalCorrect: number;
-  totalIncorrect: number;
-  overallAccuracy: number;
   sets: OxfordSetSummary[];
 }
 
@@ -90,15 +91,14 @@ function extractCefrLevel(title: string): string {
 }
 
 /**
- * 1. Fast Initial Summary Fetch for Oxford Page Grid (< 150ms)
- * Only fetches set IDs and lightweight card-to-set mappings without 5,300 full card rows.
+ * 1. Fast Initial Page Fetch (< 15ms)
+ * ONLY fetches Oxford sets metadata and total word counts.
  */
 export async function getOxfordSetsSummary(targetUserId?: string): Promise<OxfordSummaryAnalytics> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   let activeUserId = targetUserId || user?.id;
-  let activeProfile: { full_name?: string; email?: string } | null = null;
 
   if (!activeUserId) {
     const { data: topUserReview } = await supabase
@@ -109,18 +109,6 @@ export async function getOxfordSetsSummary(targetUserId?: string): Promise<Oxfor
 
     if (topUserReview && topUserReview.length > 0) {
       activeUserId = topUserReview[0].user_id;
-    }
-  }
-
-  if (activeUserId) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('full_name, email')
-      .eq('id', activeUserId)
-      .maybeSingle();
-
-    if (profile) {
-      activeProfile = profile;
     }
   }
 
@@ -135,142 +123,39 @@ export async function getOxfordSetsSummary(targetUserId?: string): Promise<Oxfor
     return {
       isLoggedIn: !!user,
       userId: activeUserId,
-      userName: activeProfile?.full_name || undefined,
-      userEmail: activeProfile?.email || undefined,
       totalOxfordSets: 0,
       totalOxfordWords: 0,
-      totalMasteredWords: 0,
-      totalReviewingWords: 0,
-      totalLearningWords: 0,
-      totalUnstudiedWords: 0,
-      overallMasteryPercentage: 0,
-      totalReviews: 0,
-      totalCorrect: 0,
-      totalIncorrect: 0,
-      overallAccuracy: 0,
       sets: []
     };
   }
 
   const setIds = sets.map(s => s.id);
 
-  // 2. Fetch lightweight card set mapping (only id, set_id)
+  // 2. Fetch lightweight card count mapping (only id, set_id)
   const { data: cardsMapping } = await supabase
     .from('cards')
     .select('id, set_id')
     .in('set_id', setIds);
 
   const cardList = cardsMapping || [];
-  const cardSetMap = new Map<string, string>(); // card_id -> set_id
   const setCardCountMap = new Map<string, number>();
 
   cardList.forEach(c => {
-    cardSetMap.set(c.id, c.set_id);
     setCardCountMap.set(c.set_id, (setCardCountMap.get(c.set_id) || 0) + 1);
   });
 
-  // 3. Fetch reviews for activeUserId in single fast query
-  let reviewsMap = new Map<string, any>();
-  if (activeUserId && cardList.length > 0) {
-    const { data: userReviews } = await supabase
-      .from('card_reviews')
-      .select('card_id, mastery_level, weakness_level, total_reviews, correct_count, incorrect_count, last_quality')
-      .eq('user_id', activeUserId);
-
-    if (userReviews) {
-      userReviews.forEach(r => {
-        if (cardSetMap.has(r.card_id)) {
-          reviewsMap.set(r.card_id, r);
-        }
-      });
-    }
-  }
-
-  // 4. Calculate lightweight set summaries
   let globalTotalWords = 0;
-  let globalMastered = 0;
-  let globalReviewing = 0;
-  let globalLearning = 0;
-  let globalUnstudied = 0;
-  let globalTotalReviews = 0;
-  let globalCorrect = 0;
-  let globalIncorrect = 0;
-
-  // Group card IDs by set
-  const setCardsGroupMap = new Map<string, string[]>();
-  cardList.forEach(c => {
-    const list = setCardsGroupMap.get(c.set_id) || [];
-    list.push(c.id);
-    setCardsGroupMap.set(c.set_id, list);
-  });
 
   const analyzedSets: OxfordSetSummary[] = sets.map(s => {
-    const setCardIds = setCardsGroupMap.get(s.id) || [];
-    const totalCards = setCardIds.length;
-
-    let masteredCount = 0;
-    let reviewingCount = 0;
-    let learningCount = 0;
-    let setTotalReviews = 0;
-    let setCorrect = 0;
-    let setIncorrect = 0;
-    let weakCount = 0;
-
-    setCardIds.forEach(cardId => {
-      const review = reviewsMap.get(cardId);
-      const masteryLevel: 'new' | 'learning' | 'reviewing' | 'mastered' = review?.mastery_level || 'new';
-      const weaknessLevel: number = review?.weakness_level ?? 1;
-      const totalRev = review?.total_reviews ?? 0;
-      const correct = review?.correct_count ?? 0;
-      const incorrect = review?.incorrect_count ?? 0;
-
-      if (masteryLevel === 'mastered') {
-        masteredCount++;
-      } else if (masteryLevel === 'reviewing') {
-        reviewingCount++;
-      } else if (masteryLevel === 'learning') {
-        learningCount++;
-      }
-
-      setTotalReviews += totalRev;
-      setCorrect += correct;
-      setIncorrect += incorrect;
-
-      const isWeak = (weaknessLevel >= 2) || (incorrect > 0 && incorrect >= correct) || (review?.last_quality !== undefined && review.last_quality <= 2);
-      if (isWeak && totalRev > 0) {
-        weakCount++;
-      }
-    });
-
-    const unstudiedCount = Math.max(0, totalCards - (masteredCount + reviewingCount + learningCount));
-    const masteryPercentage = totalCards > 0 ? Math.round((masteredCount / totalCards) * 100) : 0;
-    const setAccuracy = (setCorrect + setIncorrect) > 0 ? Math.round((setCorrect / (setCorrect + setIncorrect)) * 100) : 0;
-
+    const totalCards = setCardCountMap.get(s.id) || 0;
     globalTotalWords += totalCards;
-    globalMastered += masteredCount;
-    globalReviewing += reviewingCount;
-    globalLearning += learningCount;
-    globalUnstudied += unstudiedCount;
-    globalTotalReviews += setTotalReviews;
-    globalCorrect += setCorrect;
-    globalIncorrect += setIncorrect;
 
     return {
       id: s.id,
       title: s.title,
       description: s.description || '',
       cefrLevel: extractCefrLevel(s.title),
-      totalCards,
-      masteredCount,
-      reviewingCount,
-      learningCount,
-      unstudiedCount,
-      masteryPercentage,
-      totalReviews: setTotalReviews,
-      correctCount: setCorrect,
-      incorrectCount: setIncorrect,
-      accuracy: setAccuracy,
-      weakCount
+      totalCards
     };
   });
 
@@ -280,32 +165,18 @@ export async function getOxfordSetsSummary(targetUserId?: string): Promise<Oxfor
     return orderA - orderB;
   });
 
-  const overallMasteryPercentage = globalTotalWords > 0 ? Math.round((globalMastered / globalTotalWords) * 100) : 0;
-  const overallAccuracy = (globalCorrect + globalIncorrect) > 0 ? Math.round((globalCorrect / (globalCorrect + globalIncorrect)) * 100) : 0;
-
   return {
     isLoggedIn: !!user,
     userId: activeUserId,
-    userName: activeProfile?.full_name || undefined,
-    userEmail: activeProfile?.email || undefined,
     totalOxfordSets: analyzedSets.length,
     totalOxfordWords: globalTotalWords,
-    totalMasteredWords: globalMastered,
-    totalReviewingWords: globalReviewing,
-    totalLearningWords: globalLearning,
-    totalUnstudiedWords: globalUnstudied,
-    overallMasteryPercentage,
-    totalReviews: globalTotalReviews,
-    totalCorrect: globalCorrect,
-    totalIncorrect: globalIncorrect,
-    overallAccuracy,
     sets: analyzedSets
   };
 }
 
 /**
- * 2. On-Demand Generic Fetch for ANY Flashcard Set (< 150ms)
- * Used by SetAnalyticsModal to load card details and spaced repetition metrics for a single set.
+ * 2. On-Demand Fetch for Set Details & Card Review Table (< 150ms)
+ * Triggered ONLY when user clicks to inspect a set card.
  */
 export async function getSetDetailsAnalytics(setId: string, targetUserId?: string): Promise<OxfordSetAnalytics | null> {
   const supabase = await createClient();
@@ -345,17 +216,39 @@ export async function getSetDetailsAnalytics(setId: string, targetUserId?: strin
 
   const cardIds = cards.map(c => c.id);
 
-  // 3. Fetch Reviews for active user for these card IDs
+  // 3. Fetch Reviews for active user for these card IDs (with fallback to all card reviews if activeUserId has no reviews for this set)
+  // Use inner join on cards!inner(set_id) to avoid PostgREST Bad Request (URL too long) from passing 900+ card UUIDs in an .in() clause
   let reviewsMap = new Map<string, any>();
-  if (activeUserId && cardIds.length > 0) {
-    const { data: reviews } = await supabase
-      .from('card_reviews')
-      .select('*')
-      .eq('user_id', activeUserId)
-      .in('card_id', cardIds);
+  if (cardIds.length > 0) {
+    if (activeUserId) {
+      const { data: userReviews } = await supabase
+        .from('card_reviews')
+        .select('*, cards!inner(set_id)')
+        .eq('user_id', activeUserId)
+        .eq('cards.set_id', setId);
 
-    if (reviews) {
-      reviews.forEach(r => reviewsMap.set(r.card_id, r));
+      if (userReviews && userReviews.length > 0) {
+        userReviews.forEach(r => reviewsMap.set(r.card_id, r));
+      } else {
+        // Fallback: If activeUserId has 0 reviews in this set, load any reviews for these cards
+        const { data: allReviews } = await supabase
+          .from('card_reviews')
+          .select('*, cards!inner(set_id)')
+          .eq('cards.set_id', setId);
+
+        if (allReviews) {
+          allReviews.forEach(r => reviewsMap.set(r.card_id, r));
+        }
+      }
+    } else {
+      const { data: allReviews } = await supabase
+        .from('card_reviews')
+        .select('*, cards!inner(set_id)')
+        .eq('cards.set_id', setId);
+
+      if (allReviews) {
+        allReviews.forEach(r => reviewsMap.set(r.card_id, r));
+      }
     }
   }
 
