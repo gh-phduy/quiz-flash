@@ -1,5 +1,5 @@
 import React from 'react';
-import { getOxfordAnalytics } from '@/actions/oxford';
+import { getOxfordSetsSummary } from '@/actions/oxford';
 import OxfordDashboard from './oxford-dashboard';
 import { Metadata } from 'next';
 
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export const revalidate = 0; // Always fetch fresh review analytics on page visit
 
 export default async function OxfordPage() {
-  const analytics = await getOxfordAnalytics();
+  const analytics = await getOxfordSetsSummary();
 
   return <OxfordDashboard analytics={analytics} />;
 }
