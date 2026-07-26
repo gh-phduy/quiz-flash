@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbo",
-    "build": "next build",
+    "build": "opennextjs-cloudflare build",
+    "build:next": "next build",
     "build:cf": "opennextjs-cloudflare build",
     "start": "next start",
     "lint": "eslint"
