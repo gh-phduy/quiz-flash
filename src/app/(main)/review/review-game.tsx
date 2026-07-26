@@ -13,6 +13,7 @@ import { ReviewHeader } from './components/review-header';
 import { ReviewCardDisplay } from './components/review-card-display';
 import { ReviewInputForm } from './components/review-input-form';
 import { ReviewSummary } from './components/review-summary';
+import Link from 'next/link';
 
 export default function ReviewGame({ cards }: ReviewGameProps) {
   const router = useRouter();
@@ -137,7 +138,7 @@ export default function ReviewGame({ cards }: ReviewGameProps) {
           pointsEarned: earned,
         }),
       ]);
-      router.refresh();
+      // router.refresh(); // Removed to prevent unmounting ReviewSummary
     } catch (err) {
       console.error('Error saving review session:', err);
     }
@@ -151,6 +152,26 @@ export default function ReviewGame({ cards }: ReviewGameProps) {
         totalCards={queue.length}
         pointsEarned={pointsEarned}
       />
+    );
+  }
+
+  // Handle empty state (You're all caught up) when initially loaded with no cards
+  if (!currentCard && !isFinished && queue.length === 0) {
+    return (
+      <div className="w-full max-w-4xl mx-auto py-20 px-6 font-sans text-center">
+        <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#9fa6ff] to-[#b892ff] mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          You're all caught up! 🎉
+        </h1>
+        <p className="text-xl text-muted-foreground mb-8 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100">
+          You have no cards due for review today. Great job keeping up with your studies!
+        </p>
+        <Link
+          href="/"
+          className="inline-block px-8 py-4 bg-gradient-to-r from-[#4255ff] to-[#6d7bff] text-white rounded-2xl font-bold hover:scale-105 hover:shadow-[0_0_30px_rgba(66,85,255,0.5)] transition-all shadow-lg animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200"
+        >
+          Back to Home
+        </Link>
+      </div>
     );
   }
 
