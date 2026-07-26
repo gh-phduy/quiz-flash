@@ -646,18 +646,25 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
       {/* Main Content */}
       <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 max-w-5xl mx-auto w-full relative">
         
+        {/* Dynamic ambient glow based on flipped state */}
+        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full blur-[140px] pointer-events-none transition-all duration-700 ease-in-out ${
+          isFlipped 
+            ? 'bg-[#b892ff]/10 scale-110' 
+            : 'bg-[#4255ff]/10 scale-100'
+        }`} />
+
         {/* Progress Stats */}
         {showProgress && (
-          <div className="w-full max-w-[800px] flex justify-between items-center mb-6">
+          <div className="w-full max-w-[800px] flex justify-between items-center mb-6 relative z-10">
             <div className="flex items-center gap-3 text-orange-500 font-bold text-sm">
-              <span className="w-7 h-7 rounded-full border-2 border-orange-500 flex items-center justify-center">
+              <span className="w-7 h-7 rounded-full border-2 border-orange-500 flex items-center justify-center font-bold">
                 {learningCount}
               </span>
               Still learning
             </div>
             <div className="flex items-center gap-3 text-emerald-400 font-bold text-sm">
               Know
-              <span className="w-7 h-7 rounded-full border-2 border-emerald-400 flex items-center justify-center">
+              <span className="w-7 h-7 rounded-full border-2 border-emerald-400 flex items-center justify-center font-bold">
                 {knownCount}
               </span>
             </div>
@@ -667,7 +674,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
         {/* Flashcard Container (3D perspective) */}
         <div 
           key="flashcard-container"
-          className={`relative w-full max-w-[800px] aspect-[5/3] md:aspect-[2/1] perspective-[1000px] cursor-pointer transition-all duration-300 ease-in-out touch-none ${
+          className={`relative w-full max-w-[800px] aspect-[5/3] md:aspect-[2/1] perspective-[1000px] cursor-pointer transition-all duration-300 ease-in-out touch-none relative z-10 ${
             slideDirection === 'left' ? '-translate-x-[150%] -rotate-12 opacity-0' :
             slideDirection === 'right' ? 'translate-x-[150%] rotate-12 opacity-0' :
             slideDirection === 'reset' ? 'scale-90 opacity-0 duration-0 transition-none' :
@@ -698,7 +705,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
             className={`w-full h-full relative transition-transform duration-500 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateX(180deg)]' : ''}`}
           >
             {/* Front Side */}
-            <div className="absolute inset-0 w-full h-full bg-card rounded-2xl shadow-xl flex flex-col [backface-visibility:hidden] select-none">
+            <div className="absolute inset-0 w-full h-full bg-slate-900/85 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl flex flex-col [backface-visibility:hidden] select-none hover:border-indigo-500/20 transition-all duration-300">
               <div className="flex justify-between items-center p-4 sm:p-6 text-muted-foreground flex-wrap gap-2">
                 <div className="flex items-center gap-2 z-10">
                   {currentCard.cefr_level && (
@@ -744,12 +751,12 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
               </div>
 
               <div className="flex-1 flex flex-col items-center justify-center p-8 gap-2 min-h-0 overflow-y-auto">
-                <h2 className="text-4xl md:text-5xl font-medium text-foreground text-center break-words">
+                <h2 className="text-4xl md:text-5xl font-black text-white text-center break-words tracking-tight leading-tight">
                   {currentCard.term}
                 </h2>
                 {currentCard.part_of_speech && (
                   <div className="flex items-center justify-center gap-2 mt-2">
-                    <span className="text-xs font-semibold px-2.5 py-1 rounded bg-white/10 text-purple-300 italic border border-white/5">
+                    <span className="text-xs font-bold px-2.5 py-1 rounded bg-white/5 text-purple-300 italic border border-white/5">
                       {currentCard.part_of_speech}
                     </span>
                   </div>
@@ -757,38 +764,31 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
               </div>
               
               {/* Footer Front */}
-              <div className="min-h-[3.5rem] py-2 w-full bg-[#b892ff]/90 rounded-b-2xl flex flex-wrap items-center justify-center gap-2 md:gap-3 text-[#0a092d] font-semibold text-xs md:text-sm px-4">
+              <div className="min-h-[3.5rem] py-2 w-full bg-[#4255ff]/90 rounded-b-2xl flex flex-wrap items-center justify-center gap-2 md:gap-3 text-white font-semibold text-xs md:text-sm px-4 shadow-[0_-5px_15px_rgba(66,85,255,0.15)]">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold border border-[#0a092d]/20 px-1.5 py-0.5 rounded shadow-sm bg-border">⌨</span>
+                  <span className="text-xs font-bold border border-white/20 px-1.5 py-0.5 rounded shadow-sm bg-black/20">⌨</span>
                   Shortcut
                 </div>
                 <span>Press</span>
-                <span className="bg-white px-2 py-0.5 rounded shadow-sm text-xs font-bold">Space</span>
+                <span className="bg-white px-2 py-0.5 rounded shadow-sm text-xs font-bold text-slate-900">Space</span>
                 <span>or click on the card to flip</span>
               </div>
             </div>
 
             {/* Back Side */}
-            <div className="absolute inset-0 w-full h-full bg-card rounded-2xl shadow-xl flex flex-col [transform:rotateX(180deg)] [backface-visibility:hidden] select-none">
+            <div className="absolute inset-0 w-full h-full bg-slate-900/85 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl flex flex-col [transform:rotateX(180deg)] [backface-visibility:hidden] select-none hover:border-purple-500/20 transition-all duration-300">
               <div className="flex justify-between items-center p-6 text-muted-foreground">
                 <div />
-                <button 
-                  className="hover:bg-[#b892ff]/20 p-2 rounded-full transition z-10 relative cursor-pointer text-white/70 hover:text-[#b892ff]"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    playAudio(null, currentCard.definition); // We usually don't have audio_url for definition, so use TTS
-                  }}
-                >
-                  <Volume2 className="w-8 h-8" />
-                </button>
+                {/* Vietnamese definition has no speaker button to enforce English-only audio rule */}
+                <div className="w-12 h-12" />
               </div>
               
               <div className="flex-1 flex flex-col md:flex-row items-center justify-evenly gap-8 p-6 md:p-12 w-full min-h-0 overflow-y-auto">
-                <h2 className="text-3xl md:text-4xl font-medium text-foreground text-center break-words max-w-full md:max-w-[45%]">
+                <h2 className="text-3xl md:text-4xl font-black text-white text-center break-words max-w-full md:max-w-[55%] tracking-tight leading-tight">
                   {currentCard.definition}
                 </h2>
                 {currentCard.image_url && (
-                  <div className="w-32 h-32 md:w-48 md:h-48 relative rounded-xl overflow-hidden shadow-lg flex-shrink-0 pointer-events-none select-none">
+                  <div className="w-32 h-32 md:w-48 md:h-48 relative rounded-xl overflow-hidden shadow-lg flex-shrink-0 pointer-events-none select-none border border-white/10">
                     <Image 
                       src={currentCard.image_url} 
                       alt={currentCard.term}
@@ -801,9 +801,9 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
               </div>
               
               {/* Footer Back */}
-              <div className="min-h-[3.5rem] py-2 w-full bg-[#b892ff]/90 rounded-b-2xl flex flex-wrap items-center justify-center gap-2 md:gap-3 text-[#0a092d] font-semibold text-xs md:text-sm px-4">
+              <div className="min-h-[3.5rem] py-2 w-full bg-[#b892ff]/90 rounded-b-2xl flex flex-wrap items-center justify-center gap-2 md:gap-3 text-[#0a092d] font-semibold text-xs md:text-sm px-4 shadow-[0_-5px_15px_rgba(184,146,255,0.15)]">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold border border-[#0a092d]/20 px-1.5 py-0.5 rounded shadow-sm bg-border">⌨</span>
+                  <span className="text-xs font-bold border border-[#0a092d]/20 px-1.5 py-0.5 rounded shadow-sm bg-black/10">⌨</span>
                   Shortcut
                 </div>
                 <span>Press</span>
@@ -817,12 +817,12 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
         </div>
 
         {/* Bottom Controls */}
-        <div className="w-full max-w-[800px] mt-6 md:mt-10 flex flex-col-reverse sm:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3 text-sm font-bold text-foreground w-full sm:w-auto justify-center sm:justify-start">
+        <div className="w-full max-w-[800px] mt-6 md:mt-10 flex items-center justify-between gap-6 relative z-10">
+          <div className="flex items-center gap-3 text-sm font-bold text-foreground">
             Track progress
             <button 
               onClick={() => setShowProgress(!showProgress)}
-              className={`w-10 h-6 rounded-full flex items-center p-1 transition-colors ${showProgress ? 'bg-[#4255ff]' : 'bg-card'}`}
+              className={`w-10 h-6 rounded-full flex items-center p-1 transition-colors cursor-pointer ${showProgress ? 'bg-[#4255ff]' : 'bg-white/10 border border-white/5'}`}
             >
               <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${showProgress ? 'translate-x-4' : 'translate-x-0'}`} />
             </button>
@@ -831,31 +831,22 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
           <div className="flex items-center gap-4">
             <button 
               onClick={() => handleNext('learning')}
-              className="w-14 h-14 rounded-full border-2 border-border flex items-center justify-center hover:bg-card/50 transition group"
+              className="w-14 h-14 rounded-full border border-white/15 bg-slate-900/60 backdrop-blur-md flex items-center justify-center hover:bg-slate-800 transition group cursor-pointer shadow-lg"
+              title="Still learning (Left Arrow)"
             >
               <X className="w-6 h-6 text-orange-500 group-hover:scale-110 transition-transform" />
             </button>
             <button 
               onClick={() => handleNext('known')}
-              className="w-14 h-14 rounded-full border-2 border-border bg-card flex items-center justify-center hover:bg-[#3a466a] transition shadow-lg group"
+              className="w-14 h-14 rounded-full border border-white/15 bg-slate-900/60 backdrop-blur-md flex items-center justify-center hover:bg-slate-800 transition shadow-lg group cursor-pointer"
+              title="Know (Right Arrow)"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400 group-hover:scale-110 transition-transform"><polyline points="20 6 9 17 4 12"></polyline></svg>
-            </button>
-          </div>
-
-          <div className="flex items-center gap-4 text-muted-foreground absolute top-4 right-4 sm:static sm:top-auto sm:right-auto">
-            <button className="hover:text-foreground transition">
-              <RotateCcw className="w-5 h-5" />
-            </button>
-            <button className="hover:text-foreground transition">
-              <Maximize className="w-5 h-5" />
             </button>
           </div>
         </div>
       </main>
       <VoiceSettingsSidebar />
-
-
     </div>
   );
 }
