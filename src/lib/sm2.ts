@@ -3,7 +3,7 @@ export interface ModeStatItem {
   total: number;
 }
 
-export type GameModeType = 'flashcards' | 'listening' | 'speaking' | 'test' | 'match' | 'review';
+export type GameModeType = 'flashcards' | 'listening' | 'speaking' | 'test' | 'match' | 'review' | 'typing';
 
 export type ModeStats = Record<GameModeType, ModeStatItem>;
 
@@ -14,6 +14,7 @@ export const DEFAULT_MODE_STATS: ModeStats = {
   test: { correct: 0, total: 0 },
   match: { correct: 0, total: 0 },
   review: { correct: 0, total: 0 },
+  typing: { correct: 0, total: 0 },
 };
 
 export interface SM2Result {

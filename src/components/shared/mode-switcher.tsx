@@ -8,7 +8,8 @@ import {
   Copy, 
   Home, 
   Mic,
-  Headphones
+  Headphones,
+  Keyboard
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -18,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export type GameMode = 'Flashcards' | 'Test' | 'Match' | 'Speaking' | 'Listening';
+export type GameMode = 'Flashcards' | 'Test' | 'Match' | 'Speaking' | 'Listening' | 'Typing';
 
 interface ModeSwitcherProps {
   currentMode: GameMode;
@@ -35,6 +36,7 @@ export function ModeSwitcher({ currentMode, setId }: ModeSwitcherProps) {
       case 'Match': return <Copy className={`${className} text-cyan-400`} />;
       case 'Speaking': return <Mic className={`${className} text-rose-400`} />;
       case 'Listening': return <Headphones className={`${className} text-amber-400`} />;
+      case 'Typing': return <Keyboard className={`${className} text-sky-400`} />;
     }
   };
 
@@ -45,6 +47,7 @@ export function ModeSwitcher({ currentMode, setId }: ModeSwitcherProps) {
       case 'Match': return 'bg-cyan-500/20';
       case 'Speaking': return 'bg-rose-500/20';
       case 'Listening': return 'bg-amber-500/20';
+      case 'Typing': return 'bg-sky-500/20';
     }
   };
 
@@ -68,6 +71,14 @@ export function ModeSwitcher({ currentMode, setId }: ModeSwitcherProps) {
         >
           <Layers className="w-5 h-5 text-blue-400" />
           <span className="font-bold text-[15px]">Flashcards</span>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem 
+          onClick={() => router.push(`/typing/${setId}`)}
+          className={`gap-3 py-3 px-3 cursor-pointer rounded-lg transition-colors text-foreground focus:!text-foreground focus:!bg-border hover:!text-foreground hover:!bg-border ${currentMode === 'Typing' ? 'bg-white/5' : ''}`}
+        >
+          <Keyboard className="w-5 h-5 text-sky-400" />
+          <span className="font-bold text-[15px]">Typing</span>
         </DropdownMenuItem>
         
         <DropdownMenuItem 

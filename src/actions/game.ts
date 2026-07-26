@@ -29,8 +29,8 @@ async function fetchFromBackend(endpoint: string, options: RequestInit = {}) {
   return await response.json();
 }
 
-export async function generateGameSession(setId: string, totalCardsToLearn: number = 20) {
-  return await fetchFromBackend('/game/session', { method: 'POST', body: JSON.stringify({ setId, totalCardsToLearn }) });
+export async function generateGameSession(setId: string, totalCardsToLearn: number = 20, mode?: string) {
+  return await fetchFromBackend('/game/session', { method: 'POST', body: JSON.stringify({ setId, totalCardsToLearn, mode }) });
 }
 export async function checkNewCardsForSession(cardIds: string[]) {
   const res = await fetchFromBackend('/game/check-new', { method: 'POST', body: JSON.stringify({ cardIds }) });

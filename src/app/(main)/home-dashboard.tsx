@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import {
   Search, Layers, BookOpen, FileText, Copy, Bookmark,
-  Plus, Users, Flame, Mic, Headphones
+  Plus, Users, Flame, Mic, Headphones, Keyboard
 } from 'lucide-react';
 import { saveSetToLibrary, unsaveSetFromLibrary } from '@/actions/collaboration';
 import { toast } from 'sonner';
@@ -42,6 +42,7 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
 
   const GAME_MODES: { id: string; name: string; desc: string; icon: any; href: string; bg: string; border: string; disabled?: boolean }[] = [
     { id: 'flashcards', name: 'Flashcards', desc: 'Review terms & definitions', icon: <Layers className="w-8 h-8 text-blue-400 group-hover:scale-110 transition-transform" />, href: '/flashcards', bg: 'from-blue-500/10 to-blue-600/5', border: 'border-blue-500/20 hover:border-blue-500/40' },
+    { id: 'typing', name: 'Typing', desc: 'Master spelling & typing', icon: <Keyboard className="w-8 h-8 text-sky-400 group-hover:scale-110 transition-transform" />, href: '/typing', bg: 'from-sky-500/10 to-sky-600/5', border: 'border-sky-500/20 hover:border-sky-500/40' },
     { id: 'speaking', name: 'Speaking', desc: 'Train your pronunciation', icon: <Mic className="w-8 h-8 text-rose-400 group-hover:scale-110 transition-transform" />, href: '/speaking', bg: 'from-rose-500/10 to-rose-600/5', border: 'border-rose-500/20 hover:border-rose-500/40' },
     { id: 'listening', name: 'Listening', desc: 'Train your ears', icon: <Headphones className="w-8 h-8 text-amber-400 group-hover:scale-110 transition-transform" />, href: '/listening', bg: 'from-amber-500/10 to-amber-600/5', border: 'border-amber-500/20 hover:border-amber-500/40' },
     { id: 'test', name: 'Test', desc: 'Evaluate your knowledge', icon: <FileText className="w-8 h-8 text-indigo-400 group-hover:scale-110 transition-transform" />, href: '/test', bg: 'from-indigo-500/10 to-indigo-600/5', border: 'border-indigo-500/20 hover:border-indigo-500/40' },

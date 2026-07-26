@@ -90,7 +90,7 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
     let newBatch: CardData[] = [];
 
     if (selectedStrategy === 'smart') {
-      const res = await generateGameSession(set.id, limit);
+      const res = await generateGameSession(set.id, limit, 'speaking');
       if (res.success && res.cards && res.cards.length > 0) {
         newBatch = res.cards as CardData[];
       }

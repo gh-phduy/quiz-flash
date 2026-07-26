@@ -14,7 +14,7 @@ import { Switch } from '@/components/ui/switch';
  import { ModeSwitcher } from '@/components/shared/mode-switcher';
 import { recordStudyActivity } from '@/actions/study';
 import { recordCardReview } from '@/actions/review';
-import { updateGameScores, logGameSession, checkNewCardsForSession } from '@/actions/game';
+import { updateGameScores, logGameSession, checkNewCardsForSession, generateGameSession } from '@/actions/game';
 import { NewWordsWarmup } from '@/components/shared/new-words-warmup';
 import {
   Select,
@@ -94,7 +94,19 @@ export default function TestGame({ set, cards }: TestGameProps) {
     }
     
     // Generator
-    const shuffledCards = [...cards].sort(() => Math.random() - 0.5).slice(0, questionCount);
+    let shuffledCards: CardData[] = [];
+    try {
+      const res = await generateGameSession(set.id, questionCount, 'test');
+      if (res.success && res.cards && res.cards.length > 0) {
+        shuffledCards = res.cards as CardData[];
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    if (shuffledCards.length === 0) {
+      shuffledCards = [...cards].sort(() => Math.random() - 0.5).slice(0, questionCount);
+    }
 
     const unreviewed = await checkNewCardsForSession(shuffledCards.map(c => c.id));
     if (unreviewed && unreviewed.length > 0) {

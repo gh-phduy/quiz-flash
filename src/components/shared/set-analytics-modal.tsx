@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   X, 
   Search, 
@@ -11,7 +11,9 @@ import {
   ArrowUp, 
   ArrowDown, 
   Loader2, 
-  AlertCircle 
+  AlertCircle,
+  ChevronDown,
+  Check
 } from 'lucide-react';
 import { getSetDetailsAnalytics, OxfordSetAnalytics, OxfordWordStats } from '@/actions/oxford';
 
@@ -22,6 +24,81 @@ interface SetAnalyticsModalProps {
   setId: string | null;
   onClose: () => void;
   targetUserId?: string;
+}
+
+interface CustomSelectOption {
+  label: string;
+  value: string;
+}
+
+interface CustomSelectProps {
+  value: string;
+  options: CustomSelectOption[];
+  onChange: (val: string) => void;
+  icon?: React.ReactNode;
+  className?: string;
+  valueTextColor?: string;
+}
+
+function CustomSelect({ value, options, onChange, icon, className = "", valueTextColor }: CustomSelectProps) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const selectedOption = options.find(o => o.value === value) || options[0];
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className={`relative inline-block ${className}`} ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="h-9 px-3 bg-slate-950/90 hover:bg-slate-900 border border-white/15 hover:border-indigo-500/40 rounded-xl flex items-center justify-between gap-2 text-xs transition-all shadow-sm cursor-pointer w-full text-left"
+      >
+        <div className="flex items-center gap-2 truncate">
+          {icon}
+          <span className={`font-semibold truncate ${valueTextColor || 'text-slate-200'}`}>
+            {selectedOption?.label}
+          </span>
+        </div>
+        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-200 ${open ? 'rotate-180 text-indigo-400' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 mt-1.5 w-max min-w-full max-h-60 overflow-y-auto bg-slate-900/95 backdrop-blur-xl border border-white/15 rounded-xl shadow-2xl z-[100] p-1 animate-in fade-in zoom-in-95 duration-150 scrollbar-none">
+          {options.map((opt) => {
+            const isSelected = opt.value === value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  onChange(opt.value);
+                  setOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-between gap-3 transition-colors cursor-pointer ${
+                  isSelected 
+                    ? 'bg-indigo-600 text-white font-bold' 
+                    : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <span>{opt.label}</span>
+                {isSelected && <Check className="w-3.5 h-3.5 shrink-0 text-white" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
 const LEVEL_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -43,6 +120,7 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
   const [modalStatusFilter, setModalStatusFilter] = useState<'all' | 'studied' | 'mastered' | 'reviewing' | 'learning' | 'weak' | 'unstudied'>('all');
   const [modalPosFilter, setModalPosFilter] = useState<string>('all');
   const [modalSearchQuery, setModalSearchQuery] = useState('');
+  const [modalGameMode, setModalGameMode] = useState<string>('global');
 
   // Default Sort Order: Most Errors (incorrectCount-desc)
   const [sortField, setSortField] = useState<SortField>('incorrectCount');
@@ -112,6 +190,37 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
     return Array.from(posSet).sort();
   }, [analytics]);
 
+  const posOptions = useMemo(() => [
+    { label: 'All POS', value: 'all' },
+    ...availablePartsOfSpeech.map(pos => ({
+      label: pos.charAt(0).toUpperCase() + pos.slice(1),
+      value: pos
+    }))
+  ], [availablePartsOfSpeech]);
+
+  const gameModeOptions = [
+    { label: 'Global Stats (Sum)', value: 'global' },
+    { label: 'Flashcards Stats', value: 'flashcards' },
+    { label: 'Typing Game Stats', value: 'typing' },
+    { label: 'Match Game Stats', value: 'match' },
+    { label: 'Test Game Stats', value: 'test' },
+    { label: 'Listening Game Stats', value: 'listening' },
+    { label: 'Speaking Game Stats', value: 'speaking' },
+    { label: 'Review Mode Stats', value: 'review' }
+  ];
+
+  const sortOptions = [
+    { label: 'Sort: Most Errors', value: 'incorrectCount-desc' },
+    { label: 'Sort: Term (A-Z)', value: 'term-asc' },
+    { label: 'Sort: Term (Z-A)', value: 'term-desc' },
+    { label: 'Sort: Accuracy (High → Low)', value: 'accuracy-desc' },
+    { label: 'Sort: Accuracy (Low → High)', value: 'accuracy-asc' },
+    { label: 'Sort: Most Reviewed', value: 'totalReviews-desc' },
+    { label: 'Sort: Least Reviewed', value: 'totalReviews-asc' },
+    { label: 'Sort: Highest Mastery', value: 'masteryLevel-desc' },
+    { label: 'Sort: Soonest Review', value: 'nextReviewDate-asc' }
+  ];
+
   const modalCards = useMemo(() => {
     if (!analytics) return [];
 
@@ -139,9 +248,39 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
       }
 
       return true;
+    }).map(card => {
+      // Map card stats based on selected game mode
+      if (modalGameMode === 'global') return card;
+      
+      const gameStats = card.modeStats?.[modalGameMode] || { total: 0, correct: 0 };
+      const gameIncorrect = gameStats.total - gameStats.correct;
+      const gameAccuracy = gameStats.total > 0 ? Math.round((gameStats.correct / gameStats.total) * 100) : 0;
+      
+      return {
+        ...card,
+        totalReviews: gameStats.total,
+        correctCount: gameStats.correct,
+        incorrectCount: gameIncorrect,
+        accuracy: gameAccuracy
+      };
     });
 
     result.sort((a, b) => {
+      // For accuracy sorting, push N/A (totalReviews === 0) to the bottom
+      if (sortField === 'accuracy') {
+        const hasA = a.totalReviews > 0;
+        const hasB = b.totalReviews > 0;
+        if (!hasA && !hasB) return a.term.localeCompare(b.term); // both N/A, sort alphabetically
+        if (!hasA) return 1;  // A is N/A, push to bottom
+        if (!hasB) return -1; // B is N/A, push to bottom
+        
+        // both have reviews, sort by accuracy
+        if (a.accuracy !== b.accuracy) {
+          return sortOrder === 'asc' ? a.accuracy - b.accuracy : b.accuracy - a.accuracy;
+        }
+        return a.term.localeCompare(b.term);
+      }
+
       let valA: any;
       let valB: any;
 
@@ -149,10 +288,6 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
         case 'term':
           valA = a.term.toLowerCase();
           valB = b.term.toLowerCase();
-          break;
-        case 'accuracy':
-          valA = a.totalReviews > 0 ? a.accuracy : -1;
-          valB = b.totalReviews > 0 ? b.accuracy : -1;
           break;
         case 'totalReviews':
           valA = a.totalReviews;
@@ -182,7 +317,7 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
     });
 
     return result;
-  }, [analytics, modalStatusFilter, modalPosFilter, modalSearchQuery, sortField, sortOrder]);
+  }, [analytics, modalStatusFilter, modalPosFilter, modalSearchQuery, sortField, sortOrder, modalGameMode]);
 
   const renderSortIcon = (field: SortField) => {
     if (sortField !== field) {
@@ -246,7 +381,7 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
 
               <button
                 onClick={onClose}
-                className="self-end sm:self-center p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+                className="self-end sm:self-center p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
                 title="Close table"
               >
                 <X className="w-5 h-5" />
@@ -254,7 +389,7 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
             </div>
 
             {/* Quick Summary Cards Inside Modal Header */}
-            <div className="px-4 sm:px-6 pt-4 pb-3 bg-slate-950/30 border-b border-white/5 shrink-0 space-y-3">
+            <div className="px-4 sm:px-6 pt-4 pb-3 bg-slate-950/30 border-b border-white/5 shrink-0">
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 text-center text-xs">
                 <div className="p-2.5 rounded-xl bg-slate-900/80 border border-white/5">
                   <div className="text-[10px] text-slate-400 uppercase font-semibold">Total Words</div>
@@ -281,18 +416,21 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
                   <div className="text-base font-bold text-slate-300 mt-0.5">{analytics.unstudiedCount}</div>
                 </div>
               </div>
+            </div>
 
-              {/* Modal Filters & Control Tools */}
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pt-1">
-                
+            {/* Control Toolbar */}
+            <div className="px-4 sm:px-6 py-3 bg-slate-950/40 border-b border-white/10 shrink-0 space-y-3">
+              
+              {/* Row 1: Status Filters & Select Dropdowns */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                 {/* Status Tabs */}
-                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 shrink-0">
+                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 lg:pb-0 shrink-0">
                   <button
                     onClick={() => setModalStatusFilter('all')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
                       modalStatusFilter === 'all'
-                        ? 'bg-indigo-600 text-white shadow-md'
-                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
+                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                        : 'bg-slate-950/60 text-slate-400 border border-white/5 hover:bg-slate-800 hover:text-white'
                     }`}
                   >
                     All ({analytics.totalCards})
@@ -300,10 +438,10 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
 
                   <button
                     onClick={() => setModalStatusFilter('studied')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
                       modalStatusFilter === 'studied'
-                        ? 'bg-blue-600 text-white shadow-md'
-                        : 'bg-slate-800 text-blue-400/80 hover:bg-slate-700'
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                        : 'bg-slate-950/60 text-blue-400/80 border border-white/5 hover:bg-slate-800'
                     }`}
                   >
                     Studied ({analytics.totalCards - analytics.unstudiedCount})
@@ -311,10 +449,10 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
 
                   <button
                     onClick={() => setModalStatusFilter('mastered')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
                       modalStatusFilter === 'mastered'
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-slate-800 text-emerald-400 hover:bg-slate-700'
+                        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
+                        : 'bg-slate-950/60 text-emerald-400 border border-white/5 hover:bg-slate-800'
                     }`}
                   >
                     Mastered ({analytics.masteredCount})
@@ -322,10 +460,10 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
 
                   <button
                     onClick={() => setModalStatusFilter('weak')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
                       modalStatusFilter === 'weak'
-                        ? 'bg-amber-500 text-slate-950'
-                        : 'bg-slate-800 text-amber-400 hover:bg-slate-700'
+                        ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30'
+                        : 'bg-slate-950/60 text-amber-400 border border-white/5 hover:bg-slate-800'
                     }`}
                   >
                     Weak ({analytics.weakCount})
@@ -333,75 +471,71 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
 
                   <button
                     onClick={() => setModalStatusFilter('unstudied')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
                       modalStatusFilter === 'unstudied'
-                        ? 'bg-slate-700 text-white'
-                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                        ? 'bg-slate-700 text-white shadow-md'
+                        : 'bg-slate-950/60 text-slate-400 border border-white/5 hover:bg-slate-800'
                     }`}
                   >
                     Unstudied ({analytics.unstudiedCount})
                   </button>
                 </div>
 
-                {/* POS, Sorting, Search Controls */}
-                <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-                  {/* Part of Speech Filter */}
+                {/* Right: Select Dropdowns */}
+                <div className="flex flex-wrap items-center gap-2.5">
+                  {/* POS */}
                   {availablePartsOfSpeech.length > 0 && (
-                    <div className="relative flex-1 sm:flex-none">
-                      <select
-                        value={modalPosFilter}
-                        onChange={(e) => setModalPosFilter(e.target.value)}
-                        className="w-full sm:w-auto px-3 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-xs text-slate-200 focus:outline-none focus:border-indigo-500/50 appearance-none pr-8 cursor-pointer"
-                      >
-                        <option value="all">All POS</option>
-                        {availablePartsOfSpeech.map(pos => (
-                          <option key={pos} value={pos}>
-                            {pos.charAt(0).toUpperCase() + pos.slice(1)}
-                          </option>
-                        ))}
-                      </select>
-                      <Filter className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    </div>
+                    <CustomSelect 
+                      value={modalPosFilter}
+                      options={posOptions}
+                      onChange={setModalPosFilter}
+                      icon={<Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />}
+                    />
                   )}
 
-                  {/* Sort Field Selector */}
-                  <div className="relative flex-1 sm:flex-none">
-                    <select
-                      value={`${sortField}-${sortOrder}`}
-                      onChange={(e) => {
-                        const [field, order] = e.target.value.split('-') as [SortField, SortOrder];
-                        setSortField(field);
-                        setSortOrder(order);
-                      }}
-                      className="w-full sm:w-auto px-3 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-xs text-slate-200 focus:outline-none focus:border-indigo-500/50 appearance-none pr-8 cursor-pointer font-medium"
-                    >
-                      <option value="incorrectCount-desc">Sort: Most Errors</option>
-                      <option value="term-asc">Sort: Term (A-Z)</option>
-                      <option value="term-desc">Sort: Term (Z-A)</option>
-                      <option value="accuracy-desc">Sort: Accuracy (High → Low)</option>
-                      <option value="accuracy-asc">Sort: Accuracy (Low → High)</option>
-                      <option value="totalReviews-desc">Sort: Most Reviewed</option>
-                      <option value="totalReviews-asc">Sort: Least Reviewed</option>
-                      <option value="masteryLevel-desc">Sort: Highest Mastery</option>
-                      <option value="nextReviewDate-asc">Sort: Soonest Review</option>
-                    </select>
-                    <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
+                  {/* Game Mode */}
+                  <CustomSelect 
+                    value={modalGameMode}
+                    options={gameModeOptions}
+                    onChange={setModalGameMode}
+                    icon={<SlidersHorizontal className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+                    valueTextColor="text-emerald-400 font-bold"
+                  />
 
-                  {/* Search Query */}
-                  <div className="relative w-full sm:w-48">
-                    <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input 
-                      type="text"
-                      placeholder="Search term or definition..."
-                      value={modalSearchQuery}
-                      onChange={(e) => setModalSearchQuery(e.target.value)}
-                      className="w-full pl-9 pr-4 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50"
-                    />
-                  </div>
+                  {/* Sort */}
+                  <CustomSelect 
+                    value={`${sortField}-${sortOrder}`}
+                    options={sortOptions}
+                    onChange={(val) => {
+                      const [field, order] = val.split('-') as [SortField, SortOrder];
+                      setSortField(field);
+                      setSortOrder(order);
+                    }}
+                    icon={<SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
+                  />
                 </div>
-
               </div>
+
+              {/* Row 2: Dedicated Search Bar */}
+              <div className="relative w-full">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input 
+                  type="text"
+                  placeholder="Search vocabulary term or definition..."
+                  value={modalSearchQuery}
+                  onChange={(e) => setModalSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-8 h-10 rounded-xl bg-slate-950/90 border border-white/15 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-all shadow-inner"
+                />
+                {modalSearchQuery && (
+                  <button 
+                    onClick={() => setModalSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs bg-slate-800 hover:bg-slate-700 rounded-full w-5 h-5 flex items-center justify-center transition-colors cursor-pointer"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+
             </div>
 
             {/* Modal Interactive Data Table */}
@@ -537,7 +671,7 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
                                 {card.audioUrl && (
                                   <button
                                     onClick={() => playAudio(card.audioUrl, card.id)}
-                                    className="p-1 rounded bg-slate-800 text-indigo-400 hover:text-indigo-300 hover:bg-slate-700 transition-colors"
+                                    className="p-1 rounded bg-slate-800 text-indigo-400 hover:text-indigo-300 hover:bg-slate-700 transition-colors cursor-pointer"
                                     title="Listen pronunciation"
                                   >
                                     <Volume2 className={`w-3.5 h-3.5 ${playingAudioId === card.id ? 'animate-bounce text-indigo-300' : ''}`} />
@@ -659,7 +793,7 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
                                 {card.audioUrl && (
                                   <button
                                     onClick={() => playAudio(card.audioUrl, card.id)}
-                                    className="p-1 rounded-md bg-slate-800 text-indigo-400 hover:text-indigo-300 transition-colors shrink-0"
+                                    className="p-1 rounded-md bg-slate-800 text-indigo-400 hover:text-indigo-300 transition-colors shrink-0 cursor-pointer"
                                   >
                                     <Volume2 className={`w-3.5 h-3.5 ${playingAudioId === card.id ? 'animate-bounce text-indigo-300' : ''}`} />
                                   </button>

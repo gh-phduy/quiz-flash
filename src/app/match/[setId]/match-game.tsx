@@ -6,7 +6,7 @@ import { X, RotateCcw, Home, Lightbulb, Volume2, VolumeX } from 'lucide-react';
 import { ModeSwitcher } from '@/components/shared/mode-switcher';
 import { recordStudyActivity } from '@/actions/study';
 import { recordCardReview } from '@/actions/review';
-import { updateGameScores, logGameSession, checkNewCardsForSession } from '@/actions/game';
+import { updateGameScores, logGameSession, checkNewCardsForSession, generateGameSession } from '@/actions/game';
 import { NewWordsWarmup } from '@/components/shared/new-words-warmup';
 import { getMatchEvaluation, EvaluationResult } from '@/utils/evaluation';
 import { playAudio } from '@/lib/speech';
@@ -114,12 +114,25 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
   const [showWarmup, setShowWarmup] = useState(false);
 
   // Initialize Game
-  const initGame = useCallback((overrideCount?: number) => {
+  const initGame = useCallback(async (overrideCount?: number) => {
     const targetCount = overrideCount !== undefined ? overrideCount : matchCardCount;
     const countToUse = Math.max(1, Math.min(targetCount, cards.length));
-    const shuffledCards = [...cards].sort(() => Math.random() - 0.5).slice(0, countToUse);
     
-    checkNewCardsForSession(shuffledCards.map(c => c.id)).then(unreviewed => {
+    let targetCards: CardData[] = [];
+    try {
+      const res = await generateGameSession(set.id, countToUse, 'match');
+      if (res.success && res.cards && res.cards.length > 0) {
+        targetCards = res.cards as CardData[];
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    if (targetCards.length === 0) {
+      targetCards = [...cards].sort(() => Math.random() - 0.5).slice(0, countToUse);
+    }
+
+    checkNewCardsForSession(targetCards.map(c => c.id)).then(unreviewed => {
       if (unreviewed && unreviewed.length > 0) {
         setNewCardsForWarmup(unreviewed);
         setShowWarmup(true);
@@ -129,7 +142,7 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
     let termTiles: TileData[] = [];
     let defTiles: TileData[] = [];
     
-    shuffledCards.forEach(card => {
+    targetCards.forEach(card => {
       // Tile cho Term
       termTiles.push({
         id: `term-${card.id}`,
@@ -165,7 +178,7 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
     setEvaluation(null);
     setPointsEarned(0);
     setMistakesPerCard({});
-  }, [cards, matchCardCount]);
+  }, [cards, matchCardCount, set.id]);
 
   const hasInitialized = useRef(false);
 

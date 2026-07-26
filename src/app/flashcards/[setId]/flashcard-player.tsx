@@ -78,7 +78,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
     let newBatch: CardData[] = [];
 
     if (selectedStrategy === 'smart') {
-      const res = await generateGameSession(set.id, limit);
+      const res = await generateGameSession(set.id, limit, 'flashcards');
       if (res.success && res.cards && res.cards.length > 0) {
         newBatch = res.cards as CardData[];
       }
@@ -120,8 +120,12 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
     setShowSetup(false);
   };
 
+  const hasInitializedRef = useRef(false);
+
   useEffect(() => {
+    if (hasInitializedRef.current) return;
     if (cards && cards.length > 0 && !showSetup) {
+      hasInitializedRef.current = true;
       const initialBatch = cards.slice(0, Math.min(20, cards.length));
       checkNewCardsForSession(initialBatch.map(c => c.id)).then(unreviewed => {
         if (unreviewed && unreviewed.length > 0) {
@@ -135,7 +139,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
   useEffect(() => {
     setStartTime(Date.now());
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('autoplay_flashcards');
+      const stored = localStorage.getItem('autoplay_all');
       if (stored !== null) {
         setIsAutoPlay(stored === 'true');
       }
@@ -176,7 +180,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
     setTimeout(async () => {
       setIsFlipped(false);
       
-      if (currentIndex < cards.length - 1) {
+      if (currentIndex < activeCards.length - 1) {
         setCurrentIndex(prev => prev + 1);
         
         // Instantly move the new card to a small invisible state at the center
@@ -194,7 +198,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
         const finalKnown = status === 'known' ? knownCount + 1 : knownCount;
         const finalLearning = status === 'learning' ? learningCount + 1 : learningCount;
         
-         setIsFinished(true);
+        setIsFinished(true);
         setIsSaving(true);
 
         // Calculate points: 10 per known card, 5 per learning card
@@ -239,7 +243,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
         }
       }
     }, 300);
-  }, [currentIndex, cards.length, knownCount, learningCount, startTime, set.id]);
+  }, [currentIndex, activeCards, knownCount, learningCount, startTime, set.id]);
 
   const handleFlip = useCallback(() => {
     setIsFlipped(prev => !prev);
@@ -616,7 +620,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
               const newVal = !isAutoPlay;
               setIsAutoPlay(newVal);
               if (typeof window !== 'undefined') {
-                localStorage.setItem('autoplay_flashcards', String(newVal));
+                localStorage.setItem('autoplay_all', String(newVal));
               }
             }}
             className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition cursor-pointer text-sm font-semibold border ${

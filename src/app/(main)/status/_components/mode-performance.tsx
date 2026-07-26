@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Layers, Headphones, Mic, FileText, Zap } from 'lucide-react';
+import { Layers, Headphones, Mic, FileText, Zap, Keyboard } from 'lucide-react';
 
 interface ModePerformanceProps {
   modePerformance?: Record<string, { correct: number; total: number; accuracy: number }>;
@@ -15,6 +15,14 @@ const modeInfo: Record<string, { label: string; icon: any; color: string; bg: st
     bg: 'from-blue-500/15 via-blue-500/5 to-transparent',
     border: 'hover:border-blue-500/40 hover:shadow-[0_0_20px_rgba(59,130,246,0.15)]',
     bar: 'bg-blue-500'
+  },
+  typing: { 
+    label: 'Typing', 
+    icon: Keyboard, 
+    color: 'text-sky-400', 
+    bg: 'from-sky-500/15 via-sky-500/5 to-transparent',
+    border: 'hover:border-sky-500/40 hover:shadow-[0_0_20px_rgba(56,189,248,0.15)]',
+    bar: 'bg-sky-500'
   },
   speaking: { 
     label: 'Speaking', 

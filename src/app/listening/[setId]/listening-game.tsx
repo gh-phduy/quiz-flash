@@ -82,7 +82,7 @@ export default function ListeningGame({ set, cards }: ListeningGameProps) {
     let newBatch: CardData[] = [];
 
     if (selectedStrategy === 'smart') {
-      const res = await generateGameSession(set.id, limit);
+      const res = await generateGameSession(set.id, limit, 'listening');
       if (res.success && res.cards && res.cards.length > 0) {
         newBatch = res.cards as CardData[];
       }
