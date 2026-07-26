@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { GameModeType } from '@/lib/sm2';
 
 const getBackendUrl = () => {
-  return process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000/api';
+  return process.env.NEXT_PUBLIC_BACKEND_URL || 'https://ogbwpzclxbidlnygckfz.supabase.co/functions/v1/api';
 };
 
 async function fetchFromBackend(endpoint: string, options: RequestInit = {}) {
