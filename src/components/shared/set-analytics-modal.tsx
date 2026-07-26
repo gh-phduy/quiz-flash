@@ -200,8 +200,8 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
   const colorScheme = analytics?.cefrLevel ? LEVEL_COLORS[analytics.cefrLevel] : LEVEL_COLORS['B2'];
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto font-sans">
-      <div className="relative w-full max-w-6xl max-h-[92vh] bg-slate-900 border border-indigo-500/30 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+    <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-0 sm:p-6 overflow-hidden font-sans">
+      <div className="relative w-full h-full sm:h-auto sm:max-w-6xl sm:max-h-[92vh] bg-slate-900 border-0 sm:border border-indigo-500/30 rounded-none sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
         
         {/* Loading State */}
         {loading ? (
@@ -254,8 +254,8 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
             </div>
 
             {/* Quick Summary Cards Inside Modal Header */}
-            <div className="px-5 sm:px-6 pt-4 pb-2 bg-slate-950/30 border-b border-white/5 shrink-0 space-y-4">
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center text-xs">
+            <div className="px-4 sm:px-6 pt-4 pb-3 bg-slate-950/30 border-b border-white/5 shrink-0 space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 text-center text-xs">
                 <div className="p-2.5 rounded-xl bg-slate-900/80 border border-white/5">
                   <div className="text-[10px] text-slate-400 uppercase font-semibold">Total Words</div>
                   <div className="text-base font-bold text-white mt-0.5">{analytics.totalCards}</div>
@@ -283,10 +283,10 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
               </div>
 
               {/* Modal Filters & Control Tools */}
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pt-2">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pt-1">
                 
                 {/* Status Tabs */}
-                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1">
+                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 shrink-0">
                   <button
                     onClick={() => setModalStatusFilter('all')}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
@@ -344,14 +344,14 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
                 </div>
 
                 {/* POS, Sorting, Search Controls */}
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
                   {/* Part of Speech Filter */}
                   {availablePartsOfSpeech.length > 0 && (
-                    <div className="relative">
+                    <div className="relative flex-1 sm:flex-none">
                       <select
                         value={modalPosFilter}
                         onChange={(e) => setModalPosFilter(e.target.value)}
-                        className="px-3 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-xs text-slate-200 focus:outline-none focus:border-indigo-500/50 appearance-none pr-8 cursor-pointer"
+                        className="w-full sm:w-auto px-3 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-xs text-slate-200 focus:outline-none focus:border-indigo-500/50 appearance-none pr-8 cursor-pointer"
                       >
                         <option value="all">All POS</option>
                         {availablePartsOfSpeech.map(pos => (
@@ -365,7 +365,7 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
                   )}
 
                   {/* Sort Field Selector */}
-                  <div className="relative">
+                  <div className="relative flex-1 sm:flex-none">
                     <select
                       value={`${sortField}-${sortOrder}`}
                       onChange={(e) => {
@@ -373,7 +373,7 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
                         setSortField(field);
                         setSortOrder(order);
                       }}
-                      className="px-3 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-xs text-slate-200 focus:outline-none focus:border-indigo-500/50 appearance-none pr-8 cursor-pointer font-medium"
+                      className="w-full sm:w-auto px-3 py-1.5 rounded-xl bg-slate-950 border border-white/10 text-xs text-slate-200 focus:outline-none focus:border-indigo-500/50 appearance-none pr-8 cursor-pointer font-medium"
                     >
                       <option value="incorrectCount-desc">Sort: Most Errors</option>
                       <option value="term-asc">Sort: Term (A-Z)</option>
@@ -389,7 +389,7 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
                   </div>
 
                   {/* Search Query */}
-                  <div className="relative flex-1 sm:w-48">
+                  <div className="relative w-full sm:w-48">
                     <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input 
                       type="text"
@@ -413,7 +413,9 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
                   <p className="text-xs text-slate-500">Try adjusting your status filter, part of speech, or search term.</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto rounded-2xl border border-white/10 bg-slate-950/40">
+                <>
+                  {/* Desktop Table View */}
+                  <div className="hidden md:block overflow-x-auto rounded-2xl border border-white/10 bg-slate-950/40">
                   <table className="w-full text-left text-xs">
                     <thead className="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-white/10 tracking-wider">
                       <tr>
@@ -610,7 +612,97 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
                       })}
                     </tbody>
                   </table>
-                </div>
+                  </div>
+
+                  {/* Mobile Card View */}
+                  <div className="md:hidden flex flex-col gap-3 pb-8">
+                    {modalCards.map((card, index) => {
+                      let statusBadge = (
+                        <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-white/5">
+                          Unstudied
+                        </span>
+                      );
+                      if (card.masteryLevel === 'mastered') {
+                        statusBadge = (
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                            Mastered
+                          </span>
+                        );
+                      } else if (card.masteryLevel === 'reviewing') {
+                        statusBadge = (
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+                            Reviewing
+                          </span>
+                        );
+                      } else if (card.masteryLevel === 'learning' || card.totalReviews > 0) {
+                        statusBadge = (
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                            Learning
+                          </span>
+                        );
+                      }
+
+                      const isWeak = (card.weaknessLevel >= 2) || (card.incorrectCount > 0 && card.incorrectCount >= card.correctCount);
+
+                      return (
+                        <div key={card.id} className={`flex flex-col bg-slate-900/60 border ${isWeak ? 'border-amber-500/30' : 'border-white/5'} rounded-2xl p-4 gap-3 shadow-lg relative overflow-hidden`}>
+                          {isWeak && <div className="absolute top-0 right-0 w-8 h-8 bg-amber-500/10 rounded-bl-3xl" />}
+                          
+                          {/* Card Header: Term & Status */}
+                          <div className="flex items-start justify-between gap-2 relative z-10">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-extrabold text-white text-base truncate">{card.term}</span>
+                                {card.partOfSpeech && (
+                                  <span className="text-[11px] italic text-slate-400 font-serif shrink-0">({card.partOfSpeech})</span>
+                                )}
+                                {card.audioUrl && (
+                                  <button
+                                    onClick={() => playAudio(card.audioUrl, card.id)}
+                                    className="p-1 rounded-md bg-slate-800 text-indigo-400 hover:text-indigo-300 transition-colors shrink-0"
+                                  >
+                                    <Volume2 className={`w-3.5 h-3.5 ${playingAudioId === card.id ? 'animate-bounce text-indigo-300' : ''}`} />
+                                  </button>
+                                )}
+                              </div>
+                              {card.phonetic && <div className="text-[11px] text-slate-400 font-mono mt-0.5">{card.phonetic}</div>}
+                            </div>
+                            <div className="shrink-0 pt-0.5">{statusBadge}</div>
+                          </div>
+
+                          {/* Definition */}
+                          <p className="text-sm text-slate-300 leading-relaxed border-b border-white/5 pb-3">{card.definition}</p>
+
+                          {/* Compact Stats Row */}
+                          <div className="flex flex-wrap gap-1.5 text-[11px]">
+                            <div className="flex-1 min-w-[65px] bg-slate-950/50 rounded-lg py-2 px-1 flex flex-col items-center justify-center border border-white/5">
+                              <span className="text-slate-500 mb-0.5">Reviews</span>
+                              <span className="font-bold text-white">{card.totalReviews}</span>
+                            </div>
+                            <div className="flex-1 min-w-[65px] bg-slate-950/50 rounded-lg py-2 px-1 flex flex-col items-center justify-center border border-white/5">
+                              <span className="text-slate-500 mb-0.5">Acc</span>
+                              <span className={`font-bold ${card.totalReviews === 0 ? 'text-slate-500' : card.accuracy >= 80 ? 'text-emerald-400' : card.accuracy >= 60 ? 'text-amber-400' : 'text-rose-400'}`}>
+                                {card.totalReviews > 0 ? `${card.accuracy}%` : '-'}
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-[65px] bg-slate-950/50 rounded-lg py-2 px-1 flex flex-col items-center justify-center border border-white/5">
+                              <span className="text-slate-500 mb-0.5">C/W</span>
+                              <div className="font-bold flex items-center gap-0.5">
+                                <span className="text-emerald-400">{card.correctCount}</span>
+                                <span className="text-slate-600">/</span>
+                                <span className="text-rose-400">{card.incorrectCount}</span>
+                              </div>
+                            </div>
+                            <div className="flex-1 min-w-[65px] bg-slate-950/50 rounded-lg py-2 px-1 flex flex-col items-center justify-center border border-white/5">
+                              <span className="text-slate-500 mb-0.5">Due</span>
+                              <span className="font-bold text-white">{card.nextReviewDate ? card.nextReviewDate : '-'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </div>
 

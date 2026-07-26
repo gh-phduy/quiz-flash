@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { createClient } from '@/utils/supabase/server';
 import UserMenu from './user-menu';
 import SidebarToggle from './sidebar-toggle';
+import MobileNav from './mobile-nav';
 
 export default async function Header() {
   const supabase = await createClient();
@@ -28,8 +29,9 @@ export default async function Header() {
   return (
     <header className="flex h-[56px] items-center justify-between px-4 bg-background border-b border-border shrink-0 z-50 relative">
       {/* Left */}
-      <div className="flex items-center gap-5 shrink-0">
+      <div className="flex items-center gap-3 md:gap-5 shrink-0">
         <SidebarToggle />
+        <MobileNav />
         <Link href="/" className="text-[24px] font-black tracking-tight bg-gradient-to-r from-[#b892ff] via-[#6d7bff] to-[#4255ff] text-transparent bg-clip-text hover:brightness-125 transition-all drop-shadow-[0_2px_10px_rgba(184,146,255,0.3)] pr-4">
           Quiz Flash
         </Link>
@@ -48,10 +50,13 @@ export default async function Header() {
       </div>
 
       {/* Right */}
-      <div className="flex items-center justify-end gap-4 shrink-0">
+      <div className="flex items-center justify-end gap-2 md:gap-4 shrink-0">
+        <button className="md:hidden w-10 h-10 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors hover:bg-white/5 rounded-xl">
+          <Search className="h-5 w-5" />
+        </button>
         {user ? (
           <>
-            <Link href="/create-set" className="h-10 w-10 rounded-full bg-[#4255ff] flex items-center justify-center hover:bg-[#5b6aff] transition-colors shrink-0 mr-1">
+            <Link href="/create-set" className="h-10 w-10 rounded-full bg-[#4255ff] flex items-center justify-center hover:bg-[#5b6aff] transition-colors shrink-0 md:mr-1">
               <Plus className="h-6 w-6 text-foreground" />
             </Link>
             

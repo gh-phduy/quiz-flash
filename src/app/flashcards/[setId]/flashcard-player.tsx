@@ -813,8 +813,8 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
         </div>
 
         {/* Bottom Controls */}
-        <div className="w-full max-w-[800px] mt-10 flex items-center justify-between">
-          <div className="flex items-center gap-3 text-sm font-bold text-foreground">
+        <div className="w-full max-w-[800px] mt-6 md:mt-10 flex flex-col-reverse sm:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-3 text-sm font-bold text-foreground w-full sm:w-auto justify-center sm:justify-start">
             Track progress
             <button 
               onClick={() => setShowProgress(!showProgress)}
@@ -839,7 +839,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
             </button>
           </div>
 
-          <div className="flex items-center gap-4 text-muted-foreground">
+          <div className="flex items-center gap-4 text-muted-foreground absolute top-4 right-4 sm:static sm:top-auto sm:right-auto">
             <button className="hover:text-foreground transition">
               <RotateCcw className="w-5 h-5" />
             </button>

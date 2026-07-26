@@ -117,7 +117,7 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
       {/* Welcome Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
         <div>
-          <h1 className="text-4xl md:text-5xl font-black mb-3 drop-shadow-md flex items-center gap-3 text-transparent bg-clip-text bg-gradient-to-r from-[#9fa6ff] to-[#b892ff]">
+          <h1 className="text-3xl md:text-5xl font-black mb-3 drop-shadow-md flex items-center gap-3 text-transparent bg-clip-text bg-gradient-to-r from-[#9fa6ff] to-[#b892ff]">
             Welcome back, {displayName}! 👋
           </h1>
           <p className="font-semibold text-lg text-muted-foreground">
@@ -130,7 +130,7 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
           <span className="text-xs font-bold tracking-[0.2em] uppercase mb-1 drop-shadow-sm text-muted-foreground">
             Current Rank
           </span>
-          <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-[#9fa6ff] via-[#b892ff] to-[#ff92d0] drop-shadow-[0_0_20px_rgba(184,146,255,0.4)]">
+          <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-[#9fa6ff] via-[#b892ff] to-[#ff92d0] drop-shadow-[0_0_20px_rgba(184,146,255,0.4)]">
             {profile?.current_rank || 'Iron'}
           </h2>
         </div>
@@ -141,8 +141,8 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
         <div className="mb-6 relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-[#9fa6ff]/20 to-[#b892ff]/20 border border-[#b892ff]/30 p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-8 group">
           <div className="absolute inset-0 bg-gradient-to-r from-[#9fa6ff]/10 to-[#b892ff]/10 mix-blend-overlay group-hover:opacity-70 transition-opacity"></div>
           <div className="relative z-10">
-            <h2 className="text-3xl font-extrabold text-white mb-2 flex items-center gap-3">
-              <Flame className="w-8 h-8 text-[#ff92d0]" />
+            <h2 className="text-2xl md:text-3xl font-extrabold text-white mb-2 flex items-center gap-3">
+              <Flame className="w-7 h-7 md:w-8 md:h-8 text-[#ff92d0]" />
               Time to review!
             </h2>
             <p className="text-lg text-white/80 font-medium">
@@ -151,7 +151,7 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
           </div>
           <Link 
             href="/review"
-            className="relative z-10 shrink-0 px-8 py-4 bg-gradient-to-r from-[#ff92d0] to-[#b892ff] text-white rounded-2xl font-bold text-lg hover:scale-105 hover:shadow-[0_0_30px_rgba(255,146,208,0.5)] transition-all shadow-lg"
+            className="relative z-10 w-full md:w-auto text-center shrink-0 px-6 py-3 md:px-8 md:py-4 bg-gradient-to-r from-[#ff92d0] to-[#b892ff] text-white rounded-2xl font-bold text-lg hover:scale-105 hover:shadow-[0_0_30px_rgba(255,146,208,0.5)] transition-all shadow-lg"
           >
             Review Now
           </Link>

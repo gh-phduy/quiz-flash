@@ -10,7 +10,7 @@ export default function SidebarToggle() {
   return (
     <button 
       onClick={toggleExpanded}
-      className="text-foreground hover:text-muted-foreground flex items-center justify-center transition-colors w-10 h-10 rounded-xl hover:bg-white/5 -ml-1 cursor-pointer"
+      className="hidden md:flex text-foreground hover:text-muted-foreground items-center justify-center transition-colors w-10 h-10 rounded-xl hover:bg-white/5 -ml-1 cursor-pointer"
       aria-label="Toggle Sidebar"
     >
       <Menu className="h-6 w-6" />

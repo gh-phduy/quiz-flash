@@ -3,33 +3,36 @@
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 
+const getBackendUrl = () => {
+  return process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000/api';
+};
+
 export async function updateDisplayName(newName: string) {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
 
-    if (!user) {
+    if (!session?.access_token) {
       return { success: false, error: 'Not authenticated' };
     }
 
-    // Update in profiles table
-    const { error } = await supabase
-      .from('profiles')
-      .update({ full_name: newName })
-      .eq('id', user.id);
+    // Call the Backend API (Edge Function)
+    const backendUrl = getBackendUrl(); // Local fallback
 
-    if (error) {
-      console.error('Database update error:', error);
-      throw error;
-    }
-
-    // Update auth user metadata so it syncs across the app
-    const { error: authError } = await supabase.auth.updateUser({
-      data: { full_name: newName, name: newName }
+    const response = await fetch(`${backendUrl}/profile/display-name`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({ newName })
     });
 
-    if (authError) {
-      console.error('Auth update error:', authError);
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      console.error('Backend API error:', result.error);
+      return { success: false, error: result.error || 'Failed to update profile' };
     }
 
     revalidatePath('/status');
@@ -38,7 +41,7 @@ export async function updateDisplayName(newName: string) {
     
     return { success: true };
   } catch (error) {
-    console.error('Error updating display name:', error);
+    console.error('Error calling update display name API:', error);
     return { success: false, error: 'Failed to update display name' };
   }
 }

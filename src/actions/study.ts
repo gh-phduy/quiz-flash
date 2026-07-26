@@ -2,105 +2,48 @@
 
 import { createClient } from '@/utils/supabase/server';
 
-const calculateRank = (points: number): string => {
-  if (points < 500) return 'Iron';
-  if (points < 1200) return 'Bronze';
-  if (points < 2500) return 'Silver';
-  if (points < 5000) return 'Gold';
-  if (points < 10000) return 'Platinum';
-  if (points < 15000) return 'Emerald';
-  if (points < 25000) return 'Diamond';
-  if (points < 50000) return 'Master';
-  if (points < 100000) return 'Grandmaster';
-  return 'Challenger';
+const getBackendUrl = () => {
+  return process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000/api';
 };
 
-export async function recordPoints(pointsToAdd: number) {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+async function fetchFromBackend(endpoint: string, options: RequestInit = {}) {
+  const supabase = await createClient();
+  const { data: { session } } = await supabase.auth.getSession();
 
-    if (!user) {
-      return { success: false, error: 'User not authenticated' };
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('points, current_streak, highest_streak, last_active_date')
-      .eq('id', user.id)
-      .single();
-
-    if (profile) {
-      const today = new Date().toISOString().split('T')[0];
-      const lastActive = profile.last_active_date ? new Date(profile.last_active_date).toISOString().split('T')[0] : null;
-      
-      let newStreak = profile.current_streak || 0;
-      let newHighest = profile.highest_streak || 0;
-
-      if (lastActive !== today) {
-        if (!lastActive) {
-          newStreak = 1;
-        } else {
-          const yesterday = new Date();
-          yesterday.setDate(yesterday.getDate() - 1);
-          const yesterdayStr = yesterday.toISOString().split('T')[0];
-          
-          if (lastActive === yesterdayStr) {
-            newStreak += 1;
-          } else {
-            newStreak = 1; // reset
-          }
-        }
-        if (newStreak > newHighest) newHighest = newStreak;
-      }
-
-      const newPoints = (profile.points || 0) + pointsToAdd;
-      const newRank = calculateRank(newPoints);
-
-      await supabase
-        .from('profiles')
-        .update({
-          points: newPoints,
-          current_rank: newRank,
-          current_streak: newStreak,
-          highest_streak: newHighest,
-          last_active_date: new Date().toISOString()
-        })
-        .eq('id', user.id);
-    }
-    
-    return { success: true };
-  } catch (error) {
-    console.error('Error in recordPoints:', error);
-    return { success: false };
+  if (!session?.access_token) {
+    return { success: false, error: 'Not authenticated' };
   }
+
+  const backendUrl = getBackendUrl();
+  const response = await fetch(`${backendUrl}${endpoint}`, {
+    ...options,
+    headers: {
+      ...options.headers,
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`
+    }
+  });
+
+  return await response.json();
+}
+
+export async function recordPoints(pointsToAdd: number) {
+  return await fetchFromBackend('/study/record-points', { method: 'POST', body: JSON.stringify({ pointsToAdd }) });
 }
 
 export async function recordStudyActivity(setId: string, pointsToAdd: number, wordsInSet: number = 0, mode: string = 'flashcards') {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+  return await fetchFromBackend('/study/activity', { method: 'POST', body: JSON.stringify({ setId, pointsToAdd, wordsInSet, mode }) });
+}
 
-    if (!user) {
-      return { success: false, error: 'User not authenticated' };
-    }
+export async function startStudySession(setId: string, mode: string) {
+  return await fetchFromBackend('/study/start', { method: 'POST', body: JSON.stringify({ setId, mode }) });
+}
 
-    const { data, error } = await supabase.rpc('record_study_activity', {
-      p_user_id: user.id,
-      p_set_id: setId,
-      p_points_to_add: pointsToAdd,
-      p_words_in_set: wordsInSet,
-      p_mode: mode
-    });
+export async function logStudySession(setId: string, durationSeconds: number, mode: string, newCardsStudied: number, reviewCardsStudied: number) {
+  return await fetchFromBackend('/study/log', { method: 'POST', body: JSON.stringify({ setId, durationSeconds, mode, newCardsStudied, reviewCardsStudied }) });
+}
 
-    if (error) {
-      console.error('RPC Error:', error);
-      throw error;
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Error recording study activity:', error);
-    return { success: false, error: 'Internal server error' };
-  }
+export async function getDailyGoals(targetUserId?: string) {
+  const query = targetUserId ? `?targetUserId=${targetUserId}` : '';
+  return await fetchFromBackend(`/study/goals${query}`, { method: 'GET' });
 }

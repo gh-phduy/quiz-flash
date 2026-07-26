@@ -4,8 +4,9 @@
   "description": "QuizFlash Spaced Repetition Learning App",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "node scripts/build.mjs",
+    "dev": "next dev --turbo",
+    "build": "next build",
+    "build:cf": "opennextjs-cloudflare build",
     "start": "next start",
     "lint": "eslint"
   },

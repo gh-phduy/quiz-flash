@@ -304,8 +304,8 @@ export const FlashcardItem = React.memo(function FlashcardItem({
         </div>
         
         {/* Image Area: Có 3 ô/nút chọn chuyên biệt: Dán ảnh, Tải ảnh, Tìm online */}
-        <div className="w-[110px] flex flex-col gap-1 flex-shrink-0 mt-0 relative">
-          <div className={`w-[110px] h-[98px] flex-shrink-0 rounded-xl overflow-hidden relative ${card.image_url ? 'border border-border' : 'border border-[#939bb4]/30 bg-background/40 p-1'}`}>
+        <div className="w-full md:w-[110px] flex flex-col gap-1 flex-shrink-0 mt-2 md:mt-0 relative">
+          <div className={`w-full md:w-[110px] h-[140px] md:h-[98px] flex-shrink-0 rounded-xl overflow-hidden relative ${card.image_url ? 'border border-border' : 'border border-[#939bb4]/30 bg-background/40 p-1'}`}>
             <input 
               type="file" 
               id={`file-input-${card.id}`}
