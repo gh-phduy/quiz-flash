@@ -487,104 +487,107 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
             </div>
 
             {/* Control Toolbar */}
-            <div className="px-3 sm:px-6 py-3 bg-slate-950/50 border-b border-white/10 shrink-0 space-y-3">
+            <div className="px-3 sm:px-6 py-3 bg-slate-950/50 border-b border-white/10 shrink-0 space-y-2.5">
               
-              {/* Row 1: Status Filters */}
-              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 shrink-0">
-                <button
-                  onClick={() => setModalStatusFilter('all')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
-                    modalStatusFilter === 'all'
-                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                      : 'bg-slate-900/80 text-slate-400 border border-white/5 hover:text-white'
-                  }`}
-                >
-                  All ({analytics.totalCards})
-                </button>
+              {/* Row 1: Status Filters (Left) + Dropdowns (Right) */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                {/* Status Filter Pills */}
+                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 sm:pb-0 shrink-0">
+                  <button
+                    onClick={() => setModalStatusFilter('all')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
+                      modalStatusFilter === 'all'
+                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                        : 'bg-slate-900/80 text-slate-400 border border-white/5 hover:text-white'
+                    }`}
+                  >
+                    All ({analytics.totalCards})
+                  </button>
 
-                <button
-                  onClick={() => setModalStatusFilter('studied')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
-                    modalStatusFilter === 'studied'
-                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                      : 'bg-slate-900/80 text-blue-400/80 border border-white/5 hover:text-white'
-                  }`}
-                >
-                  Studied ({analytics.totalCards - analytics.unstudiedCount})
-                </button>
+                  <button
+                    onClick={() => setModalStatusFilter('studied')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
+                      modalStatusFilter === 'studied'
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                        : 'bg-slate-900/80 text-blue-400/80 border border-white/5 hover:text-white'
+                    }`}
+                  >
+                    Studied ({analytics.totalCards - analytics.unstudiedCount})
+                  </button>
 
-                <button
-                  onClick={() => setModalStatusFilter('mastered')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
-                    modalStatusFilter === 'mastered'
-                      ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
-                      : 'bg-slate-900/80 text-emerald-400 border border-white/5 hover:text-white'
-                  }`}
-                >
-                  Mastered ({analytics.masteredCount})
-                </button>
+                  <button
+                    onClick={() => setModalStatusFilter('mastered')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
+                      modalStatusFilter === 'mastered'
+                        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
+                        : 'bg-slate-900/80 text-emerald-400 border border-white/5 hover:text-white'
+                    }`}
+                  >
+                    Mastered ({analytics.masteredCount})
+                  </button>
 
-                <button
-                  onClick={() => setModalStatusFilter('weak')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
-                    modalStatusFilter === 'weak'
-                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30'
-                      : 'bg-slate-900/80 text-amber-400 border border-white/5 hover:text-white'
-                  }`}
-                >
-                  Weak ({analytics.weakCount})
-                </button>
+                  <button
+                    onClick={() => setModalStatusFilter('weak')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
+                      modalStatusFilter === 'weak'
+                        ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30'
+                        : 'bg-slate-900/80 text-amber-400 border border-white/5 hover:text-white'
+                    }`}
+                  >
+                    Weak ({analytics.weakCount})
+                  </button>
 
-                <button
-                  onClick={() => setModalStatusFilter('unstudied')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
-                    modalStatusFilter === 'unstudied'
-                      ? 'bg-slate-700 text-white shadow-md'
-                      : 'bg-slate-900/80 text-slate-400 border border-white/5 hover:text-white'
-                  }`}
-                >
-                  Unstudied ({analytics.unstudiedCount})
-                </button>
-              </div>
+                  <button
+                    onClick={() => setModalStatusFilter('unstudied')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
+                      modalStatusFilter === 'unstudied'
+                        ? 'bg-slate-700 text-white shadow-md'
+                        : 'bg-slate-900/80 text-slate-400 border border-white/5 hover:text-white'
+                    }`}
+                  >
+                    Unstudied ({analytics.unstudiedCount})
+                  </button>
+                </div>
 
-              {/* Row 2: Select Dropdowns */}
-              <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
-                {/* POS */}
-                {availablePartsOfSpeech.length > 0 && (
+                {/* Dropdowns */}
+                <div className="grid grid-cols-2 sm:flex items-center gap-2 shrink-0">
+                  {/* POS */}
+                  {availablePartsOfSpeech.length > 0 && (
+                    <CustomSelect 
+                      value={modalPosFilter}
+                      options={posOptions}
+                      onChange={setModalPosFilter}
+                      icon={<Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />}
+                      className="w-full sm:w-auto"
+                    />
+                  )}
+
+                  {/* Game Mode */}
                   <CustomSelect 
-                    value={modalPosFilter}
-                    options={posOptions}
-                    onChange={setModalPosFilter}
-                    icon={<Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />}
+                    value={modalGameMode}
+                    options={gameModeOptions}
+                    onChange={setModalGameMode}
+                    icon={<SlidersHorizontal className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+                    valueTextColor="text-emerald-400 font-bold"
                     className="w-full sm:w-auto"
                   />
-                )}
 
-                {/* Game Mode */}
-                <CustomSelect 
-                  value={modalGameMode}
-                  options={gameModeOptions}
-                  onChange={setModalGameMode}
-                  icon={<SlidersHorizontal className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
-                  valueTextColor="text-emerald-400 font-bold"
-                  className="w-full sm:w-auto"
-                />
-
-                {/* Sort */}
-                <CustomSelect 
-                  value={`${sortField}-${sortOrder}`}
-                  options={sortOptions}
-                  onChange={(val) => {
-                    const [field, order] = val.split('-') as [SortField, SortOrder];
-                    setSortField(field);
-                    setSortOrder(order);
-                  }}
-                  icon={<SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
-                  className="w-full sm:w-auto col-span-2 sm:col-span-1"
-                />
+                  {/* Sort */}
+                  <CustomSelect 
+                    value={`${sortField}-${sortOrder}`}
+                    options={sortOptions}
+                    onChange={(val) => {
+                      const [field, order] = val.split('-') as [SortField, SortOrder];
+                      setSortField(field);
+                      setSortOrder(order);
+                    }}
+                    icon={<SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
+                    className="w-full sm:w-auto col-span-2 sm:col-span-1"
+                  />
+                </div>
               </div>
 
-              {/* Row 3: Dedicated Search Bar */}
+              {/* Row 2: Search Bar Underneath */}
               <div className="relative w-full">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input 
@@ -619,7 +622,7 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
                   {/* Desktop Table View */}
                   <div className="hidden md:block overflow-x-auto rounded-2xl border border-white/10 bg-slate-950/40">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-white/10 tracking-wider">
+                    <thead className="bg-slate-950/95 backdrop-blur-md text-slate-400 uppercase font-semibold border-b border-white/10 tracking-wider sticky top-0 z-10">
                       <tr>
                         <th className="py-3.5 px-4 w-12 text-center">#</th>
                         

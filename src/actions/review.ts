@@ -43,6 +43,7 @@ export async function recordCardReview(
     if (result.success !== false) {
       // Revalidate paths that might show review data
       revalidatePath('/study');
+      revalidatePath('/profile');
       revalidatePath('/status');
       revalidatePath('/dashboard');
       revalidatePath('/leaderboard');

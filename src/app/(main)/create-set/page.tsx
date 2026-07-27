@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { setSchema, FormErrors, CardItem } from '@/shared/types/set';
 import { FlashcardItem } from './_components/FlashcardItem';
 import { fetchWordData } from '@/lib/dictionary';
-import { Wand2 } from 'lucide-react';
+import { Wand2, Hammer, Flame } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -360,71 +360,79 @@ export default function CreateSetPage() {
   };
 
   return (
-    <div className="min-h-full bg-background text-foreground font-sans selection:bg-[#4255ff] selection:text-foreground pb-28 sm:pb-24">
-      {/* Main Content */}
-      <main className="mx-auto max-w-[1000px] px-3 sm:px-6 lg:px-8 py-5 sm:py-8">
+    <div className="w-full max-w-[1050px] mx-auto py-6 sm:py-10 px-4 sm:px-6 font-sans pb-32 sm:pb-24">
+      {/* Hero Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 sm:mb-8 gap-6 p-6 sm:p-8 rounded-3xl sm:rounded-[2.5rem] bg-gradient-to-r from-[#0c0d28]/95 via-[#0d0c2b]/90 to-[#130f3a]/90 backdrop-blur-2xl border border-[#b892ff]/20 shadow-[0_0_30px_rgba(66,85,255,0.12)] relative overflow-hidden group">
         
-        {/* Title & Top Action Area */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl md:text-[28px] font-black text-foreground tracking-tight">
-              Create a new flashcard set
-            </h1>
+        {/* Balanced Ambient Glows */}
+        <div className="absolute top-0 left-0 w-64 h-64 bg-[#4255ff]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-64 h-64 bg-[#b892ff]/10 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Left: Section Info */}
+        <div className="relative z-10 space-y-2 min-w-0">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-black uppercase tracking-wider">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            Deck Studio • {cards.length} Cards Drafted
           </div>
-          
-          {/* Desktop Top Action Buttons */}
-          <div className="hidden sm:flex items-center gap-3">
-            <button 
-              onClick={handleCreateSet}
-              disabled={isSubmitting}
-              className="px-5 py-2.5 rounded-full bg-card text-foreground text-sm font-bold hover:bg-[#3a466a] transition-all active:scale-95 disabled:opacity-50 flex items-center cursor-pointer border border-white/5"
-            >
-              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Create
-            </button>
-            <button 
-              onClick={handleCreateSet}
-              disabled={isSubmitting}
-              className="px-5 py-2.5 rounded-full bg-[#4255ff] text-white text-sm font-bold hover:bg-[#5b6aff] transition-all active:scale-95 disabled:opacity-50 flex items-center cursor-pointer shadow-lg shadow-[#4255ff]/20"
-            >
-              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Create and practice
-            </button>
-          </div>
+
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white drop-shadow-md leading-tight">
+            Create a New <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#9fa6ff] via-[#b892ff] to-[#ff92d0]">Set</span>
+          </h1>
+          <p className="font-semibold text-sm sm:text-base text-slate-300 max-w-lg leading-relaxed">
+            Craft custom flashcards, add phonetics & share with the community.
+          </p>
         </div>
 
+        {/* Right Graphic Accent: Perfectly Balanced Hammer Icon */}
+        <div className="relative z-10 shrink-0 hidden md:flex items-center justify-center pointer-events-none select-none pr-4">
+          <div className="relative flex items-center justify-center">
+            {/* Subtle Balanced Glow */}
+            <div className="absolute w-20 h-20 bg-[#b892ff]/15 rounded-full blur-xl pointer-events-none" />
+            
+            {/* Balanced Purple Accent Icon */}
+            <div className="relative z-10 flex items-center justify-center p-2.5 text-[#b892ff] opacity-85">
+              <Hammer className="w-10 h-10 text-[#b892ff] transform -rotate-12" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Title & Description Container */}
+      <div className="bg-[#0c0d28]/70 backdrop-blur-xl p-5 sm:p-6 rounded-3xl border border-white/10 flex flex-col gap-4 mb-6 sm:mb-8 shadow-2xl relative">
         {/* Visibility Setting */}
-        <div className="mb-5 sm:mb-6">
-          <button className="flex items-center px-3.5 py-1.5 rounded-full bg-card text-foreground text-xs sm:text-sm font-bold hover:bg-[#3a466a] transition-all border border-white/5">
-            <Globe className="mr-1.5 h-3.5 w-3.5 text-[#9fa6ff]" /> Public
+        <div className="flex items-center">
+          <button className="flex items-center px-3.5 py-1.5 rounded-xl bg-[#4255ff]/15 border border-[#4255ff]/30 text-[#9fa6ff] text-xs font-extrabold tracking-wide">
+            <Globe className="mr-1.5 h-3.5 w-3.5 text-[#9fa6ff]" /> Public Deck
           </button>
         </div>
 
-        {/* Title & Description Card Container */}
-        <div className="bg-card/60 backdrop-blur-md p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-white/5 flex flex-col gap-3.5 sm:gap-4 mb-6 sm:mb-8 shadow-md">
-          <div className="relative group flex flex-col gap-1">
-            <input 
-              type="text" 
-              placeholder="Title" 
-              value={title}
-              onChange={(e) => {
-                setTitle(e.target.value);
-                if (errors.title) setErrors(prev => ({ ...prev, title: undefined }));
-              }}
-              className={`w-full bg-background/80 border-b-2 ${errors.title ? 'border-red-500 focus:border-red-500' : 'border-transparent focus:border-[#4255ff]'} rounded-xl px-4 py-3 sm:py-3.5 text-foreground placeholder-[#939bb4] outline-none font-bold text-base sm:text-lg transition-colors`} 
-            />
-            {errors.title && <span className="text-red-500 text-[12px] font-bold ml-1">{errors.title}</span>}
-          </div>
-          <div className="relative group">
-            <input 
-              type="text" 
-              placeholder="Add a description..." 
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-background/50 border-b-2 border-transparent focus:border-[#4255ff] rounded-xl px-4 py-2.5 sm:py-3 text-foreground placeholder-[#939bb4] outline-none text-xs sm:text-base font-medium transition-colors" 
-            />
-          </div>
+        <div className="relative group flex flex-col gap-1">
+          <input 
+            type="text" 
+            placeholder="Set Title (e.g. Oxford 3000 - Unit 1)" 
+            value={title}
+            onChange={(e) => {
+              setTitle(e.target.value);
+              if (errors.title) setErrors(prev => ({ ...prev, title: undefined }));
+            }}
+            className={`w-full bg-slate-950/80 border-b-2 ${errors.title ? 'border-red-500 focus:border-red-500' : 'border-transparent focus:border-[#b892ff]'} rounded-2xl px-4 py-3 sm:py-3.5 text-white placeholder-slate-500 outline-none font-black text-base sm:text-xl transition-colors shadow-inner`} 
+          />
+          {errors.title && <span className="text-red-400 text-xs font-bold ml-1">{errors.title}</span>}
         </div>
+
+        <div className="relative group">
+          <input 
+            type="text" 
+            placeholder="Add a description or topic summary..." 
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="w-full bg-slate-950/50 border-b-2 border-transparent focus:border-[#b892ff] rounded-2xl px-4 py-3 text-slate-200 placeholder-slate-500 outline-none text-xs sm:text-sm font-medium transition-colors shadow-inner" 
+          />
+        </div>
+      </div>
 
         {/* Mobile Toolbar (< sm) */}
         <div className="flex flex-col gap-2.5 sm:hidden mb-6">
@@ -496,21 +504,21 @@ export default function CreateSetPage() {
         </div>
 
         {/* Desktop Toolbar (>= sm) */}
-        <div className="hidden sm:flex items-center justify-between mb-6 bg-card/40 p-3.5 rounded-2xl border border-white/5">
+        <div className="hidden sm:flex items-center justify-between mb-6 bg-[#0c0d28]/70 backdrop-blur-xl p-3.5 sm:p-4 rounded-3xl border border-white/10 shadow-xl">
           <div className="flex items-center gap-3">
             <button 
               onClick={handleAddCard}
-              className="flex items-center px-4 py-2 rounded-xl bg-[#4255ff] text-white text-sm font-bold hover:bg-[#5b6aff] active:scale-95 transition-all cursor-pointer shadow-md shadow-[#4255ff]/20"
+              className="flex items-center px-4 py-2.5 rounded-2xl bg-gradient-to-r from-[#4255ff] to-[#6d7bff] text-white text-xs sm:text-sm font-extrabold hover:opacity-95 active:scale-95 transition-all cursor-pointer shadow-[0_0_15px_rgba(66,85,255,0.3)]"
             >
               <Plus className="mr-2 h-4 w-4" /> Add card
             </button>
             <button 
               onClick={handleBulkAutoFill}
-              className="flex items-center px-4 py-2 rounded-xl bg-card text-[#9fa6ff] text-sm font-bold hover:bg-white/10 active:scale-95 transition-all cursor-pointer border border-white/5"
+              className="flex items-center px-4 py-2.5 rounded-2xl bg-slate-900 border border-[#b892ff]/30 text-[#9fa6ff] text-xs sm:text-sm font-extrabold hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
             >
               <Wand2 className="mr-2 h-4 w-4 text-[#9fa6ff]" /> Auto-fill Phonetics
             </button>
-            <div className="flex items-center px-3.5 py-2 rounded-xl bg-white/5 text-muted-foreground text-xs font-bold border border-white/5">
+            <div className="flex items-center px-3.5 py-2.5 rounded-2xl bg-white/5 text-slate-300 text-xs font-mono font-bold border border-white/5">
               <span>
                 {searchQuery ? (
                   <>Found: <strong className="text-[#9fa6ff]">{filteredCards.length}</strong>/{cards.length}</>
@@ -523,19 +531,19 @@ export default function CreateSetPage() {
           
           <div className="flex items-center gap-2">
             {isSearching ? (
-              <div className="flex items-center bg-background border border-[#3a466a] rounded-xl h-9 px-3 w-64 focus-within:border-[#4255ff] transition-all">
-                <Search className="h-3.5 w-3.5 text-muted-foreground mr-2 shrink-0" />
+              <div className="flex items-center bg-slate-950 border border-[#b892ff]/40 rounded-2xl h-10 px-3 w-64 focus-within:border-[#b892ff] transition-all">
+                <Search className="h-3.5 w-3.5 text-slate-400 mr-2 shrink-0" />
                 <input
                   type="text"
                   placeholder="Search cards..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-transparent border-none outline-none text-xs text-foreground w-full"
+                  className="bg-transparent border-none outline-none text-xs text-white w-full"
                   autoFocus
                 />
                 <button 
                   onClick={() => { setIsSearching(false); setSearchQuery(''); }}
-                  className="text-muted-foreground hover:text-white shrink-0 ml-1"
+                  className="text-slate-400 hover:text-white shrink-0 ml-1"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -543,18 +551,18 @@ export default function CreateSetPage() {
             ) : (
               <button 
                 onClick={() => setIsSearching(true)}
-                className="h-9 w-9 rounded-xl bg-card flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all cursor-pointer border border-white/5"
+                className="h-10 w-10 rounded-2xl bg-slate-950/80 hover:bg-white/10 active:scale-95 transition-all cursor-pointer border border-white/10 flex items-center justify-center text-slate-300 hover:text-white"
                 title="Search cards"
               >
-                <Search className="h-4 w-4 text-foreground" />
+                <Search className="h-4 w-4" />
               </button>
             )}
             <button 
               onClick={() => setCards([{ id: 'card-1', term: '', definition: '', image_url: null, image_file: null, phonetic: null, audio_url: null }])}
-              className="h-9 w-9 rounded-xl bg-[#ff4242]/15 flex items-center justify-center hover:bg-[#ff4242]/25 active:scale-95 transition-all cursor-pointer border border-[#ff4242]/20"
+              className="h-10 w-10 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 active:scale-95 transition-all cursor-pointer border border-rose-500/30 text-rose-400 flex items-center justify-center"
               title="Clear all cards"
             >
-              <Trash2 className="h-4 w-4 text-[#ff4242]" />
+              <Trash2 className="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -589,14 +597,12 @@ export default function CreateSetPage() {
           </SortableContext>
         </DndContext>
 
-      </main>
-
       {/* Floating Bottom Action Bar (Desktop) */}
       <div className="hidden sm:flex fixed bottom-6 right-8 items-center gap-3 z-30">
         <button 
           onClick={handleCreateSet}
           disabled={isSubmitting}
-          className="px-6 py-3 rounded-full bg-card text-foreground text-sm font-bold shadow-xl hover:bg-[#3a466a] transition-all active:scale-95 disabled:opacity-50 flex items-center border border-white/10 cursor-pointer"
+          className="px-6 py-3 rounded-2xl bg-[#0c0d28]/90 backdrop-blur-xl text-white text-sm font-extrabold shadow-2xl hover:bg-white/10 transition-all active:scale-95 disabled:opacity-50 flex items-center border border-white/15 cursor-pointer"
         >
           {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
           Create
@@ -604,7 +610,7 @@ export default function CreateSetPage() {
         <button 
           onClick={handleCreateSet}
           disabled={isSubmitting}
-          className="px-6 py-3 rounded-full bg-gradient-to-r from-[#4255ff] to-[#6d7bff] text-white text-sm font-bold hover:brightness-110 shadow-xl transition-all active:scale-95 disabled:opacity-50 flex items-center cursor-pointer shadow-[#4255ff]/30"
+          className="px-6 py-3 rounded-2xl bg-gradient-to-r from-[#4255ff] to-[#6d7bff] text-white text-sm font-extrabold shadow-[0_0_20px_rgba(66,85,255,0.4)] hover:brightness-110 transition-all active:scale-95 disabled:opacity-50 flex items-center cursor-pointer"
         >
           {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
           Create and practice
@@ -612,11 +618,11 @@ export default function CreateSetPage() {
       </div>
 
       {/* Floating Bottom Action Bar (Mobile Sticky Bar) */}
-      <div className="flex sm:hidden fixed bottom-0 left-0 right-0 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-background/95 backdrop-blur-xl border-t border-white/10 items-center justify-between gap-2.5 z-40 shadow-2xl">
+      <div className="flex sm:hidden fixed bottom-0 left-0 right-0 p-3 pb-4 bg-[#07061d]/95 backdrop-blur-2xl border-t border-[#b892ff]/30 items-center justify-between gap-2.5 z-40 shadow-2xl">
         <button 
           onClick={handleCreateSet}
           disabled={isSubmitting}
-          className="flex-1 py-3 rounded-xl bg-card text-foreground text-xs font-bold active:scale-95 disabled:opacity-50 flex items-center justify-center border border-white/10 cursor-pointer"
+          className="flex-1 py-3 rounded-xl bg-white/10 text-white text-xs font-extrabold active:scale-95 disabled:opacity-50 flex items-center justify-center border border-white/15 cursor-pointer"
         >
           {isSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
           Create
@@ -624,7 +630,7 @@ export default function CreateSetPage() {
         <button 
           onClick={handleCreateSet}
           disabled={isSubmitting}
-          className="flex-1 py-3 rounded-xl bg-gradient-to-r from-[#4255ff] to-[#6d7bff] text-white text-xs font-bold active:scale-95 disabled:opacity-50 flex items-center justify-center cursor-pointer shadow-lg shadow-[#4255ff]/20"
+          className="flex-1 py-3 rounded-xl bg-gradient-to-r from-[#4255ff] to-[#6d7bff] text-white text-xs font-extrabold active:scale-95 disabled:opacity-50 flex items-center justify-center cursor-pointer shadow-[0_0_15px_rgba(66,85,255,0.4)]"
         >
           {isSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
           Create & Practice

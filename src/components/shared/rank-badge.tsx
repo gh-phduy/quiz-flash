@@ -256,19 +256,19 @@ export function RankBadge({
       </div>
 
       {showProgress && points !== undefined && config.maxPoints < 9999999 && (
-        <div className="w-full space-y-1">
-          <div className="flex justify-between items-center text-[10px] text-muted-foreground font-semibold">
+        <div className="w-full space-y-1 mt-0.5">
+          <div className="flex justify-between items-center text-[10px] text-slate-200 font-bold font-mono">
             <span>{points.toLocaleString()} / {(config.maxPoints + 1).toLocaleString()} pts</span>
-            <span>{progressPercent}%</span>
+            <span className="text-[#b892ff]">{progressPercent}%</span>
           </div>
-          <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden p-0.5 border border-white/5">
+          <div className="w-full h-2 bg-slate-950/80 rounded-full overflow-hidden p-0.5 border border-white/10 shadow-inner">
             <div 
-              className={`h-full rounded-full bg-gradient-to-r ${config.gradient} transition-all duration-500`}
+              className={`h-full rounded-full bg-gradient-to-r ${config.gradient} transition-all duration-500 shadow-sm`}
               style={{ width: `${progressPercent}%` }}
             />
           </div>
           {pointsNeeded > 0 && (
-            <p className="text-[9px] text-slate-400 font-mono text-right">
+            <p className="text-[10px] text-[#b892ff] font-medium font-mono text-right">
               +{pointsNeeded.toLocaleString()} pts to next division
             </p>
           )}

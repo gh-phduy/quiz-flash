@@ -9,7 +9,7 @@ import {
   Bell,
   Compass,
   Trophy,
-  BarChart3,
+  User,
   LineChart
 } from 'lucide-react';
 import Link from 'next/link';
@@ -88,7 +88,7 @@ export default function Sidebar() {
     { href: userId ? `/user/${userId}` : '/login', icon: Folder, label: 'Your library', isMatch: pathname.startsWith('/user') },
     { href: '/set-analytics', icon: LineChart, label: 'Set Analytics', isMatch: pathname.startsWith('/set-analytics') },
     { href: '/leaderboard', icon: Trophy, label: 'Leaderboard', isMatch: pathname.startsWith('/leaderboard') },
-    { href: '/status', icon: BarChart3, label: 'Status', isMatch: pathname.startsWith('/status') },
+    { href: '/profile', icon: User, label: 'Profile', isMatch: pathname.startsWith('/profile') },
   ];
 
   return (

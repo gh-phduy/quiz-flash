@@ -58,7 +58,18 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
   const [pointsEarned, setPointsEarned] = useState(0);
   const [mistakesPerCard, setMistakesPerCard] = useState<Record<string, number>>({});
-  const matchCardCount = Math.min(12, cards.length);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const matchCardCount = isMobile ? Math.min(4, cards.length) : Math.min(6, cards.length);
   const [isAutoSpeak, setIsAutoSpeak] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('match_auto_speak') !== 'false';
@@ -115,7 +126,7 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
 
   // Initialize Game
   const initGame = useCallback(async (overrideCount?: number) => {
-    const targetCount = overrideCount !== undefined ? overrideCount : matchCardCount;
+    const targetCount = overrideCount !== undefined ? overrideCount : (window.innerWidth < 768 ? Math.min(4, cards.length) : Math.min(6, cards.length));
     const countToUse = Math.max(1, Math.min(targetCount, cards.length));
     
     let targetCards: CardData[] = [];
@@ -178,7 +189,7 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
     setEvaluation(null);
     setPointsEarned(0);
     setMistakesPerCard({});
-  }, [cards, matchCardCount, set.id]);
+  }, [cards, set.id]);
 
   const hasInitialized = useRef(false);
 
@@ -294,43 +305,45 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
   const playedPairCount = Math.round(tiles.length / 2);
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans overflow-hidden">
+    <div className="h-screen w-screen bg-[#07061d] text-foreground flex flex-col font-sans overflow-hidden">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 shrink-0 z-10 relative border-b border-white/5">
-        <ModeSwitcher currentMode="Match" setId={set.id} />
+      <header className="flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-4 shrink-0 z-10 relative border-b border-white/10 bg-[#0c0d28]/80 backdrop-blur-md">
+        <div className="flex items-center gap-2">
+          <ModeSwitcher currentMode="Match" setId={set.id} />
+        </div>
 
-        <div className="flex items-center absolute left-1/2 -translate-x-1/2">
-          <span className={`text-4xl font-extrabold font-mono transition-colors duration-300 ${isFinished ? 'text-green-500' : 'text-foreground'}`}>
+        <div className="flex items-center justify-center">
+          <span className={`text-xl sm:text-3xl md:text-4xl font-black font-mono transition-colors duration-300 ${isFinished ? 'text-emerald-400' : 'text-white'}`}>
             {formatTime(timeMs)}s
           </span>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3">
           <button
             onClick={() => {
               const newVal = !isAutoSpeak;
               setIsAutoSpeak(newVal);
               localStorage.setItem('match_auto_speak', String(newVal));
             }}
-            className={`p-2.5 rounded-xl border transition-all flex items-center gap-2 cursor-pointer shadow-md ${
+            className={`p-2 rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer ${
               isAutoSpeak
-                ? 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/25'
-                : 'bg-slate-800/80 border-slate-700 text-slate-400 hover:text-slate-200'
+                ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-300'
+                : 'bg-slate-900 border-white/10 text-slate-400'
             }`}
-            title={isAutoSpeak ? "Click to mute selection audio" : "Click to unmute selection audio"}
+            title={isAutoSpeak ? "Auto-pronounce enabled" : "Auto-pronounce disabled"}
           >
             {isAutoSpeak ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-            <span className="text-xs font-bold hidden sm:inline">Auto-pronounce</span>
+            <span className="text-xs font-bold hidden md:inline">Auto-pronounce</span>
           </button>
           <VoiceSettingsTriggerButton />
-          <button onClick={() => router.push('/')} className="text-muted-foreground hover:text-foreground transition cursor-pointer" title="Close game">
-            <X className="w-6 h-6" />
+          <button onClick={() => router.push('/')} className="p-2 text-slate-400 hover:text-white transition cursor-pointer" title="Close game">
+            <X className="w-5 h-5" />
           </button>
         </div>
       </header>
 
       {/* Main Game Area */}
-      <main className="flex-1 h-[calc(100vh-5.5rem)] p-3 sm:p-4 md:p-6 w-full max-w-[95vw] mx-auto flex flex-col items-center justify-center relative">
+      <main className="flex-1 w-full max-w-7xl mx-auto p-2.5 sm:p-6 flex flex-col items-center justify-center overflow-hidden relative">
         {isFinished ? (
           (() => {
             const colorClasses = {
@@ -352,62 +365,62 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
               <div className="flex flex-col items-center justify-center w-full h-full relative z-10 px-4">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#4255ff]/10 rounded-full blur-[100px] pointer-events-none" />
                 
-                <div className="w-full max-w-2xl bg-card/40 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-12 shadow-2xl relative z-10 flex flex-col items-center animate-in fade-in zoom-in duration-500">
+                <div className="w-full max-w-2xl bg-card/40 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-12 shadow-2xl relative z-10 flex flex-col items-center animate-in fade-in zoom-in duration-500">
                   
-                  <div className="text-center mb-10">
-                    <h1 className="text-4xl md:text-5xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-br from-white to-white/70">
+                  <div className="text-center mb-8 sm:mb-10">
+                    <h1 className="text-3xl md:text-5xl font-black mb-3 text-transparent bg-clip-text bg-gradient-to-br from-white to-white/70">
                       {evaluation?.title || "Great time!"}
                     </h1>
-                    <p className="text-lg text-muted-foreground max-w-md mx-auto">
+                    <p className="text-sm sm:text-lg text-slate-300 max-w-md mx-auto">
                       {evaluation?.message || `You matched everything in ${formatTime(timeMs)} seconds.`}
                     </p>
                   </div>
 
                   {/* Stats Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full mb-8">
-                    <div className="bg-white/5 rounded-2xl p-4 flex flex-col items-center justify-center border border-white/5">
-                      <span className="text-sm font-bold text-muted-foreground mb-1">Time</span>
-                      <span className="text-3xl font-black text-white">{formatTime(timeMs)}s</span>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 w-full mb-6 sm:mb-8">
+                    <div className="bg-white/5 rounded-2xl p-3.5 sm:p-4 flex flex-col items-center justify-center border border-white/5">
+                      <span className="text-xs sm:text-sm font-bold text-slate-400 mb-1">Time</span>
+                      <span className="text-2xl sm:text-3xl font-black text-white">{formatTime(timeMs)}s</span>
                     </div>
-                    <div className="bg-white/5 rounded-2xl p-4 flex flex-col items-center justify-center border border-white/5">
-                      <span className="text-sm font-bold text-emerald-400 mb-1">Cards</span>
-                      <span className="text-3xl font-black text-emerald-400">{playedPairCount}</span>
+                    <div className="bg-white/5 rounded-2xl p-3.5 sm:p-4 flex flex-col items-center justify-center border border-white/5">
+                      <span className="text-xs sm:text-sm font-bold text-emerald-400 mb-1">Cards</span>
+                      <span className="text-2xl sm:text-3xl font-black text-emerald-400">{playedPairCount}</span>
                     </div>
-                    <div className="bg-white/5 rounded-2xl p-4 flex flex-col items-center justify-center border border-white/5">
-                      <span className="text-sm font-bold text-orange-400 mb-1">Accuracy</span>
-                      <span className="text-3xl font-black text-orange-400">{accuracy}%</span>
+                    <div className="bg-white/5 rounded-2xl p-3.5 sm:p-4 flex flex-col items-center justify-center border border-white/5">
+                      <span className="text-xs sm:text-sm font-bold text-orange-400 mb-1">Accuracy</span>
+                      <span className="text-2xl sm:text-3xl font-black text-orange-400">{accuracy}%</span>
                     </div>
-                    <div className="bg-white/5 rounded-2xl p-4 flex flex-col items-center justify-center border border-white/5 relative overflow-hidden group">
+                    <div className="bg-white/5 rounded-2xl p-3.5 sm:p-4 flex flex-col items-center justify-center border border-white/5 relative overflow-hidden group">
                       <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-orange-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <span className="text-sm font-bold text-amber-400 mb-1">XP Earned</span>
-                      <span className="text-3xl font-black text-amber-400">+{pointsEarned}</span>
+                      <span className="text-xs sm:text-sm font-bold text-amber-400 mb-1">XP Earned</span>
+                      <span className="text-2xl sm:text-3xl font-black text-amber-400">+{pointsEarned}</span>
                     </div>
                   </div>
 
                   {/* Smart Advice */}
                   {evaluation && (
-                    <div className={`w-full p-5 rounded-2xl bg-gradient-to-br ${themeColor} border backdrop-blur-sm mb-10 flex gap-4 items-start`}>
-                      <Lightbulb className="w-6 h-6 shrink-0 mt-0.5" />
+                    <div className={`w-full p-4 sm:p-5 rounded-2xl bg-gradient-to-br ${themeColor} border backdrop-blur-sm mb-6 sm:mb-10 flex gap-3.5 items-start`}>
+                      <Lightbulb className="w-5 h-5 shrink-0 mt-0.5" />
                       <div>
-                        <h3 className="font-bold mb-1">Smart Tip</h3>
-                        <p className="text-sm opacity-90 leading-relaxed">{evaluation.advice}</p>
+                        <h3 className="font-bold text-xs sm:text-sm mb-0.5">Smart Tip</h3>
+                        <p className="text-xs sm:text-sm opacity-90 leading-relaxed">{evaluation.advice}</p>
                       </div>
                     </div>
                   )}
 
-                <div className="flex flex-col sm:flex-row gap-4 w-full">
+                <div className="flex flex-col sm:flex-row gap-3 w-full">
                   <button 
                     onClick={() => initGame()}
-                    className="flex-1 py-4 bg-[#4255ff] text-white font-bold rounded-xl hover:bg-[#5b6aff] transition shadow-[0_0_20px_rgba(66,85,255,0.3)] hover:shadow-[0_0_30px_rgba(66,85,255,0.5)] hover:-translate-y-0.5 flex items-center justify-center gap-2 cursor-pointer"
+                    className="flex-1 py-3.5 sm:py-4 bg-[#4255ff] text-white font-bold text-xs sm:text-sm rounded-xl sm:rounded-2xl hover:bg-[#5b6aff] transition shadow-[0_0_20px_rgba(66,85,255,0.3)] flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <RotateCcw className="w-5 h-5" />
+                    <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
                     Play again
                   </button>
                   <button 
                     onClick={() => router.push('/')}
-                    className="flex-1 py-4 bg-white/5 text-white font-bold rounded-xl hover:bg-white/10 transition border border-white/10 flex items-center justify-center gap-2 cursor-pointer"
+                    className="flex-1 py-3.5 sm:py-4 bg-white/5 text-white font-bold text-xs sm:text-sm rounded-xl sm:rounded-2xl hover:bg-white/10 transition border border-white/10 flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <Home className="w-5 h-5" />
+                    <Home className="w-4 h-4 sm:w-5 sm:h-5" />
                     Back to Home
                   </button>
                 </div>  
@@ -434,8 +447,8 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
                 tileStyles = "scale-90 opacity-0 pointer-events-none transition-all duration-500";
               } else {
                 tileStyles = isTerm
-                  ? "bg-slate-900/60 backdrop-blur-md hover:bg-cyan-950/30 border-white/10 hover:border-cyan-500/50 hover:shadow-[0_0_15px_rgba(6,182,212,0.15)] text-slate-100"
-                  : "bg-slate-900/60 backdrop-blur-md hover:bg-indigo-950/30 border-white/10 hover:border-indigo-500/50 hover:shadow-[0_0_15px_rgba(99,102,241,0.15)] text-slate-200";
+                  ? "bg-slate-900/90 backdrop-blur-md hover:bg-cyan-950/30 border-white/10 hover:border-cyan-500/50 hover:shadow-[0_0_15px_rgba(6,182,212,0.15)] text-slate-100"
+                  : "bg-slate-900/90 backdrop-blur-md hover:bg-indigo-950/30 border-white/10 hover:border-indigo-500/50 hover:shadow-[0_0_15px_rgba(99,102,241,0.15)] text-slate-200";
               }
 
               return (
@@ -443,16 +456,16 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
                   key={tile.id}
                   onClick={() => handleTileClick(tile.id)}
                   className={`
-                    w-full h-full min-h-[115px] sm:min-h-[135px] md:min-h-[155px] rounded-2xl border p-4 sm:p-5 flex flex-col items-center justify-center text-center
+                    w-full flex-1 min-h-[74px] sm:min-h-[110px] rounded-xl sm:rounded-2xl border p-2.5 sm:p-4 flex flex-col items-center justify-center text-center
                     transition-all duration-300 select-none shadow-lg relative group cursor-pointer
                     ${tileStyles}
                   `}
                 >
-                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none bg-gradient-to-br rounded-2xl ${
+                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none rounded-2xl bg-gradient-to-br ${
                     isTerm ? 'from-cyan-400 to-transparent' : 'from-indigo-400 to-transparent'
                   }`} />
 
-                  <span className={`absolute top-2.5 right-2.5 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border pointer-events-none ${
+                  <span className={`absolute top-2 right-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border pointer-events-none ${
                     isTerm 
                       ? 'bg-cyan-500/10 text-cyan-300 border-cyan-500/25' 
                       : 'bg-indigo-500/10 text-indigo-300 border-indigo-500/25'
@@ -461,8 +474,8 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
                   </span>
 
                   {tile.imageUrl ? (
-                    <div className="w-full h-full flex flex-col items-center justify-center gap-2 overflow-hidden pt-2">
-                      <div className="relative w-full flex-1 max-h-[58%] rounded-xl overflow-hidden shrink-0 border border-white/5 group-hover:border-indigo-500/25 transition-colors">
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-1 overflow-hidden pt-1">
+                      <div className="relative w-full flex-1 max-h-[50%] sm:max-h-[58%] rounded-xl overflow-hidden shrink-0 border border-white/5 group-hover:border-indigo-500/25 transition-colors">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img 
                           src={tile.imageUrl} 
@@ -472,17 +485,17 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
                       </div>
                       <div className="flex flex-col items-center gap-0.5 min-h-0">
                         {tile.text && (
-                          <span className="font-bold text-xs sm:text-sm line-clamp-2 text-white/95">
+                          <span className="font-bold text-xs sm:text-sm line-clamp-2 text-white/95 leading-tight">
                             {tile.text}
                           </span>
                         )}
                       </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center gap-2 break-words w-full h-full overflow-hidden pt-2">
-                      <span className={`font-black line-clamp-4 leading-snug tracking-wide ${
+                    <div className="flex flex-col items-center justify-center gap-1.5 break-words w-full h-full overflow-hidden pt-1">
+                      <span className={`font-black line-clamp-3 leading-snug tracking-wide ${
                         isTerm 
-                          ? 'text-base sm:text-lg md:text-xl text-white' 
+                          ? 'text-sm sm:text-lg md:text-xl text-white' 
                           : 'text-xs sm:text-sm md:text-base text-slate-200 font-bold'
                       }`}>
                         {tile.text}
@@ -499,34 +512,34 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
             };
 
             return (
-              <div className="w-full h-full flex flex-col md:flex-row items-stretch gap-4 md:gap-6 relative overflow-y-auto">
+              <div className="w-full max-w-5xl mx-auto flex-1 flex flex-row items-stretch justify-center gap-2.5 sm:gap-6 relative my-auto py-2 sm:py-4 h-full">
                 {/* Left Column: TERMS */}
-                <div className="flex-1 flex flex-col bg-cyan-950/10 border border-cyan-500/20 rounded-3xl p-4 sm:p-5 backdrop-blur-md h-full justify-between">
-                  <div className="flex items-center gap-2 mb-4 pb-2.5 border-b border-cyan-500/20 shrink-0">
-                    <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
-                    <h3 className="text-xs font-black uppercase tracking-widest text-cyan-300">
-                      TERMS ({termTiles.filter(t => t.status !== 'matched').length} left)
+                <div className="flex-1 flex flex-col bg-cyan-950/20 border border-cyan-500/30 rounded-2xl sm:rounded-3xl p-3 sm:p-5 backdrop-blur-md justify-between min-w-0 h-full">
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-4 pb-2 border-b border-cyan-500/20 shrink-0">
+                    <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-cyan-400 animate-pulse" />
+                    <h3 className="text-[11px] sm:text-xs font-black uppercase tracking-widest text-cyan-300 truncate">
+                      TERMS ({termTiles.filter(t => t.status !== 'matched').length})
                     </h3>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 sm:gap-4 auto-rows-fr flex-1 h-full">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-4 auto-rows-fr flex-1 h-full">
                     {termTiles.map(tile => renderTileCard(tile))}
                   </div>
                 </div>
 
                 {/* Center Divider Line */}
-                <div className="hidden md:flex flex-col items-center justify-center shrink-0 py-4">
+                <div className="hidden sm:flex flex-col items-center justify-center shrink-0 py-4 self-stretch">
                   <div className="w-[2px] h-full bg-gradient-to-b from-cyan-500/40 via-white/20 to-indigo-500/40 rounded-full shadow-[0_0_12px_rgba(6,182,212,0.3)]" />
                 </div>
 
                 {/* Right Column: DEFINITIONS */}
-                <div className="flex-1 flex flex-col bg-indigo-950/10 border border-indigo-500/20 rounded-3xl p-4 sm:p-5 backdrop-blur-md h-full justify-between">
-                  <div className="flex items-center gap-2 mb-4 pb-2.5 border-b border-indigo-500/20 shrink-0">
-                    <span className="w-2.5 h-2.5 rounded-full bg-indigo-400 animate-pulse" />
-                    <h3 className="text-xs font-black uppercase tracking-widest text-indigo-300">
-                      DEFINITIONS ({defTiles.filter(t => t.status !== 'matched').length} left)
+                <div className="flex-1 flex flex-col bg-indigo-950/20 border border-indigo-500/30 rounded-2xl sm:rounded-3xl p-3 sm:p-5 backdrop-blur-md justify-between min-w-0 h-full">
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-4 pb-2 border-b border-indigo-500/20 shrink-0">
+                    <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-indigo-400 animate-pulse" />
+                    <h3 className="text-[11px] sm:text-xs font-black uppercase tracking-widest text-indigo-300 truncate">
+                      DEFINITIONS ({defTiles.filter(t => t.status !== 'matched').length})
                     </h3>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 sm:gap-4 auto-rows-fr flex-1 h-full">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-4 auto-rows-fr flex-1 h-full">
                     {defTiles.map(tile => renderTileCard(tile))}
                   </div>
                 </div>

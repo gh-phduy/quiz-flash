@@ -170,19 +170,19 @@ export function VoiceSettingsSidebar() {
       <div className="absolute inset-0" onClick={() => setIsOpen(false)} />
 
       {/* Sidebar Panel */}
-      <div className="relative w-full max-w-md bg-slate-900/95 border-l border-white/10 text-white shadow-2xl h-full flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right duration-300">
+      <div className="relative w-full max-w-md bg-slate-900/98 border-l border-white/10 text-white shadow-2xl h-full flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right duration-300">
         {/* Header */}
         <div>
-          <div className="p-6 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-purple-900/40 via-slate-900 to-blue-900/40">
+          <div className="p-4 sm:p-6 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-purple-900/40 via-slate-900 to-blue-900/40">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 shadow-inner">
+              <div className="p-2 sm:p-2.5 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 shadow-inner">
                 <SlidersHorizontal className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                <h2 className="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2">
                   Voice & Audio Settings
                 </h2>
-                <p className="text-xs text-slate-400">Configure UK & US speech voices, speed & volume</p>
+                <p className="text-[11px] sm:text-xs text-slate-400">Configure UK & US speech voices, speed & volume</p>
               </div>
             </div>
             <button
@@ -193,7 +193,7 @@ export function VoiceSettingsSidebar() {
             </button>
           </div>
 
-          <div className="p-6 space-y-6">
+          <div className="p-4 sm:p-6 space-y-5 sm:space-y-6">
             {/* Default Accent Selector */}
             <div className="space-y-2 pb-2 border-b border-white/10">
               <label className="text-sm font-semibold text-purple-300 flex items-center gap-2">

@@ -73,6 +73,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
   const [showWarmup, setShowWarmup] = useState(false);
 
   const handleStartSession = async (limitOverride?: number) => {
+    hasInitializedRef.current = true;
     const limit = limitOverride || selectedLimit;
     setIsPreparing(true);
     let newBatch: CardData[] = [];
@@ -254,7 +255,9 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
     if (target.closest('button')) return; // Ignore if clicking a button (like the speaker)
 
     dragStartX.current = e.clientX;
-    e.currentTarget.setPointerCapture(e.pointerId);
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {}
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
@@ -267,10 +270,9 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
     
     const isDrag = Math.abs(dragOffset) > 10;
 
-    // Lowered threshold to 60px to make swiping easier
-    if (dragOffset > 60) {
+    if (dragOffset > 40) {
       handleNext('known');
-    } else if (dragOffset < -60) {
+    } else if (dragOffset < -40) {
       handleNext('learning');
     } else if (!isDrag) {
       handleFlip();
@@ -278,7 +280,34 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
     
     setDragOffset(0);
     dragStartX.current = null;
-    e.currentTarget.releasePointerCapture(e.pointerId);
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {}
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('button')) return;
+    dragStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (dragStartX.current === null) return;
+    setDragOffset(e.touches[0].clientX - dragStartX.current);
+  };
+
+  const handleTouchEnd = () => {
+    if (dragStartX.current === null) return;
+    const isDrag = Math.abs(dragOffset) > 10;
+    if (dragOffset > 40) {
+      handleNext('known');
+    } else if (dragOffset < -40) {
+      handleNext('learning');
+    } else if (!isDrag) {
+      handleFlip();
+    }
+    setDragOffset(0);
+    dragStartX.current = null;
   };
 
   // Xử lý phím tắt bàn phím
@@ -602,19 +631,23 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
   } : undefined;
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans overflow-hidden">
+    <div className="h-screen w-screen bg-[#07061d] text-foreground flex flex-col font-sans overflow-hidden">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4">
-        <ModeSwitcher currentMode="Flashcards" setId={set.id} />
-
-        <div className="flex flex-col items-center absolute left-1/2 -translate-x-1/2">
-          <span className="text-sm font-bold text-foreground mb-1">
-            {currentIndex + 1} / {activeCards.length}
-          </span>
-          <span className="text-sm font-bold text-muted-foreground">{set.title}</span>
+      <header className="flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-4 shrink-0 z-20 relative border-b border-white/10 bg-[#0c0d28]/80 backdrop-blur-md">
+        <div className="flex items-center gap-2">
+          <ModeSwitcher currentMode="Flashcards" setId={set.id} />
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex flex-col items-center justify-center">
+          <span className="text-sm sm:text-base font-black font-mono text-white">
+            {currentIndex + 1} / {activeCards.length}
+          </span>
+          <span className="text-[11px] font-bold text-slate-400 hidden sm:block truncate max-w-[200px]">
+            {set.title}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5 sm:gap-3">
           <button 
             onClick={() => {
               const newVal = !isAutoPlay;
@@ -623,225 +656,223 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
                 localStorage.setItem('autoplay_all', String(newVal));
               }
             }}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition cursor-pointer text-sm font-semibold border ${
+            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl transition cursor-pointer text-xs font-bold border ${
               isAutoPlay 
-                ? 'bg-[#b892ff]/20 text-[#b892ff] border-[#b892ff]/30' 
-                : 'bg-transparent text-muted-foreground border-white/10 hover:text-foreground'
+                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' 
+                : 'bg-slate-900 text-slate-400 border-white/10 hover:text-white'
             }`}
+            title={isAutoPlay ? "Auto-play enabled" : "Auto-play disabled"}
           >
             {isAutoPlay ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-            <span className="hidden sm:inline">Auto-play</span>
+            <span className="hidden md:inline">Auto-play</span>
           </button>
 
           <VoiceSettingsTriggerButton />
           <button 
             onClick={() => router.push('/')}
-            className="text-muted-foreground hover:text-foreground transition cursor-pointer"
+            className="p-1.5 text-slate-400 hover:text-white transition cursor-pointer"
+            title="Close"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5" />
           </button>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 max-w-5xl mx-auto w-full relative">
+      <main className="flex-1 flex flex-col items-center justify-center p-3 sm:p-6 max-w-5xl mx-auto w-full relative overflow-hidden my-auto">
         
         {/* Dynamic ambient glow based on flipped state */}
-        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full blur-[140px] pointer-events-none transition-all duration-700 ease-in-out ${
+        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] sm:w-[600px] h-[350px] sm:h-[400px] rounded-full blur-[140px] pointer-events-none transition-all duration-700 ease-in-out ${
           isFlipped 
-            ? 'bg-[#b892ff]/10 scale-110' 
-            : 'bg-[#4255ff]/10 scale-100'
+            ? 'bg-[#b892ff]/15 scale-110' 
+            : 'bg-[#4255ff]/15 scale-100'
         }`} />
 
         {/* Progress Stats */}
         {showProgress && (
-          <div className="w-full max-w-[800px] flex justify-between items-center mb-6 relative z-10">
-            <div className="flex items-center gap-3 text-orange-500 font-bold text-sm">
-              <span className="w-7 h-7 rounded-full border-2 border-orange-500 flex items-center justify-center font-bold">
+          <div className="w-full max-w-[800px] flex justify-between items-center mb-3 sm:mb-4 relative z-10 shrink-0">
+            <div className="flex items-center gap-2 text-orange-400 font-extrabold text-xs sm:text-sm bg-orange-500/10 px-3 py-1.5 rounded-full border border-orange-500/25">
+              <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-orange-500/20 border border-orange-500/40 flex items-center justify-center font-black text-xs text-orange-300">
                 {learningCount}
               </span>
               Still learning
             </div>
-            <div className="flex items-center gap-3 text-emerald-400 font-bold text-sm">
+            <div className="flex items-center gap-2 text-emerald-400 font-extrabold text-xs sm:text-sm bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/25">
               Know
-              <span className="w-7 h-7 rounded-full border-2 border-emerald-400 flex items-center justify-center font-bold">
+              <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center font-black text-xs text-emerald-300">
                 {knownCount}
               </span>
             </div>
           </div>
         )}
 
-        {/* Flashcard Container (3D perspective) */}
-        <div 
-          key="flashcard-container"
-          className={`relative w-full max-w-[800px] aspect-[5/3] md:aspect-[2/1] perspective-[1000px] cursor-pointer transition-all duration-300 ease-in-out touch-none relative z-10 ${
-            slideDirection === 'left' ? '-translate-x-[150%] -rotate-12 opacity-0' :
-            slideDirection === 'right' ? 'translate-x-[150%] rotate-12 opacity-0' :
-            slideDirection === 'reset' ? 'scale-90 opacity-0 duration-0 transition-none' :
-            'translate-x-0 rotate-0 opacity-100 scale-100'
-          }`}
-          style={dragStyle}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
-        >
-          {/* Stamps for Tinder-like effect - Placed OUTSIDE the flip container so they never mirror */}
+        <div className="w-full max-w-[800px] flex flex-col items-center justify-center relative z-10 gap-3 sm:gap-6 my-auto">
+          {/* Flashcard Container (3D perspective) */}
           <div 
-            className="absolute top-8 right-8 border-4 border-emerald-400 text-emerald-400 rounded-2xl px-6 py-2 text-4xl font-black uppercase tracking-widest z-50 pointer-events-none"
-            style={{ opacity: dragOffset > 20 ? Math.min((dragOffset - 20) / 40, 1) : 0, transform: 'rotate(15deg)' }}
+            key="flashcard-container"
+            className={`relative w-full aspect-[4/3] sm:aspect-[2/1] perspective-[1000px] cursor-pointer transition-all duration-300 ease-in-out touch-none relative z-10 ${
+              slideDirection === 'left' ? '-translate-x-[150%] -rotate-12 opacity-0' :
+              slideDirection === 'right' ? 'translate-x-[150%] rotate-12 opacity-0' :
+              slideDirection === 'reset' ? 'scale-90 opacity-0 duration-0 transition-none' :
+              'translate-x-0 rotate-0 opacity-100 scale-100'
+            }`}
+            style={dragStyle}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchEnd}
           >
-            KNOW
-          </div>
-          <div 
-            className="absolute top-8 left-8 border-4 border-orange-500 text-orange-500 rounded-2xl px-6 py-2 text-4xl font-black uppercase tracking-widest z-50 pointer-events-none"
-            style={{ opacity: dragOffset < -20 ? Math.min((Math.abs(dragOffset) - 20) / 40, 1) : 0, transform: 'rotate(-15deg)' }}
-          >
-            LEARNING
-          </div>
+            {/* Stamps for Tinder-like effect */}
+            <div 
+              className="absolute top-6 right-6 border-4 border-emerald-400 text-emerald-400 rounded-2xl px-5 py-1.5 text-2xl sm:text-4xl font-black uppercase tracking-widest z-50 pointer-events-none"
+              style={{ opacity: dragOffset > 20 ? Math.min((dragOffset - 20) / 40, 1) : 0, transform: 'rotate(15deg)' }}
+            >
+              KNOW
+            </div>
+            <div 
+              className="absolute top-6 left-6 border-4 border-orange-500 text-orange-500 rounded-2xl px-5 py-1.5 text-2xl sm:text-4xl font-black uppercase tracking-widest z-50 pointer-events-none"
+              style={{ opacity: dragOffset < -20 ? Math.min((Math.abs(dragOffset) - 20) / 40, 1) : 0, transform: 'rotate(-15deg)' }}
+            >
+              LEARNING
+            </div>
 
-          {/* Card Inner */}
-          <div 
-            className={`w-full h-full relative transition-transform duration-500 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateX(180deg)]' : ''}`}
-          >
-            {/* Front Side */}
-            <div className="absolute inset-0 w-full h-full bg-slate-900/85 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl flex flex-col [backface-visibility:hidden] select-none hover:border-indigo-500/20 transition-all duration-300">
-              <div className="flex justify-between items-center p-4 sm:p-6 text-muted-foreground flex-wrap gap-2">
-                <div className="flex items-center gap-2 z-10">
-                  {currentCard.cefr_level && (
-                    <span className="text-xs font-black px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wide shadow-sm">
-                      {currentCard.cefr_level}
-                    </span>
+            {/* Card Inner */}
+            <div 
+              className={`w-full h-full relative transition-transform duration-500 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateX(180deg)]' : ''}`}
+            >
+              {/* Front Side */}
+              <div className="absolute inset-0 w-full h-full bg-[#0c0d28]/95 backdrop-blur-2xl border border-[#b892ff]/30 rounded-3xl shadow-[0_0_40px_rgba(66,85,255,0.2)] flex flex-col [backface-visibility:hidden] select-none hover:border-[#b892ff]/50 transition-all duration-300 overflow-hidden">
+                <div className="flex justify-between items-center p-3.5 sm:p-6 text-muted-foreground flex-wrap gap-2">
+                  <div className="flex items-center gap-2 z-10">
+                    {currentCard.cefr_level && (
+                      <span className="text-[10px] sm:text-xs font-black px-2.5 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider shadow-sm">
+                        {currentCard.cefr_level}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1.5 sm:gap-2 z-10">
+                    {/* US Audio Button & Phonetic */}
+                    <button
+                      className="hover:bg-purple-500/20 hover:border-purple-400/40 px-2.5 py-1.5 rounded-xl transition cursor-pointer flex items-center gap-1 text-xs font-mono text-white/90 bg-white/5 border border-white/10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        playAudio(currentCard.audio_url, currentCard.term, undefined, 'US');
+                      }}
+                      title="US Pronunciation"
+                    >
+                      <span className="font-bold text-purple-300">US</span>
+                      {currentCard.phonetic && (
+                        <span className="text-slate-300 font-bold">{currentCard.phonetic}</span>
+                      )}
+                      <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-300" />
+                    </button>
+
+                    {/* UK Audio Button & Phonetic */}
+                    <button
+                      className="hover:bg-sky-500/20 hover:border-sky-400/40 px-2.5 py-1.5 rounded-xl transition cursor-pointer flex items-center gap-1 text-xs font-mono text-white/90 bg-white/5 border border-white/10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        playAudio(currentCard.audio_url, currentCard.term, undefined, 'UK');
+                      }}
+                      title="UK Pronunciation"
+                    >
+                      <span className="font-bold text-sky-300">UK</span>
+                      {currentCard.phonetic_uk && (
+                        <span className="text-slate-300 font-bold">{currentCard.phonetic_uk}</span>
+                      )}
+                      <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-300" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 gap-2 min-h-0 overflow-y-auto">
+                  <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-[#b892ff] text-center break-words leading-tight">
+                    {currentCard.term}
+                  </h2>
+                  
+                  {(currentCard.phonetic || currentCard.phonetic_uk || currentCard.part_of_speech) && (
+                    <div className="flex items-center justify-center gap-2 mt-1 sm:mt-2">
+                      {(currentCard.phonetic || currentCard.phonetic_uk) && (
+                        <span className="text-xs font-mono text-cyan-300 bg-cyan-500/10 px-3 py-1 rounded-xl border border-cyan-500/25 flex items-center gap-1 font-bold">
+                          <span>{currentCard.phonetic || currentCard.phonetic_uk}</span>
+                        </span>
+                      )}
+                      {currentCard.part_of_speech && (
+                        <span className="text-xs font-bold px-2.5 py-1 rounded-xl bg-purple-500/20 text-purple-300 italic border border-purple-500/30">
+                          {currentCard.part_of_speech}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
-
-                <div className="flex items-center gap-2 z-10">
-                  {/* US Audio Button & Phonetic */}
-                  <button
-                    className="hover:bg-purple-500/20 hover:border-purple-400/40 px-2.5 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 text-xs font-mono text-white/90 bg-white/5 border border-white/10"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      playAudio(currentCard.audio_url, currentCard.term, undefined, 'US');
-                    }}
-                    title="US Pronunciation"
-                  >
-                    <span className="font-bold text-purple-300">US</span>
-                    {currentCard.phonetic && (
-                      <span className="text-muted-foreground">{currentCard.phonetic}</span>
-                    )}
-                    <Volume2 className="w-4 h-4 text-purple-300" />
-                  </button>
-
-                  {/* UK Audio Button & Phonetic */}
-                  <button
-                    className="hover:bg-sky-500/20 hover:border-sky-400/40 px-2.5 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 text-xs font-mono text-white/90 bg-white/5 border border-white/10"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      playAudio(currentCard.audio_url, currentCard.term, undefined, 'UK');
-                    }}
-                    title="UK Pronunciation"
-                  >
-                    <span className="font-bold text-sky-300">UK</span>
-                    {currentCard.phonetic_uk && (
-                      <span className="text-muted-foreground">{currentCard.phonetic_uk}</span>
-                    )}
-                    <Volume2 className="w-4 h-4 text-sky-300" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex-1 flex flex-col items-center justify-center p-8 gap-2 min-h-0 overflow-y-auto">
-                <h2 className="text-4xl md:text-5xl font-black text-white text-center break-words tracking-tight leading-tight">
-                  {currentCard.term}
-                </h2>
-                {currentCard.part_of_speech && (
-                  <div className="flex items-center justify-center gap-2 mt-2">
-                    <span className="text-xs font-bold px-2.5 py-1 rounded bg-white/5 text-purple-300 italic border border-white/5">
-                      {currentCard.part_of_speech}
-                    </span>
+                
+                {/* Footer Front (Hidden on Mobile as requested) */}
+                <div className="hidden sm:flex min-h-[3.2rem] py-2 w-full bg-[#4255ff]/90 rounded-b-3xl items-center justify-center gap-2 md:gap-3 text-white font-semibold text-xs md:text-sm px-4 shadow-[0_-5px_15px_rgba(66,85,255,0.15)]">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold border border-white/20 px-1.5 py-0.5 rounded shadow-sm bg-black/20">⌨</span>
+                    Shortcut
                   </div>
-                )}
-              </div>
-              
-              {/* Footer Front */}
-              <div className="min-h-[3.5rem] py-2 w-full bg-[#4255ff]/90 rounded-b-2xl flex flex-wrap items-center justify-center gap-2 md:gap-3 text-white font-semibold text-xs md:text-sm px-4 shadow-[0_-5px_15px_rgba(66,85,255,0.15)]">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold border border-white/20 px-1.5 py-0.5 rounded shadow-sm bg-black/20">⌨</span>
-                  Shortcut
+                  <span>Press</span>
+                  <span className="bg-white px-2 py-0.5 rounded shadow-sm text-xs font-bold text-slate-900">Space</span>
+                  <span>or click on the card to flip</span>
                 </div>
-                <span>Press</span>
-                <span className="bg-white px-2 py-0.5 rounded shadow-sm text-xs font-bold text-slate-900">Space</span>
-                <span>or click on the card to flip</span>
               </div>
-            </div>
 
-            {/* Back Side */}
-            <div className="absolute inset-0 w-full h-full bg-slate-900/85 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl flex flex-col [transform:rotateX(180deg)] [backface-visibility:hidden] select-none hover:border-purple-500/20 transition-all duration-300">
-              <div className="flex justify-between items-center p-6 text-muted-foreground">
-                <div />
-                {/* Vietnamese definition has no speaker button to enforce English-only audio rule */}
-                <div className="w-12 h-12" />
-              </div>
-              
-              <div className="flex-1 flex flex-col md:flex-row items-center justify-evenly gap-8 p-6 md:p-12 w-full min-h-0 overflow-y-auto">
-                <h2 className="text-3xl md:text-4xl font-black text-white text-center break-words max-w-full md:max-w-[55%] tracking-tight leading-tight">
-                  {currentCard.definition}
-                </h2>
-                {currentCard.image_url && (
-                  <div className="w-32 h-32 md:w-48 md:h-48 relative rounded-xl overflow-hidden shadow-lg flex-shrink-0 pointer-events-none select-none border border-white/10">
-                    <Image 
-                      src={currentCard.image_url} 
-                      alt={currentCard.term}
-                      fill
-                      className="object-cover"
-                      draggable={false}
-                    />
-                  </div>
-                )}
-              </div>
-              
-              {/* Footer Back */}
-              <div className="min-h-[3.5rem] py-2 w-full bg-[#b892ff]/90 rounded-b-2xl flex flex-wrap items-center justify-center gap-2 md:gap-3 text-[#0a092d] font-semibold text-xs md:text-sm px-4 shadow-[0_-5px_15px_rgba(184,146,255,0.15)]">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold border border-[#0a092d]/20 px-1.5 py-0.5 rounded shadow-sm bg-black/10">⌨</span>
-                  Shortcut
+              {/* Back Side */}
+              <div className="absolute inset-0 w-full h-full bg-[#0c0d28]/98 backdrop-blur-2xl border border-[#b892ff]/40 rounded-3xl shadow-[0_0_40px_rgba(184,146,255,0.25)] flex flex-col justify-center items-center [transform:rotateX(180deg)] [backface-visibility:hidden] select-none hover:border-[#b892ff]/60 transition-all duration-300 overflow-hidden">
+                <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-4 sm:gap-8 p-6 sm:p-10 w-full h-full min-h-0 overflow-y-auto text-center my-auto">
+                  <h2 className="text-2xl sm:text-4xl font-extrabold text-white text-center break-words max-w-full md:max-w-[70%] tracking-tight leading-tight my-auto">
+                    {currentCard.definition}
+                  </h2>
+                  {currentCard.image_url && (
+                    <div className="w-28 h-28 sm:w-40 sm:h-40 md:w-48 md:h-48 relative rounded-2xl overflow-hidden shadow-xl flex-shrink-0 pointer-events-none select-none border border-white/15 my-auto">
+                      <Image 
+                        src={currentCard.image_url} 
+                        alt={currentCard.term}
+                        fill
+                        className="object-cover"
+                        draggable={false}
+                      />
+                    </div>
+                  )}
                 </div>
-                <span>Press</span>
-                <span className="bg-white px-2 py-0.5 rounded shadow-sm text-xs font-bold font-mono">←</span>
-                <span>to study again or</span>
-                <span className="bg-white px-2 py-0.5 rounded shadow-sm text-xs font-bold font-mono">→</span>
-                <span>if you know the answer</span>
+                
+                {/* Footer Back (Hidden on Mobile as requested) */}
+                <div className="hidden sm:flex min-h-[3.2rem] py-2 w-full bg-[#b892ff]/90 rounded-b-3xl items-center justify-center gap-2 md:gap-3 text-[#0a092d] font-bold text-xs md:text-sm px-4 shadow-[0_-5px_15px_rgba(184,146,255,0.15)] shrink-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold border border-[#0a092d]/20 px-1.5 py-0.5 rounded shadow-sm bg-black/10">⌨</span>
+                    Shortcut
+                  </div>
+                  <span>Press</span>
+                  <span className="bg-white px-2 py-0.5 rounded shadow-sm text-xs font-bold font-mono">←</span>
+                  <span>to study again or</span>
+                  <span className="bg-white px-2 py-0.5 rounded shadow-sm text-xs font-bold font-mono">→</span>
+                  <span>if you know the answer</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Bottom Controls */}
-        <div className="w-full max-w-[800px] mt-6 md:mt-10 flex items-center justify-between gap-6 relative z-10">
-          <div className="flex items-center gap-3 text-sm font-bold text-foreground">
-            Track progress
-            <button 
-              onClick={() => setShowProgress(!showProgress)}
-              className={`w-10 h-6 rounded-full flex items-center p-1 transition-colors cursor-pointer ${showProgress ? 'bg-[#4255ff]' : 'bg-white/10 border border-white/5'}`}
-            >
-              <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${showProgress ? 'translate-x-4' : 'translate-x-0'}`} />
-            </button>
-          </div>
-
-          <div className="flex items-center gap-4">
+          {/* Bottom Controls (Positioned directly under flashcard) */}
+          <div className="w-full flex items-center justify-center gap-6 sm:gap-10 shrink-0">
             <button 
               onClick={() => handleNext('learning')}
-              className="w-14 h-14 rounded-full border border-white/15 bg-slate-900/60 backdrop-blur-md flex items-center justify-center hover:bg-slate-800 transition group cursor-pointer shadow-lg"
-              title="Still learning (Left Arrow)"
+              className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl border border-rose-500/40 bg-rose-500/15 backdrop-blur-md flex items-center justify-center hover:bg-rose-500/25 transition group cursor-pointer shadow-[0_0_20px_rgba(244,63,94,0.25)] active:scale-95"
+              title="Still learning (Left Swipe / Left Arrow)"
             >
-              <X className="w-6 h-6 text-orange-500 group-hover:scale-110 transition-transform" />
+              <X className="w-7 h-7 text-rose-400 group-hover:scale-110 transition-transform" />
             </button>
             <button 
               onClick={() => handleNext('known')}
-              className="w-14 h-14 rounded-full border border-white/15 bg-slate-900/60 backdrop-blur-md flex items-center justify-center hover:bg-slate-800 transition shadow-lg group cursor-pointer"
-              title="Know (Right Arrow)"
+              className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl border border-emerald-500/40 bg-emerald-500/15 backdrop-blur-md flex items-center justify-center hover:bg-emerald-500/25 transition group cursor-pointer shadow-[0_0_20px_rgba(16,185,129,0.25)] active:scale-95"
+              title="Know (Right Swipe / Right Arrow)"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400 group-hover:scale-110 transition-transform"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400 group-hover:scale-110 transition-transform"><polyline points="20 6 9 17 4 12"></polyline></svg>
             </button>
           </div>
         </div>

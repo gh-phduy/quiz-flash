@@ -11,7 +11,7 @@ import {
   Bell,
   Compass,
   Trophy,
-  BarChart3,
+  User,
   LineChart,
   Menu,
   X
@@ -25,13 +25,11 @@ export default function MobileNav() {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    const supabase = createClient();
-    const fetchUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      if (data.user) {
-        setUserId(data.user.id);
-      }
-    };
+    async function fetchUser() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setUserId(user.id);
+    }
     fetchUser();
   }, []);
 
@@ -45,7 +43,7 @@ export default function MobileNav() {
     { href: userId ? `/user/${userId}` : '/login', icon: Folder, label: 'Your library', isMatch: pathname.startsWith('/user') },
     { href: '/set-analytics', icon: LineChart, label: 'Set Analytics', isMatch: pathname.startsWith('/set-analytics') },
     { href: '/leaderboard', icon: Trophy, label: 'Leaderboard', isMatch: pathname.startsWith('/leaderboard') },
-    { href: '/status', icon: BarChart3, label: 'Status', isMatch: pathname.startsWith('/status') },
+    { href: '/profile', icon: User, label: 'Profile', isMatch: pathname.startsWith('/profile') },
   ];
 
   return (

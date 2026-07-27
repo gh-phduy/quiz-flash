@@ -81,7 +81,7 @@ export function ReviewSummary({
       {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row items-center gap-4 w-full justify-center">
         <a
-          href="/status"
+          href="/profile"
           className="group relative px-8 py-4 bg-gradient-to-r from-[#4255ff] to-[#6d7bff] text-white rounded-2xl font-bold text-lg overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_40px_rgba(66,85,255,0.4)] flex items-center gap-3 w-full sm:w-auto min-w-[220px] justify-center"
         >
           <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out"></div>

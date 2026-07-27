@@ -215,12 +215,12 @@ export const FlashcardItem = React.memo(function FlashcardItem({
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
-      className={`bg-card rounded-xl flex flex-col group relative shadow-sm transition-all duration-200 ${isDraggingOver ? 'ring-2 ring-blue-500 border-blue-500' : ''}`}
+      className={`bg-[#0c0d28]/70 backdrop-blur-xl border border-white/10 hover:border-[#b892ff]/40 rounded-2xl sm:rounded-3xl flex flex-col group relative shadow-xl transition-all duration-300 ${isDraggingOver ? 'ring-2 ring-[#b892ff] border-[#b892ff]' : ''}`}
     >
       {/* Visual Drag & Drop Overlay */}
       {isDraggingOver && (
-        <div className="absolute inset-0 bg-blue-600/15 backdrop-blur-[2px] border-2 border-dashed border-blue-500 rounded-xl flex items-center justify-center z-30 pointer-events-none animate-in fade-in duration-150">
-          <div className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-xl flex items-center gap-2.5">
+        <div className="absolute inset-0 bg-[#4255ff]/20 backdrop-blur-[2px] border-2 border-dashed border-[#b892ff] rounded-2xl sm:rounded-3xl flex items-center justify-center z-30 pointer-events-none animate-in fade-in duration-150">
+          <div className="bg-[#4255ff] text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-xl flex items-center gap-2.5">
             <Upload className="w-5 h-5 animate-bounce" />
             <span>Thả ảnh vào đây để tải lên thẻ #{index + 1}</span>
           </div>
@@ -228,9 +228,9 @@ export const FlashcardItem = React.memo(function FlashcardItem({
       )}
 
       {/* Card Header */}
-      <div className="flex items-center justify-between px-4 py-2.5 sm:px-6 sm:py-3 border-b border-[#0a092d]/40">
+      <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-3.5 border-b border-white/10">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-lg bg-[#4255ff]/15 text-[#9fa6ff] border border-[#4255ff]/30">
+          <span className="text-xs font-black font-mono px-2.5 py-0.5 rounded-lg bg-[#4255ff]/20 text-[#9fa6ff] border border-[#4255ff]/30">
             #{index + 1}
           </span>
         </div>
@@ -238,7 +238,7 @@ export const FlashcardItem = React.memo(function FlashcardItem({
           <button 
             {...attributes} 
             {...listeners} 
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 active:scale-95 transition-all cursor-grab touch-none"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-grab touch-none"
             title="Drag to reorder"
           >
             <GripHorizontal className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
@@ -246,10 +246,10 @@ export const FlashcardItem = React.memo(function FlashcardItem({
           <button 
             onClick={() => onDelete(card.id)}
             disabled={!canDelete}
-            className={`p-1.5 rounded-lg text-muted-foreground active:scale-95 transition-all ${
+            className={`p-1.5 rounded-lg active:scale-95 transition-all ${
               canDelete 
-                ? 'hover:text-[#ff4242] hover:bg-[#ff4242]/10 cursor-pointer' 
-                : 'opacity-30 cursor-not-allowed'
+                ? 'text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer' 
+                : 'opacity-30 text-slate-600 cursor-not-allowed'
             }`}
             title="Delete card"
           >
@@ -270,7 +270,7 @@ export const FlashcardItem = React.memo(function FlashcardItem({
               value={card.term}
               onChange={(e) => onChange(card.id, 'term', e.target.value)}
               onBlur={handleTermBlur}
-              className={`w-full bg-background border-b-2 ${error?.term ? 'border-red-500 focus:border-red-500' : 'border-transparent focus:border-[#4255ff]'} rounded-t-xl rounded-b-none px-3.5 py-2.5 sm:px-4 sm:py-3 text-foreground placeholder-[#939bb4] outline-none text-sm sm:text-[15px] font-medium transition-colors`}
+              className={`w-full bg-slate-950/80 border-b-2 ${error?.term ? 'border-red-500 focus:border-red-500' : 'border-transparent focus:border-[#b892ff]'} rounded-t-xl rounded-b-none px-3.5 py-2.5 sm:px-4 sm:py-3 text-white placeholder-slate-500 outline-none text-sm sm:text-[15px] font-extrabold transition-colors shadow-inner`}
             />
             {error?.term && <span className="text-red-500 text-[12px] font-bold px-1">{error?.term}</span>}
           </div>
@@ -311,7 +311,7 @@ export const FlashcardItem = React.memo(function FlashcardItem({
               placeholder="Enter definition" 
               value={card.definition}
               onChange={(e) => onChange(card.id, 'definition', e.target.value)}
-              className={`w-full bg-background border-b-2 ${error?.definition ? 'border-red-500 focus:border-red-500' : 'border-transparent focus:border-[#4255ff]'} rounded-t-xl rounded-b-none px-3.5 py-2.5 sm:px-4 sm:py-3 text-foreground placeholder-[#939bb4] outline-none text-sm sm:text-[15px] font-medium transition-colors`}
+              className={`w-full bg-slate-950/80 border-b-2 ${error?.definition ? 'border-red-500 focus:border-red-500' : 'border-transparent focus:border-[#b892ff]'} rounded-t-xl rounded-b-none px-3.5 py-2.5 sm:px-4 sm:py-3 text-white placeholder-slate-500 outline-none text-sm sm:text-[15px] font-medium transition-colors shadow-inner`}
             />
             {error?.definition && <span className="text-red-500 text-[12px] font-bold px-1">{error?.definition}</span>}
           </div>

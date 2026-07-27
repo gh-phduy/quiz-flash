@@ -90,43 +90,67 @@ export default function ExploreGrid({ sets, initialSavedSetIds = [] }: ExploreGr
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto py-10 px-6 font-sans">
-      {/* Header & Search */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6">
-        <div>
-          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#9fa6ff] to-[#b892ff] mb-2">
-            Explore Public Sets
+    <div className="w-full max-w-7xl mx-auto py-6 sm:py-10 px-4 sm:px-6 font-sans">
+      {/* Gamer Hero Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 sm:mb-12 gap-6 p-6 sm:p-8 rounded-3xl sm:rounded-[2.5rem] bg-gradient-to-r from-[#0c0d28]/95 via-[#0d0c2b]/85 to-[#130f3a]/90 backdrop-blur-2xl border border-[#b892ff]/30 shadow-[0_0_50px_rgba(66,85,255,0.18)] relative overflow-hidden group">
+        
+        {/* Background Cyberpunk Ambient Glows */}
+        <div className="absolute top-0 left-0 w-64 h-64 bg-[#4255ff]/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-64 h-64 bg-[#b892ff]/15 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Left: Section Info */}
+        <div className="relative z-10 space-y-2 min-w-0">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#4255ff]/10 border border-[#4255ff]/30 text-[#9fa6ff] text-xs font-black uppercase tracking-wider">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#b892ff] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#b892ff]"></span>
+            </span>
+            Community Arena • {sets.length} Public Sets
+          </div>
+
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white drop-shadow-lg leading-tight">
+            Explore Public <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#9fa6ff] via-[#b892ff] to-[#ff92d0]">Sets</span>
           </h1>
-          <p className="text-muted-foreground font-medium text-lg">
-            Discover {sets.length} flashcard sets created by the community.
+          <p className="font-semibold text-sm sm:text-base text-slate-300 max-w-lg leading-relaxed">
+            Discover community flashcard decks & level up your vocabulary skills.
           </p>
         </div>
 
-        <div className="flex flex-col gap-3 w-full md:w-auto">
-          <div className="relative w-full md:w-96">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-muted-foreground" />
-            </div>
+        {/* Right: Search Input & CEFR Filter */}
+        <div className="relative z-10 flex flex-col gap-3 w-full lg:w-auto shrink-0">
+          {/* Search Box */}
+          <div className="relative w-full lg:w-96">
+            <Search className="h-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               placeholder="Search by title or topic..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-card/50 backdrop-blur-md border border-white/10 rounded-2xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#4255ff]/50 focus:border-[#4255ff]/50 transition-all shadow-lg"
+              className="w-full pl-10 pr-9 py-2.5 sm:py-3 bg-[#07061d]/90 backdrop-blur-md border border-white/15 rounded-2xl text-white text-xs sm:text-sm placeholder:text-slate-500 focus:outline-none focus:border-[#b892ff]/60 focus:ring-1 focus:ring-[#b892ff]/30 transition-all shadow-inner"
             />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs bg-slate-800 rounded-full w-5 h-5 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                ×
+              </button>
+            )}
           </div>
 
           {/* CEFR Level Filter Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            <span className="text-xs font-bold text-muted-foreground shrink-0 mr-1">Level:</span>
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 shrink-0 mr-1">
+              Level:
+            </span>
             {CEFR_LEVELS.map(level => (
               <button
                 key={level}
                 onClick={() => setSelectedCefr(level)}
-                className={`px-3 py-1 rounded-full text-xs font-extrabold uppercase transition-all shrink-0 cursor-pointer ${
+                className={`px-3 py-1 rounded-xl text-xs font-extrabold uppercase transition-all shrink-0 cursor-pointer ${
                   selectedCefr === level
-                    ? 'bg-[#4255ff] text-white shadow-[0_0_15px_rgba(66,85,255,0.4)]'
-                    : 'bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white border border-white/5'
+                    ? 'bg-gradient-to-r from-[#4255ff] to-[#6d7bff] text-white shadow-[0_0_15px_rgba(66,85,255,0.4)] border border-[#b892ff]/40'
+                    : 'bg-slate-900/80 text-slate-400 hover:bg-white/10 hover:text-white border border-white/5'
                 }`}
               >
                 {level === 'all' ? 'All Sets' : level}
@@ -138,108 +162,112 @@ export default function ExploreGrid({ sets, initialSavedSetIds = [] }: ExploreGr
 
       {/* Grid */}
       {filteredSets.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6">
           {filteredSets.map((set) => (
             <Dialog key={set.id}>
               <DialogTrigger 
                 render={<div />}
                 nativeButton={false}
-                className="cursor-pointer group relative bg-[#0a092d]/50 backdrop-blur-xl border border-white/5 rounded-3xl p-6 transition-all duration-300 hover:bg-[#0a092d]/80 hover:border-[#9fa6ff]/30 hover:shadow-[0_0_30px_rgba(159,166,255,0.15)] flex flex-col w-full text-left"
+                className="cursor-pointer group relative bg-[#0c0d28]/70 backdrop-blur-xl border border-white/10 hover:border-[#b892ff]/40 rounded-3xl p-5 sm:p-6 transition-all duration-300 hover:shadow-[0_0_30px_rgba(184,146,255,0.18)] hover:-translate-y-1 flex flex-col w-full text-left justify-between overflow-hidden"
               >
-                <div className="flex-1">
-                    {/* Top Row: Title + Terms on Left, Flat Bookmark on Right */}
-                    <div className="flex justify-between items-start gap-4 mb-4 w-full">
-                      <div className="flex items-center gap-2.5 flex-wrap min-w-0">
-                        <h3 className="text-xl font-bold text-white group-hover:text-[#9fa6ff] transition-colors line-clamp-2 leading-snug">
-                          {set.title}
-                        </h3>
-                        <span className="flex items-center gap-1 text-[11px] font-bold text-[#6b7bff] bg-[#4255ff]/10 px-2 py-0.5 rounded-md shrink-0">
-                          {set.cards?.[0]?.count || 0} terms
-                        </span>
-                      </div>
-                      
-                      <button 
-                        onClick={(e) => handleToggleSave(e, set.id)}
-                        disabled={isLoading === set.id}
-                        className={`p-1.5 transition-all duration-300 rounded-lg hover:scale-110 shrink-0 ${
-                          savedSets.has(set.id) 
-                            ? 'text-[#4255ff]' 
-                            : 'text-muted-foreground hover:text-[#9fa6ff]'
-                        }`}
-                        title={savedSets.has(set.id) ? "Unsave set" : "Save set"}
-                      >
-                        <Bookmark className={`w-5 h-5 ${savedSets.has(set.id) ? 'fill-current' : ''}`} />
-                      </button>
-                    </div>
+                {/* Ambient Card Background Glow */}
+                <div className="absolute top-0 right-0 w-36 h-36 bg-[#b892ff]/10 rounded-full blur-3xl pointer-events-none group-hover:bg-[#b892ff]/20 transition-all" />
+
+                <div className="relative z-10 flex-1">
+                  {/* Top Row: Title + Bookmark */}
+                  <div className="flex justify-between items-start gap-3 mb-2 w-full">
+                    <h3 className="text-base sm:text-xl font-extrabold text-white group-hover:text-[#9fa6ff] transition-colors line-clamp-2 leading-snug">
+                      {set.title}
+                    </h3>
                     
-                    {set.description && (
-                      <p className="text-muted-foreground text-sm line-clamp-2 mb-6">
-                        {set.description}
-                      </p>
-                    )}
+                    <button 
+                      onClick={(e) => handleToggleSave(e, set.id)}
+                      disabled={isLoading === set.id}
+                      className={`p-1.5 transition-all duration-300 rounded-xl hover:scale-110 shrink-0 ${
+                        savedSets.has(set.id) 
+                          ? 'text-amber-400 bg-amber-400/10 border border-amber-400/20' 
+                          : 'text-slate-400 hover:text-white bg-white/5 border border-white/5'
+                      }`}
+                      title={savedSets.has(set.id) ? "Unsave set" : "Save set"}
+                    >
+                      <Bookmark className={`w-4 h-4 sm:w-5 sm:h-5 ${savedSets.has(set.id) ? 'fill-current' : ''}`} />
+                    </button>
                   </div>
 
-                  <div className="mt-5 pt-5 border-t border-white/5 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {set.author?.avatar_url ? (
-                        <div className="w-9 h-9 rounded-full overflow-hidden relative shadow-sm border border-white/10 shrink-0">
-                          <Image 
-                            src={set.author.avatar_url} 
-                            alt="Avatar" 
-                            fill 
-                            className="object-cover"
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center border border-white/10 shadow-sm shrink-0">
-                          <span className="text-white text-sm font-bold uppercase">
-                            {((set.author?.full_name || set.author?.email || (set.user_id ? 'Anonymous' : 'QuizFlash'))[0])}
-                          </span>
-                        </div>
-                      )}
-                      
-                      <div className="flex flex-col justify-center">
-                        <span className="text-sm text-white font-medium truncate max-w-[150px] leading-tight">
-                          {set.author?.full_name || (set.author?.email ? set.author.email.split('@')[0] : (set.user_id ? 'Anonymous' : 'QuizFlash'))}
-                        </span>
-                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/80 font-medium mt-0.5">
-                          <Clock className="w-3 h-3" />
-                          <span>{formatDistanceToNow(new Date(set.created_at), { addSuffix: true })}</span>
-                        </div>
+                  {/* Terms Count Tag */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="flex items-center gap-1 text-[10px] sm:text-xs font-mono font-extrabold text-[#9fa6ff] bg-[#4255ff]/15 border border-[#4255ff]/30 px-2.5 py-0.5 rounded-lg shrink-0">
+                      {set.cards?.[0]?.count || 0} terms
+                    </span>
+                  </div>
+                  
+                  {set.description && (
+                    <p className="text-slate-300 text-xs sm:text-sm line-clamp-2 mb-4 leading-relaxed">
+                      {set.description}
+                    </p>
+                  )}
+                </div>
+
+                <div className="relative z-10 mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {set.author?.avatar_url ? (
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden relative shadow-sm border border-[#b892ff]/40 shrink-0">
+                        <Image 
+                          src={set.author.avatar_url} 
+                          alt="Avatar" 
+                          fill 
+                          className="object-cover"
+                        />
                       </div>
-                    </div>
+                    ) : (
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center border border-white/20 shadow-sm shrink-0">
+                        <span className="text-white text-xs font-bold uppercase">
+                          {((set.author?.full_name || set.author?.email || (set.user_id ? 'Anonymous' : 'QuizFlash'))[0])}
+                        </span>
+                      </div>
+                    )}
                     
-                    <div className="flex items-center gap-2">
-                      <div className="w-10 h-10 rounded-full bg-[#4255ff]/10 flex items-center justify-center text-[#9fa6ff] group-hover:bg-[#4255ff] group-hover:text-white transition-all duration-300 hover:scale-110 shadow-lg pointer-events-none">
-                        <Play className="w-4 h-4 fill-current" />
+                    <div className="flex flex-col justify-center min-w-0">
+                      <span className="text-xs sm:text-sm text-white font-bold truncate max-w-[120px] sm:max-w-[150px] leading-tight">
+                        {set.author?.full_name || (set.author?.email ? set.author.email.split('@')[0] : (set.user_id ? 'Anonymous' : 'QuizFlash'))}
+                      </span>
+                      <div className="flex items-center gap-1 text-[10px] text-slate-400 font-mono mt-0.5">
+                        <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                        <span className="truncate">{formatDistanceToNow(new Date(set.created_at), { addSuffix: true })}</span>
                       </div>
                     </div>
                   </div>
+                  
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-r from-[#4255ff] to-[#6d7bff] flex items-center justify-center text-white shadow-[0_0_15px_rgba(66,85,255,0.4)] group-hover:scale-110 transition-transform pointer-events-none">
+                      <Play className="w-4 h-4 fill-current ml-0.5" />
+                    </div>
+                  </div>
+                </div>
               </DialogTrigger>
 
-              <DialogContent className="sm:max-w-md bg-[#0a092d] border border-white/10 text-white rounded-3xl p-6 shadow-2xl">
-                <DialogHeader className="mb-4">
-                  <DialogTitle className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
-                    Choose a Game Mode
+              <DialogContent className="sm:max-w-md bg-[#0c0d28] border border-[#b892ff]/30 text-white rounded-3xl p-5 sm:p-6 shadow-2xl">
+                <DialogHeader className="mb-3">
+                  <DialogTitle className="text-xl sm:text-2xl font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-[#9fa6ff] to-[#b892ff]">
+                    🎮 Choose Practice Mode
                   </DialogTitle>
                 </DialogHeader>
                 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {GAME_MODES.map((mode) => (
                     <button
                       key={mode.id}
                       onClick={() => !mode.disabled && router.push(mode.href === '/learn' ? `/flashcards/${set.id}/learn` : `${mode.href}/${set.id}`)}
                       disabled={mode.disabled}
-                      className={`group relative overflow-hidden bg-gradient-to-br ${mode.bg} backdrop-blur-xl border ${mode.border} ${mode.disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-card/80 hover:-translate-y-1 cursor-pointer'} p-4 rounded-2xl transition-all duration-300 flex flex-col items-center justify-center text-center`}
+                      className={`group relative overflow-hidden bg-gradient-to-br ${mode.bg} backdrop-blur-xl border ${mode.border} ${mode.disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-card/80 hover:-translate-y-1 cursor-pointer'} p-3.5 rounded-2xl transition-all duration-300 flex flex-col items-center justify-center text-center`}
                     >
-                      <div className="w-12 h-12 rounded-full bg-background/50 border border-white/5 flex items-center justify-center mb-3 shadow-inner">
-                        {/* Smaller icon for modal */}
+                      <div className="w-10 h-10 rounded-xl bg-slate-950/60 border border-white/10 flex items-center justify-center mb-2 shadow-inner">
                         <div className="scale-75">
                           {mode.icon}
                         </div>
                       </div>
-                      <h3 className="text-sm font-bold text-white mb-1">{mode.name}</h3>
-                      <p className="text-[10px] text-muted-foreground font-medium leading-tight">{mode.desc}</p>
+                      <h3 className="text-xs sm:text-sm font-bold text-white mb-0.5">{mode.name}</h3>
+                      <p className="text-[9px] sm:text-[10px] text-slate-400 font-medium leading-tight">{mode.desc}</p>
                     </button>
                   ))}
                 </div>
@@ -248,17 +276,17 @@ export default function ExploreGrid({ sets, initialSavedSetIds = [] }: ExploreGr
           ))}
         </div>
       ) : (
-        <div className="w-full py-20 flex flex-col items-center justify-center text-center">
-          <div className="w-24 h-24 bg-card/50 rounded-full flex items-center justify-center mb-6 shadow-inner">
-            <Search className="w-10 h-10 text-muted-foreground opacity-50" />
+        <div className="w-full py-20 flex flex-col items-center justify-center text-center bg-[#0c0d28]/50 border border-white/10 rounded-3xl p-8">
+          <div className="w-20 h-20 bg-slate-950/60 border border-white/10 rounded-full flex items-center justify-center mb-4 shadow-inner">
+            <Search className="w-8 h-8 text-slate-500" />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">No sets found</h2>
-          <p className="text-muted-foreground">We couldn't find any public sets matching "{searchQuery}"</p>
+          <h2 className="text-xl font-bold text-white mb-2">No flashcard sets found</h2>
+          <p className="text-xs sm:text-sm text-slate-400 max-w-sm">We couldn't find any public sets matching "{searchQuery}". Try searching for another topic or clearing search.</p>
           <button 
             onClick={() => setSearchQuery('')}
-            className="mt-6 px-6 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm font-semibold transition"
+            className="mt-5 px-5 py-2.5 bg-[#4255ff] hover:bg-[#4255ff]/80 text-white rounded-xl text-xs font-extrabold transition-colors cursor-pointer shadow-lg"
           >
-            Clear Search
+            Clear Search Filter
           </button>
         </div>
       )}

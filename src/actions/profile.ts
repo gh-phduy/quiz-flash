@@ -35,6 +35,7 @@ export async function updateDisplayName(newName: string) {
       return { success: false, error: result.error || 'Failed to update profile' };
     }
 
+    revalidatePath('/profile');
     revalidatePath('/status');
     revalidatePath('/leaderboard');
     revalidatePath('/user/[id]', 'page');

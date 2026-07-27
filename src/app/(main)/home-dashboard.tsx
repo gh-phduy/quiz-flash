@@ -18,7 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { RankBadge } from '@/components/shared/rank-badge';
+import { RankBadge, getRankFromPoints } from '@/components/shared/rank-badge';
 
 interface HomeDashboardProps {
   user: any;
@@ -116,30 +116,94 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
 
   return (
     <div className="w-full max-w-7xl mx-auto py-5 sm:py-8 md:py-10 px-4 sm:px-6 font-sans relative">
-      {/* Welcome Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 sm:mb-12 gap-4 sm:gap-6 bg-gradient-to-r from-card/50 via-card/30 to-transparent p-4 sm:p-0 rounded-3xl border border-white/5 sm:border-none backdrop-blur-sm sm:backdrop-blur-none">
-        <div className="min-w-0">
-          <h1 className="text-2xl sm:text-3xl md:text-5xl font-black mb-1.5 sm:mb-3 drop-shadow-md flex items-center gap-2 sm:gap-3 text-transparent bg-clip-text bg-gradient-to-r from-[#9fa6ff] to-[#b892ff] truncate">
-            Welcome back, {displayName}! 👋
+      {/* Welcome Header - Gamer Esports Vibe */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 sm:mb-12 gap-6 p-6 sm:p-8 rounded-3xl sm:rounded-[2.5rem] bg-gradient-to-r from-[#0c0d28]/95 via-[#0d0c2b]/85 to-[#130f3a]/90 backdrop-blur-2xl border border-[#b892ff]/30 shadow-[0_0_50px_rgba(66,85,255,0.18)] relative overflow-hidden group">
+        
+        {/* Background Cyberpunk Ambient Glows */}
+        <div className="absolute top-0 left-0 w-64 h-64 bg-[#4255ff]/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-64 h-64 bg-[#b892ff]/15 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Left: Player Info & Status */}
+        <div className="relative z-10 space-y-2 min-w-0">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-black uppercase tracking-wider">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            Season 2026 Active
+          </div>
+
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white drop-shadow-lg leading-tight">
+            Welcome back, <span className="inline-block py-1 text-transparent bg-clip-text bg-gradient-to-r from-[#9fa6ff] via-[#b892ff] to-[#ff92d0]">{displayName}</span>! 👋
           </h1>
-          <p className="font-semibold text-xs sm:text-lg text-muted-foreground">
-            Ready to conquer your next learning goal?
+          <p className="font-semibold text-sm sm:text-base text-slate-300 max-w-lg leading-relaxed">
+            Ready to conquer your next learning milestone & climb the division ranks?
           </p>
         </div>
-        
-        {/* Current Rank Badge */}
-        <div className="flex flex-col items-start sm:items-end shrink-0 pt-3 sm:pt-0 border-t border-white/5 sm:border-none">
-          <span className="text-[10px] sm:text-xs font-extrabold tracking-[0.2em] uppercase mb-1 sm:mb-1.5 text-muted-foreground/80">
-            Current Rank
-          </span>
-          <RankBadge 
-            rank={profile?.current_rank} 
-            points={profile?.points || 0} 
-            size="lg" 
-            showProgress 
-            className="min-w-[180px] sm:min-w-[210px]"
-          />
-        </div>
+
+        {/* Right: Esports Gamer Rank Showcase Card */}
+        {(() => {
+          const currentPoints = profile?.points || 0;
+          const config = getRankFromPoints(currentPoints);
+          const IconComponent = config.icon;
+          const range = config.maxPoints - config.minPoints;
+          const prog = currentPoints - config.minPoints;
+          const pct = config.maxPoints < 9999999 ? Math.min(100, Math.max(0, Math.round((prog / range) * 100))) : 100;
+          const ptsNeeded = (config.maxPoints + 1) - currentPoints;
+
+          return (
+            <div className="relative z-10 shrink-0 w-full lg:w-auto lg:min-w-[320px] bg-[#07061d]/80 backdrop-blur-xl border border-white/15 p-5 rounded-2xl sm:rounded-3xl shadow-2xl space-y-4 hover:border-[#b892ff]/50 transition-all duration-300">
+              {/* Header Row: Rank Emblem & Title */}
+              <div className="flex items-center gap-3.5">
+                {/* Gamer Rank Crest Circle */}
+                <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center bg-gradient-to-br ${config.gradient} p-0.5 shadow-lg shrink-0 ${config.glow}`}>
+                  <div className="w-full h-full bg-[#0a092d] rounded-[0.85rem] flex items-center justify-center relative overflow-hidden">
+                    <IconComponent className={`w-7 h-7 sm:w-8 sm:h-8 ${config.textColor} drop-shadow-[0_0_10px_rgba(255,255,255,0.4)]`} />
+                  </div>
+                </div>
+
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                    Current Division
+                  </span>
+                  <span className={`text-xl sm:text-2xl font-black uppercase tracking-tight ${config.textColor} drop-shadow-md`}>
+                    {config.name}
+                  </span>
+                  <span className="text-[11px] font-bold text-slate-300 font-mono">
+                    {config.tier} Tier
+                  </span>
+                </div>
+              </div>
+
+              {/* Progress & LP Gauge */}
+              {config.maxPoints < 9999999 && (
+                <div className="space-y-1.5 pt-2 border-t border-white/10">
+                  <div className="flex justify-between items-center text-xs font-mono font-black">
+                    <span className="text-white">{currentPoints.toLocaleString()} <span className="text-slate-400 font-normal">LP</span></span>
+                    <span className={config.textColor}>{pct}% LP</span>
+                  </div>
+
+                  {/* Gamer Glowing Progress Bar */}
+                  <div className="w-full h-3 bg-slate-950/90 rounded-full overflow-hidden p-0.5 border border-white/15 shadow-inner relative">
+                    <div 
+                      className={`h-full rounded-full bg-gradient-to-r ${config.gradient} transition-all duration-500 shadow-[0_0_12px_rgba(255,255,255,0.5)]`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+
+                  {ptsNeeded > 0 && (
+                    <div className="flex items-center justify-between text-[10px] font-mono font-bold text-slate-400 pt-0.5">
+                      <span>Division Target</span>
+                      <span className="text-emerald-400 flex items-center gap-1">
+                        +{ptsNeeded.toLocaleString()} LP needed
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
       
       {/* Daily Review Banner */}

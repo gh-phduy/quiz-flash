@@ -62,7 +62,7 @@ export default async function LeaderboardPage() {
             {/* Rank #2 - Silver */}
             {top2 && (
               <Link 
-                href={`/status/${top2.id}`}
+                href={`/profile/${top2.id}`}
                 className="flex flex-col items-center p-3 sm:p-5 rounded-2xl sm:rounded-3xl bg-[#0a092d]/70 backdrop-blur-xl border border-slate-300/30 hover:border-slate-300/60 shadow-xl transition-all active:scale-95 group text-center relative"
               >
                 <div className="relative mb-2 sm:mb-3">
@@ -91,7 +91,7 @@ export default async function LeaderboardPage() {
             {/* Rank #1 - Gold (Center Champion) */}
             {top1 && (
               <Link 
-                href={`/status/${top1.id}`}
+                href={`/profile/${top1.id}`}
                 className="flex flex-col items-center p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-b from-[#4255ff]/20 via-[#0a092d]/90 to-[#0a092d]/90 backdrop-blur-xl border-2 border-yellow-400/50 hover:border-yellow-400 shadow-[0_0_30px_rgba(250,204,21,0.25)] transition-all active:scale-95 group text-center relative -mt-4 sm:-mt-6"
               >
                 <div className="absolute -top-4 sm:-top-6 left-1/2 -translate-x-1/2 text-yellow-400 animate-bounce">
@@ -123,7 +123,7 @@ export default async function LeaderboardPage() {
             {/* Rank #3 - Bronze */}
             {top3 && (
               <Link 
-                href={`/status/${top3.id}`}
+                href={`/profile/${top3.id}`}
                 className="flex flex-col items-center p-3 sm:p-5 rounded-2xl sm:rounded-3xl bg-[#0a092d]/70 backdrop-blur-xl border border-[#cd7f32]/30 hover:border-[#cd7f32]/60 shadow-xl transition-all active:scale-95 group text-center relative"
               >
                 <div className="relative mb-2 sm:mb-3">
@@ -167,9 +167,9 @@ export default async function LeaderboardPage() {
 
         {/* Players List */}
         <div className="flex flex-col divide-y divide-white/5">
-          {remainingPlayers.length > 0 ? (
-            remainingPlayers.map((player, index) => {
-              const rankNum = index + 4;
+          {players.length > 0 ? (
+            players.map((player, index) => {
+              const rankNum = index + 1;
               const isCurrentUser = user?.id === player.id;
               
               const displayName = isCurrentUser && (user?.user_metadata?.full_name || user?.user_metadata?.name)
@@ -182,7 +182,7 @@ export default async function LeaderboardPage() {
 
               return (
                 <Link 
-                  href={`/status/${player.id}`}
+                  href={`/profile/${player.id}`}
                   key={player.id}
                   className={`p-3.5 sm:px-6 sm:py-4 transition-all duration-200 hover:bg-white/5 active:scale-[0.99] flex sm:grid sm:grid-cols-12 items-center justify-between gap-3 ${
                     isCurrentUser 
@@ -226,13 +226,25 @@ export default async function LeaderboardPage() {
                     <RankBadge rank={player.current_rank} points={player.points} size="xs" />
                   </div>
 
-                  {/* Points & Words */}
-                  <div className="sm:col-span-2 text-right shrink-0 flex flex-col items-end">
-                    <div className="flex items-center gap-1 text-xs sm:text-base font-black text-amber-300 font-mono">
-                      <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-amber-300" />
+                  {/* Points (Desktop) */}
+                  <div className="hidden sm:col-span-2 sm:flex items-center justify-end gap-1.5 text-amber-300 font-mono font-extrabold text-sm sm:text-base">
+                    <Star className="w-3.5 h-3.5 fill-amber-300 shrink-0" />
+                    <span>{player.points?.toLocaleString() || 0}</span>
+                  </div>
+
+                  {/* Words (Desktop) */}
+                  <div className="hidden sm:col-span-2 sm:flex items-center justify-end gap-1.5 text-[#b892ff] font-mono font-bold text-xs sm:text-sm">
+                    <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                    <span>{player.words_learned?.toLocaleString() || 0}</span>
+                  </div>
+
+                  {/* Points & Words Stack (Mobile view only) */}
+                  <div className="sm:hidden flex flex-col items-end shrink-0">
+                    <div className="flex items-center gap-1 text-xs font-black text-amber-300 font-mono">
+                      <Star className="w-3 h-3 fill-amber-300 shrink-0" />
                       <span>{player.points?.toLocaleString() || 0}</span>
                     </div>
-                    <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground font-mono mt-0.5">
+                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-mono mt-0.5">
                       <BookOpen className="w-3 h-3 text-muted-foreground" />
                       <span>{player.words_learned?.toLocaleString() || 0} words</span>
                     </div>
