@@ -31,6 +31,13 @@ export default function ReviewGame({ cards }: ReviewGameProps) {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Refs để luôn đọc được giá trị mới nhất trong setTimeout/closures (tránh stale closure bug)
+  const queueRef = useRef<ReviewCard[]>(cards);
+  const currentIndexRef = useRef(0);
+  const correctCountRef = useRef(0);
+  const incorrectCountRef = useRef(0);
+  const isFinishedRef = useRef(false);
+
   const currentCard = queue[currentIndex]?.card;
 
   useEffect(() => {
@@ -39,21 +46,74 @@ export default function ReviewGame({ cards }: ReviewGameProps) {
     }
   }, [currentIndex, feedback, isFinished]);
 
+  const finishReview = async (finalCorrect: number, finalIncorrect: number) => {
+    if (isFinishedRef.current) return; // Ngăn gọi nhiều lần
+    isFinishedRef.current = true;
+    setIsFinished(true);
+
+    const earned = finalCorrect * 10 + finalIncorrect * 2;
+    setPointsEarned(earned);
+
+    const totalCards = queueRef.current.length;
+    const accuracy = totalCards > 0 ? Math.round((finalCorrect / totalCards) * 100) : 0;
+
+    if (accuracy === 100) {
+      import('canvas-confetti').then(({ default: confetti }) => {
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#b892ff', '#6d7bff', '#ff92d0', '#4255ff'],
+        });
+      });
+    }
+
+    const setId = cards[0]?.card?.set_id || '';
+
+    try {
+      await Promise.all([
+        recordPoints(earned),
+        recordStudyActivity(setId, earned, cards.length, 'review'),
+        logGameSession({
+          setId,
+          mode: 'review',
+          totalCards,
+          correctCount: finalCorrect,
+          incorrectCount: finalIncorrect,
+          durationSeconds: totalCards * 6,
+          newCardsCount: 0,
+          reviewCardsCount: cards.length,
+          pointsEarned: earned,
+        }),
+      ]);
+      // router.refresh(); // Removed to prevent unmounting ReviewSummary
+    } catch (err) {
+      console.error('Error saving review session:', err);
+    }
+  };
+
   const handleNext = (overrideCorrect?: number, overrideIncorrect?: number) => {
+    if (isFinishedRef.current) return;
+
     setInputValue('');
     setFeedback(null);
-    if (currentIndex < queue.length - 1) {
-      setCurrentIndex((prev) => prev + 1);
+
+    const nextIndex = currentIndexRef.current + 1;
+    const queueLength = queueRef.current.length;
+
+    if (nextIndex < queueLength) {
+      currentIndexRef.current = nextIndex;
+      setCurrentIndex(nextIndex);
     } else {
-      finishReview(
-        overrideCorrect !== undefined ? overrideCorrect : correctCount,
-        overrideIncorrect !== undefined ? overrideIncorrect : incorrectCount
-      );
+      // Đã đi qua hết tất cả card — kết thúc game
+      const finalCorrect = overrideCorrect !== undefined ? overrideCorrect : correctCountRef.current;
+      const finalIncorrect = overrideIncorrect !== undefined ? overrideIncorrect : incorrectCountRef.current;
+      finishReview(finalCorrect, finalIncorrect);
     }
   };
 
   const checkAnswer = async (isDontKnow = false) => {
-    if (!currentCard || feedback) return;
+    if (!currentCard || feedback || isFinishedRef.current) return;
     setIsChecking(true);
     setDebugError(null);
 
@@ -66,14 +126,22 @@ export default function ReviewGame({ cards }: ReviewGameProps) {
 
       setFeedback(isCorrect ? 'correct' : 'incorrect');
 
-      const nextCorrect = isCorrect ? correctCount + 1 : correctCount;
-      const nextIncorrect = !isCorrect ? incorrectCount + 1 : incorrectCount;
+      // Tính counts mới và cập nhật cả state lẫn ref ngay lập tức
+      const nextCorrect = isCorrect ? correctCountRef.current + 1 : correctCountRef.current;
+      const nextIncorrect = !isCorrect ? incorrectCountRef.current + 1 : incorrectCountRef.current;
+      correctCountRef.current = nextCorrect;
+      incorrectCountRef.current = nextIncorrect;
 
       if (isCorrect) {
-        setCorrectCount((prev) => prev + 1);
+        setCorrectCount(nextCorrect);
       } else {
-        setIncorrectCount((prev) => prev + 1);
-        setQueue((prev) => [...prev, queue[currentIndex]]);
+        setIncorrectCount(nextIncorrect);
+        // Thêm card sai vào cuối queue để ôn lại
+        setQueue((prev) => {
+          const newQueue = [...prev, prev[currentIndexRef.current]];
+          queueRef.current = newQueue; // Cập nhật ref ngay lập tức
+          return newQueue;
+        });
       }
 
       try {
@@ -99,48 +167,6 @@ export default function ReviewGame({ cards }: ReviewGameProps) {
       console.error('Crash in checkAnswer:', err);
       setDebugError(err.message || String(err));
       setIsChecking(false);
-    }
-  };
-
-  const finishReview = async (finalCorrect: number, finalIncorrect: number) => {
-    setIsFinished(true);
-    const earned = finalCorrect * 10 + finalIncorrect * 2;
-    setPointsEarned(earned);
-
-    const accuracy = queue.length > 0 ? Math.round((finalCorrect / queue.length) * 100) : 0;
-
-    if (accuracy === 100) {
-      import('canvas-confetti').then(({ default: confetti }) => {
-        confetti({
-          particleCount: 150,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#b892ff', '#6d7bff', '#ff92d0', '#4255ff'],
-        });
-      });
-    }
-
-    const setId = cards[0]?.card?.set_id || '';
-
-    try {
-      await Promise.all([
-        recordPoints(earned),
-        recordStudyActivity(setId, earned, cards.length, 'review'),
-        logGameSession({
-          setId,
-          mode: 'review',
-          totalCards: queue.length,
-          correctCount: finalCorrect,
-          incorrectCount: finalIncorrect,
-          durationSeconds: queue.length * 6,
-          newCardsCount: 0,
-          reviewCardsCount: cards.length,
-          pointsEarned: earned,
-        }),
-      ]);
-      // router.refresh(); // Removed to prevent unmounting ReviewSummary
-    } catch (err) {
-      console.error('Error saving review session:', err);
     }
   };
 
