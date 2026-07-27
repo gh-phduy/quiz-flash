@@ -338,13 +338,83 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
     <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-0 sm:p-6 overflow-hidden font-sans">
       <div className="relative w-full h-full sm:h-auto sm:max-w-6xl sm:max-h-[92vh] bg-slate-900 border-0 sm:border border-indigo-500/30 rounded-none sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
         
-        {/* Loading State */}
+        {/* Loading State Skeleton */}
         {loading ? (
-          <div className="p-16 flex flex-col items-center justify-center space-y-4 text-center">
-            <Loader2 className="w-10 h-10 text-indigo-400 animate-spin" />
-            <div className="space-y-1">
-              <h3 className="text-lg font-bold text-white">Loading Set Vocabulary Analytics...</h3>
-              <p className="text-xs text-slate-400">Fetching spaced repetition metrics & card performance</p>
+          <div className="flex flex-col h-full overflow-hidden animate-in fade-in duration-200">
+            {/* Header Skeleton */}
+            <div className="p-4 sm:p-6 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl flex items-center justify-between gap-3 shrink-0">
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="h-4 w-12 bg-indigo-500/20 rounded-full animate-pulse"></div>
+                  <div className="h-3 w-16 bg-white/10 rounded-full animate-pulse"></div>
+                </div>
+                <div className="h-6 sm:h-7 w-3/4 max-w-xs bg-white/15 rounded-xl animate-pulse"></div>
+              </div>
+
+              <button
+                onClick={onClose}
+                className="w-9 h-9 rounded-xl bg-slate-800 text-slate-400 flex items-center justify-center shrink-0 border border-white/10 active:scale-95 cursor-pointer"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Quick Metrics Skeleton */}
+            <div className="px-3 sm:px-6 py-3 bg-slate-950/40 border-b border-white/5 shrink-0">
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="p-2 sm:p-2.5 rounded-xl bg-slate-900/80 border border-white/5 space-y-1.5 animate-pulse">
+                    <div className="h-2.5 w-10 mx-auto bg-white/10 rounded"></div>
+                    <div className="h-5 w-8 mx-auto bg-white/20 rounded-md"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Toolbar Skeleton */}
+            <div className="px-3 sm:px-6 py-3 bg-slate-950/50 border-b border-white/10 shrink-0 space-y-3">
+              <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="h-7 w-20 bg-slate-900 rounded-xl border border-white/5 shrink-0 animate-pulse"></div>
+                ))}
+              </div>
+              <div className="h-10 w-full bg-slate-900/90 border border-white/15 rounded-2xl animate-pulse"></div>
+            </div>
+
+            {/* Content List Skeleton */}
+            <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3 scrollbar-none">
+              {/* Mobile Skeleton Cards */}
+              <div className="md:hidden flex flex-col gap-3">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="flex flex-col bg-[#0a092d]/70 backdrop-blur-xl border border-white/10 rounded-2xl p-4 gap-3 animate-pulse">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="h-5 w-8 bg-[#4255ff]/30 rounded-md"></div>
+                        <div className="h-5 w-28 bg-white/20 rounded-md"></div>
+                      </div>
+                      <div className="h-5 w-16 bg-emerald-500/20 rounded-full"></div>
+                    </div>
+                    <div className="h-4 w-32 bg-indigo-500/20 rounded-lg"></div>
+                    <div className="h-12 w-full bg-slate-950/50 rounded-xl border border-white/5 p-2 space-y-1.5">
+                      <div className="h-3 w-full bg-white/10 rounded"></div>
+                      <div className="h-3 w-2/3 bg-white/10 rounded"></div>
+                    </div>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {[...Array(4)].map((_, j) => (
+                        <div key={j} className="h-10 bg-slate-950/60 rounded-xl border border-white/5"></div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Skeleton Table */}
+              <div className="hidden md:flex flex-col space-y-3">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="h-14 w-full bg-slate-950/40 rounded-2xl border border-white/5 animate-pulse"></div>
+                ))}
+              </div>
             </div>
           </div>
         ) : error || !analytics ? (
@@ -364,24 +434,22 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
         ) : (
           <>
             {/* Modal Header */}
-            <div className="p-5 sm:p-6 border-b border-white/10 bg-slate-950/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${colorScheme?.bg || 'bg-indigo-500/10'} ${colorScheme?.text || 'text-indigo-400'} border ${colorScheme?.border || 'border-indigo-500/20'}`}>
+            <div className="p-4 sm:p-6 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl flex items-center justify-between gap-3 shrink-0">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold ${colorScheme?.bg || 'bg-indigo-500/10'} ${colorScheme?.text || 'text-indigo-400'} border ${colorScheme?.border || 'border-indigo-500/20'}`}>
                     {analytics.cefrLevel}
                   </span>
-                  <h2 className="text-xl sm:text-2xl font-extrabold text-white">
-                    {analytics.title}
-                  </h2>
+                  <span className="text-xs text-slate-400 font-semibold">{analytics.totalCards} words</span>
                 </div>
-                <p className="text-xs sm:text-sm text-slate-400">
-                  Detailed vocabulary review table and spaced repetition metrics ({analytics.totalCards} words total).
-                </p>
+                <h2 className="text-lg sm:text-2xl font-extrabold text-white truncate leading-snug">
+                  {analytics.title}
+                </h2>
               </div>
 
               <button
                 onClick={onClose}
-                className="self-end sm:self-center p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-all shrink-0 cursor-pointer border border-white/10 active:scale-95"
                 title="Close table"
               >
                 <X className="w-5 h-5" />
@@ -389,134 +457,134 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
             </div>
 
             {/* Quick Summary Cards Inside Modal Header */}
-            <div className="px-4 sm:px-6 pt-4 pb-3 bg-slate-950/30 border-b border-white/5 shrink-0">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 text-center text-xs">
-                <div className="p-2.5 rounded-xl bg-slate-900/80 border border-white/5">
-                  <div className="text-[10px] text-slate-400 uppercase font-semibold">Total Words</div>
-                  <div className="text-base font-bold text-white mt-0.5">{analytics.totalCards}</div>
+            <div className="px-3 sm:px-6 pt-3 pb-3 bg-slate-950/40 border-b border-white/5 shrink-0">
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center text-xs">
+                <div className="p-2 sm:p-2.5 rounded-xl bg-slate-900/80 border border-white/5">
+                  <div className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-semibold">Total</div>
+                  <div className="text-sm sm:text-base font-bold text-white mt-0.5">{analytics.totalCards}</div>
                 </div>
-                <div className="p-2.5 rounded-xl bg-slate-900/80 border border-emerald-500/20">
-                  <div className="text-[10px] text-emerald-400 uppercase font-semibold">Mastered</div>
-                  <div className="text-base font-bold text-emerald-400 mt-0.5">{analytics.masteredCount}</div>
+                <div className="p-2 sm:p-2.5 rounded-xl bg-slate-900/80 border border-emerald-500/20">
+                  <div className="text-[9px] sm:text-[10px] text-emerald-400 uppercase font-semibold">Mastered</div>
+                  <div className="text-sm sm:text-base font-bold text-emerald-400 mt-0.5">{analytics.masteredCount}</div>
                 </div>
-                <div className="p-2.5 rounded-xl bg-slate-900/80 border border-cyan-500/20">
-                  <div className="text-[10px] text-cyan-400 uppercase font-semibold">Reviewing</div>
-                  <div className="text-base font-bold text-cyan-400 mt-0.5">{analytics.reviewingCount}</div>
+                <div className="p-2 sm:p-2.5 rounded-xl bg-slate-900/80 border border-cyan-500/20">
+                  <div className="text-[9px] sm:text-[10px] text-cyan-400 uppercase font-semibold">Reviewing</div>
+                  <div className="text-sm sm:text-base font-bold text-cyan-400 mt-0.5">{analytics.reviewingCount}</div>
                 </div>
-                <div className="p-2.5 rounded-xl bg-slate-900/80 border border-amber-500/20">
-                  <div className="text-[10px] text-amber-400 uppercase font-semibold">Learning</div>
-                  <div className="text-base font-bold text-amber-400 mt-0.5">{analytics.learningCount}</div>
+                <div className="p-2 sm:p-2.5 rounded-xl bg-slate-900/80 border border-amber-500/20">
+                  <div className="text-[9px] sm:text-[10px] text-amber-400 uppercase font-semibold">Learning</div>
+                  <div className="text-sm sm:text-base font-bold text-amber-400 mt-0.5">{analytics.learningCount}</div>
                 </div>
-                <div className="p-2.5 rounded-xl bg-slate-900/80 border border-rose-500/20">
-                  <div className="text-[10px] text-rose-400 uppercase font-semibold">Weak Words</div>
-                  <div className="text-base font-bold text-rose-400 mt-0.5">{analytics.weakCount}</div>
+                <div className="p-2 sm:p-2.5 rounded-xl bg-slate-900/80 border border-rose-500/20">
+                  <div className="text-[9px] sm:text-[10px] text-rose-400 uppercase font-semibold">Weak</div>
+                  <div className="text-sm sm:text-base font-bold text-rose-400 mt-0.5">{analytics.weakCount}</div>
                 </div>
-                <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-700/50">
-                  <div className="text-[10px] text-slate-400 uppercase font-semibold">Unstudied</div>
-                  <div className="text-base font-bold text-slate-300 mt-0.5">{analytics.unstudiedCount}</div>
+                <div className="p-2 sm:p-2.5 rounded-xl bg-slate-900/80 border border-slate-700/50">
+                  <div className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-semibold">Unstudied</div>
+                  <div className="text-sm sm:text-base font-bold text-slate-300 mt-0.5">{analytics.unstudiedCount}</div>
                 </div>
               </div>
             </div>
 
             {/* Control Toolbar */}
-            <div className="px-4 sm:px-6 py-3 bg-slate-950/40 border-b border-white/10 shrink-0 space-y-3">
+            <div className="px-3 sm:px-6 py-3 bg-slate-950/50 border-b border-white/10 shrink-0 space-y-3">
               
-              {/* Row 1: Status Filters & Select Dropdowns */}
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                {/* Status Tabs */}
-                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 lg:pb-0 shrink-0">
-                  <button
-                    onClick={() => setModalStatusFilter('all')}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
-                      modalStatusFilter === 'all'
-                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                        : 'bg-slate-950/60 text-slate-400 border border-white/5 hover:bg-slate-800 hover:text-white'
-                    }`}
-                  >
-                    All ({analytics.totalCards})
-                  </button>
+              {/* Row 1: Status Filters */}
+              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 shrink-0">
+                <button
+                  onClick={() => setModalStatusFilter('all')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
+                    modalStatusFilter === 'all'
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                      : 'bg-slate-900/80 text-slate-400 border border-white/5 hover:text-white'
+                  }`}
+                >
+                  All ({analytics.totalCards})
+                </button>
 
-                  <button
-                    onClick={() => setModalStatusFilter('studied')}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
-                      modalStatusFilter === 'studied'
-                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                        : 'bg-slate-950/60 text-blue-400/80 border border-white/5 hover:bg-slate-800'
-                    }`}
-                  >
-                    Studied ({analytics.totalCards - analytics.unstudiedCount})
-                  </button>
+                <button
+                  onClick={() => setModalStatusFilter('studied')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
+                    modalStatusFilter === 'studied'
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                      : 'bg-slate-900/80 text-blue-400/80 border border-white/5 hover:text-white'
+                  }`}
+                >
+                  Studied ({analytics.totalCards - analytics.unstudiedCount})
+                </button>
 
-                  <button
-                    onClick={() => setModalStatusFilter('mastered')}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
-                      modalStatusFilter === 'mastered'
-                        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
-                        : 'bg-slate-950/60 text-emerald-400 border border-white/5 hover:bg-slate-800'
-                    }`}
-                  >
-                    Mastered ({analytics.masteredCount})
-                  </button>
+                <button
+                  onClick={() => setModalStatusFilter('mastered')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
+                    modalStatusFilter === 'mastered'
+                      ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
+                      : 'bg-slate-900/80 text-emerald-400 border border-white/5 hover:text-white'
+                  }`}
+                >
+                  Mastered ({analytics.masteredCount})
+                </button>
 
-                  <button
-                    onClick={() => setModalStatusFilter('weak')}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
-                      modalStatusFilter === 'weak'
-                        ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30'
-                        : 'bg-slate-950/60 text-amber-400 border border-white/5 hover:bg-slate-800'
-                    }`}
-                  >
-                    Weak ({analytics.weakCount})
-                  </button>
+                <button
+                  onClick={() => setModalStatusFilter('weak')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
+                    modalStatusFilter === 'weak'
+                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30'
+                      : 'bg-slate-900/80 text-amber-400 border border-white/5 hover:text-white'
+                  }`}
+                >
+                  Weak ({analytics.weakCount})
+                </button>
 
-                  <button
-                    onClick={() => setModalStatusFilter('unstudied')}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
-                      modalStatusFilter === 'unstudied'
-                        ? 'bg-slate-700 text-white shadow-md'
-                        : 'bg-slate-950/60 text-slate-400 border border-white/5 hover:bg-slate-800'
-                    }`}
-                  >
-                    Unstudied ({analytics.unstudiedCount})
-                  </button>
-                </div>
-
-                {/* Right: Select Dropdowns */}
-                <div className="flex flex-wrap items-center gap-2.5">
-                  {/* POS */}
-                  {availablePartsOfSpeech.length > 0 && (
-                    <CustomSelect 
-                      value={modalPosFilter}
-                      options={posOptions}
-                      onChange={setModalPosFilter}
-                      icon={<Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />}
-                    />
-                  )}
-
-                  {/* Game Mode */}
-                  <CustomSelect 
-                    value={modalGameMode}
-                    options={gameModeOptions}
-                    onChange={setModalGameMode}
-                    icon={<SlidersHorizontal className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
-                    valueTextColor="text-emerald-400 font-bold"
-                  />
-
-                  {/* Sort */}
-                  <CustomSelect 
-                    value={`${sortField}-${sortOrder}`}
-                    options={sortOptions}
-                    onChange={(val) => {
-                      const [field, order] = val.split('-') as [SortField, SortOrder];
-                      setSortField(field);
-                      setSortOrder(order);
-                    }}
-                    icon={<SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
-                  />
-                </div>
+                <button
+                  onClick={() => setModalStatusFilter('unstudied')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${
+                    modalStatusFilter === 'unstudied'
+                      ? 'bg-slate-700 text-white shadow-md'
+                      : 'bg-slate-900/80 text-slate-400 border border-white/5 hover:text-white'
+                  }`}
+                >
+                  Unstudied ({analytics.unstudiedCount})
+                </button>
               </div>
 
-              {/* Row 2: Dedicated Search Bar */}
+              {/* Row 2: Select Dropdowns */}
+              <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
+                {/* POS */}
+                {availablePartsOfSpeech.length > 0 && (
+                  <CustomSelect 
+                    value={modalPosFilter}
+                    options={posOptions}
+                    onChange={setModalPosFilter}
+                    icon={<Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />}
+                    className="w-full sm:w-auto"
+                  />
+                )}
+
+                {/* Game Mode */}
+                <CustomSelect 
+                  value={modalGameMode}
+                  options={gameModeOptions}
+                  onChange={setModalGameMode}
+                  icon={<SlidersHorizontal className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+                  valueTextColor="text-emerald-400 font-bold"
+                  className="w-full sm:w-auto"
+                />
+
+                {/* Sort */}
+                <CustomSelect 
+                  value={`${sortField}-${sortOrder}`}
+                  options={sortOptions}
+                  onChange={(val) => {
+                    const [field, order] = val.split('-') as [SortField, SortOrder];
+                    setSortField(field);
+                    setSortOrder(order);
+                  }}
+                  icon={<SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
+                  className="w-full sm:w-auto col-span-2 sm:col-span-1"
+                />
+              </div>
+
+              {/* Row 3: Dedicated Search Bar */}
               <div className="relative w-full">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input 
@@ -524,12 +592,12 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
                   placeholder="Search vocabulary term or definition..."
                   value={modalSearchQuery}
                   onChange={(e) => setModalSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-8 h-10 rounded-xl bg-slate-950/90 border border-white/15 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-all shadow-inner"
+                  className="w-full pl-10 pr-8 h-10 rounded-2xl bg-slate-900/90 border border-white/15 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-all shadow-inner"
                 />
                 {modalSearchQuery && (
                   <button 
                     onClick={() => setModalSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs bg-slate-800 hover:bg-slate-700 rounded-full w-5 h-5 flex items-center justify-center transition-colors cursor-pointer"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs bg-slate-800 rounded-full w-5 h-5 flex items-center justify-center transition-colors cursor-pointer"
                   >
                     ×
                   </button>
@@ -539,7 +607,7 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
             </div>
 
             {/* Modal Interactive Data Table */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4">
               {modalCards.length === 0 ? (
                 <div className="text-center py-16 text-slate-400 text-sm bg-slate-950/40 rounded-2xl border border-white/5 space-y-2">
                   <Search className="w-8 h-8 text-slate-600 mx-auto" />
@@ -678,11 +746,12 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
                                   </button>
                                 )}
                               </div>
-                              {card.phonetic && (
-                                <div className="text-[11px] text-slate-400 font-mono">
-                                  {card.phonetic}
+                              {card.phonetic || card.phoneticUk ? (
+                                <div className="flex items-center gap-2 text-[11px] text-slate-400 font-mono flex-wrap mt-0.5">
+                                  {card.phonetic && <span>🇺🇸 {card.phonetic}</span>}
+                                  {card.phoneticUk && <span>🇬🇧 {card.phoneticUk}</span>}
                                 </div>
-                              )}
+                              ) : null}
                             </td>
 
                             <td className="py-3 px-4 text-slate-300 max-w-xs font-normal">
@@ -779,57 +848,66 @@ export default function SetAnalyticsModal({ setId, onClose, targetUserId }: SetA
                       const isWeak = (card.weaknessLevel >= 2) || (card.incorrectCount > 0 && card.incorrectCount >= card.correctCount);
 
                       return (
-                        <div key={card.id} className={`flex flex-col bg-slate-900/60 border ${isWeak ? 'border-amber-500/30' : 'border-white/5'} rounded-2xl p-4 gap-3 shadow-lg relative overflow-hidden`}>
-                          {isWeak && <div className="absolute top-0 right-0 w-8 h-8 bg-amber-500/10 rounded-bl-3xl" />}
-                          
-                          {/* Card Header: Term & Status */}
-                          <div className="flex items-start justify-between gap-2 relative z-10">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-extrabold text-white text-base truncate">{card.term}</span>
-                                {card.partOfSpeech && (
-                                  <span className="text-[11px] italic text-slate-400 font-serif shrink-0">({card.partOfSpeech})</span>
-                                )}
-                                {card.audioUrl && (
-                                  <button
-                                    onClick={() => playAudio(card.audioUrl, card.id)}
-                                    className="p-1 rounded-md bg-slate-800 text-indigo-400 hover:text-indigo-300 transition-colors shrink-0 cursor-pointer"
-                                  >
-                                    <Volume2 className={`w-3.5 h-3.5 ${playingAudioId === card.id ? 'animate-bounce text-indigo-300' : ''}`} />
-                                  </button>
-                                )}
-                              </div>
-                              {card.phonetic && <div className="text-[11px] text-slate-400 font-mono mt-0.5">{card.phonetic}</div>}
+                        <div key={card.id} className={`flex flex-col bg-[#0a092d]/70 backdrop-blur-xl border ${isWeak ? 'border-amber-500/40' : 'border-white/10'} rounded-2xl p-4 gap-3 shadow-xl relative overflow-hidden active:scale-[0.99] transition-all`}>
+                          {/* Card Top Bar: Index + Term + Audio + Status */}
+                          <div className="flex items-start justify-between gap-2.5">
+                            <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+                              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-[#4255ff]/20 text-[#9fa6ff] border border-[#4255ff]/30 shrink-0">
+                                #{index + 1}
+                              </span>
+                              <span className="font-extrabold text-white text-base truncate">{card.term}</span>
+                              {card.partOfSpeech && (
+                                <span className="text-[11px] italic text-slate-400 font-serif shrink-0">({card.partOfSpeech})</span>
+                              )}
+                              {card.audioUrl && (
+                                <button
+                                  onClick={() => playAudio(card.audioUrl, card.id)}
+                                  className="p-1.5 rounded-lg bg-indigo-500/15 text-indigo-300 hover:bg-indigo-500/30 border border-indigo-500/30 transition-colors shrink-0 cursor-pointer active:scale-95"
+                                  title="Play audio"
+                                >
+                                  <Volume2 className={`w-3.5 h-3.5 ${playingAudioId === card.id ? 'animate-bounce text-white' : ''}`} />
+                                </button>
+                              )}
                             </div>
-                            <div className="shrink-0 pt-0.5">{statusBadge}</div>
+                            <div className="shrink-0">{statusBadge}</div>
                           </div>
 
-                          {/* Definition */}
-                          <p className="text-sm text-slate-300 leading-relaxed border-b border-white/5 pb-3">{card.definition}</p>
+                          {/* Phonetics Bar */}
+                          {(card.phonetic || card.phoneticUk) && (
+                            <div className="flex items-center gap-2 text-[11px] text-[#9fa6ff] font-mono flex-wrap bg-white/5 px-2.5 py-1 rounded-xl border border-white/5">
+                              {card.phonetic && <span>🇺🇸 {card.phonetic}</span>}
+                              {card.phoneticUk && <span>🇬🇧 {card.phoneticUk}</span>}
+                            </div>
+                          )}
 
-                          {/* Compact Stats Row */}
-                          <div className="flex flex-wrap gap-1.5 text-[11px]">
-                            <div className="flex-1 min-w-[65px] bg-slate-950/50 rounded-lg py-2 px-1 flex flex-col items-center justify-center border border-white/5">
-                              <span className="text-slate-500 mb-0.5">Reviews</span>
+                          {/* Definition */}
+                          <p className="text-xs sm:text-sm text-slate-200 leading-relaxed bg-slate-950/40 p-3 rounded-xl border border-white/5 font-medium">
+                            {card.definition}
+                          </p>
+
+                          {/* Stats Grid: Exact 4 Columns */}
+                          <div className="grid grid-cols-4 gap-1.5 text-center text-[10px] sm:text-[11px]">
+                            <div className="bg-slate-950/60 rounded-xl py-2 px-1 flex flex-col items-center justify-center border border-white/5">
+                              <span className="text-slate-500 mb-0.5 text-[9px] uppercase font-semibold">Reviews</span>
                               <span className="font-bold text-white">{card.totalReviews}</span>
                             </div>
-                            <div className="flex-1 min-w-[65px] bg-slate-950/50 rounded-lg py-2 px-1 flex flex-col items-center justify-center border border-white/5">
-                              <span className="text-slate-500 mb-0.5">Acc</span>
+                            <div className="bg-slate-950/60 rounded-xl py-2 px-1 flex flex-col items-center justify-center border border-white/5">
+                              <span className="text-slate-500 mb-0.5 text-[9px] uppercase font-semibold">Acc</span>
                               <span className={`font-bold ${card.totalReviews === 0 ? 'text-slate-500' : card.accuracy >= 80 ? 'text-emerald-400' : card.accuracy >= 60 ? 'text-amber-400' : 'text-rose-400'}`}>
                                 {card.totalReviews > 0 ? `${card.accuracy}%` : '-'}
                               </span>
                             </div>
-                            <div className="flex-1 min-w-[65px] bg-slate-950/50 rounded-lg py-2 px-1 flex flex-col items-center justify-center border border-white/5">
-                              <span className="text-slate-500 mb-0.5">C/W</span>
-                              <div className="font-bold flex items-center gap-0.5">
-                                <span className="text-emerald-400">{card.correctCount}</span>
+                            <div className="bg-[#0a092d]/60 rounded-xl py-2 px-1 flex flex-col items-center justify-center border border-white/5">
+                              <span className="text-slate-500 mb-0.5 text-[9px] uppercase font-semibold">C / W</span>
+                              <div className="font-bold flex items-center justify-center gap-0.5">
+                                <span className="text-emerald-400">+{card.correctCount}</span>
                                 <span className="text-slate-600">/</span>
-                                <span className="text-rose-400">{card.incorrectCount}</span>
+                                <span className="text-rose-400">-{card.incorrectCount}</span>
                               </div>
                             </div>
-                            <div className="flex-1 min-w-[65px] bg-slate-950/50 rounded-lg py-2 px-1 flex flex-col items-center justify-center border border-white/5">
-                              <span className="text-slate-500 mb-0.5">Due</span>
-                              <span className="font-bold text-white">{card.nextReviewDate ? card.nextReviewDate : '-'}</span>
+                            <div className="bg-slate-950/60 rounded-xl py-2 px-1 flex flex-col items-center justify-center border border-white/5">
+                              <span className="text-slate-500 mb-0.5 text-[9px] uppercase font-semibold">Due</span>
+                              <span className="font-bold text-slate-300 truncate max-w-full">{card.nextReviewDate ? card.nextReviewDate : '-'}</span>
                             </div>
                           </div>
                         </div>

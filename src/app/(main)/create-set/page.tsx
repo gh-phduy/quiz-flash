@@ -113,7 +113,7 @@ export default function CreateSetPage() {
   }, []);
 
   const handleBulkAutoFill = async () => {
-    const cardsToUpdate = cards.filter(c => c.term && (!c.phonetic || !c.part_of_speech));
+    const cardsToUpdate = cards.filter(c => c.term && (!c.phonetic || !c.phonetic_uk || !c.part_of_speech));
     if (cardsToUpdate.length === 0) {
       toast.info("No cards need auto-fill for phonetics or part of speech.");
       return;
@@ -129,12 +129,13 @@ export default function CreateSetPage() {
       const card = cardsToUpdate[i];
       const data = await fetchWordData(card.term);
       
-      if (data && (data.phonetic || data.partOfSpeech || data.audioUrl)) {
+      if (data && (data.phonetic || data.phoneticUk || data.partOfSpeech || data.audioUrl)) {
         const index = newCards.findIndex(c => c.id === card.id);
         if (index !== -1) {
           newCards[index] = {
             ...newCards[index],
             phonetic: data.phonetic || newCards[index].phonetic,
+            phonetic_uk: data.phoneticUk || newCards[index].phonetic_uk,
             part_of_speech: data.partOfSpeech || newCards[index].part_of_speech,
             audio_url: data.audioUrl || newCards[index].audio_url
           };
@@ -321,6 +322,7 @@ export default function CreateSetPage() {
           image_url: finalImageUrl,
           order_index: i,
           phonetic: card.phonetic,
+          phonetic_uk: card.phonetic_uk,
           part_of_speech: card.part_of_speech,
           audio_url: card.audio_url
         });
@@ -331,9 +333,9 @@ export default function CreateSetPage() {
         .from('cards')
         .insert(cardsToInsert);
 
-      // Nếu cơ sở dữ liệu Supabase chưa tạo cột part_of_speech, tự động fallback lưu không có part_of_speech
-      if (cardsError && (cardsError.message?.includes('part_of_speech') || (cardsError as any).details?.includes('part_of_speech'))) {
-        const fallbackCards = cardsToInsert.map(({ part_of_speech, ...rest }) => rest);
+      // Nếu cơ sở dữ liệu Supabase chưa tạo cột part_of_speech hoặc phonetic_uk, tự động fallback lưu
+      if (cardsError && (cardsError.message?.includes('part_of_speech') || cardsError.message?.includes('phonetic_uk') || (cardsError as any).details?.includes('part_of_speech'))) {
+        const fallbackCards = cardsToInsert.map(({ part_of_speech, phonetic_uk, ...rest }) => rest);
         const { error: retryError } = await supabase
           .from('cards')
           .insert(fallbackCards);
@@ -358,18 +360,24 @@ export default function CreateSetPage() {
   };
 
   return (
-    <div className="min-h-full bg-background text-foreground font-sans selection:bg-[#4255ff] selection:text-foreground pb-24">
+    <div className="min-h-full bg-background text-foreground font-sans selection:bg-[#4255ff] selection:text-foreground pb-28 sm:pb-24">
       {/* Main Content */}
-      <main className="mx-auto max-w-[1000px] px-4 py-8 lg:px-8">
+      <main className="mx-auto max-w-[1000px] px-3 sm:px-6 lg:px-8 py-5 sm:py-8">
         
-        {/* Title Area */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-          <h1 className="text-[28px] font-bold text-foreground">Create a new flashcard set</h1>
-          <div className="flex items-center gap-3">
+        {/* Title & Top Action Area */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl md:text-[28px] font-black text-foreground tracking-tight">
+              Create a new flashcard set
+            </h1>
+          </div>
+          
+          {/* Desktop Top Action Buttons */}
+          <div className="hidden sm:flex items-center gap-3">
             <button 
               onClick={handleCreateSet}
               disabled={isSubmitting}
-              className="px-5 py-2.5 rounded-full bg-card text-foreground text-sm font-bold hover:bg-[#3a466a] transition-colors disabled:opacity-50 flex items-center"
+              className="px-5 py-2.5 rounded-full bg-card text-foreground text-sm font-bold hover:bg-[#3a466a] transition-all active:scale-95 disabled:opacity-50 flex items-center cursor-pointer border border-white/5"
             >
               {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Create
@@ -377,7 +385,7 @@ export default function CreateSetPage() {
             <button 
               onClick={handleCreateSet}
               disabled={isSubmitting}
-              className="px-5 py-2.5 rounded-full bg-[#4255ff] text-foreground text-sm font-bold hover:bg-[#5b6aff] transition-colors disabled:opacity-50 flex items-center"
+              className="px-5 py-2.5 rounded-full bg-[#4255ff] text-white text-sm font-bold hover:bg-[#5b6aff] transition-all active:scale-95 disabled:opacity-50 flex items-center cursor-pointer shadow-lg shadow-[#4255ff]/20"
             >
               {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Create and practice
@@ -386,14 +394,14 @@ export default function CreateSetPage() {
         </div>
 
         {/* Visibility Setting */}
-        <div className="mb-8">
-          <button className="flex items-center px-4 py-1.5 rounded-full bg-card text-foreground text-sm font-bold hover:bg-[#3a466a] transition-colors">
-            <Globe className="mr-2 h-4 w-4" /> Public
+        <div className="mb-5 sm:mb-6">
+          <button className="flex items-center px-3.5 py-1.5 rounded-full bg-card text-foreground text-xs sm:text-sm font-bold hover:bg-[#3a466a] transition-all border border-white/5">
+            <Globe className="mr-1.5 h-3.5 w-3.5 text-[#9fa6ff]" /> Public
           </button>
         </div>
 
-        {/* Title & Description Inputs */}
-        <div className="flex flex-col gap-4 mb-10">
+        {/* Title & Description Card Container */}
+        <div className="bg-card/60 backdrop-blur-md p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-white/5 flex flex-col gap-3.5 sm:gap-4 mb-6 sm:mb-8 shadow-md">
           <div className="relative group flex flex-col gap-1">
             <input 
               type="text" 
@@ -403,9 +411,9 @@ export default function CreateSetPage() {
                 setTitle(e.target.value);
                 if (errors.title) setErrors(prev => ({ ...prev, title: undefined }));
               }}
-              className={`w-full bg-card border-b-[3px] ${errors.title ? 'border-red-500 focus:border-red-500' : 'border-transparent focus:border-white'} rounded-lg px-4 py-4 text-foreground placeholder-[#939bb4] outline-none font-semibold text-lg transition-colors focus:bg-[#3a466a]`} 
+              className={`w-full bg-background/80 border-b-2 ${errors.title ? 'border-red-500 focus:border-red-500' : 'border-transparent focus:border-[#4255ff]'} rounded-xl px-4 py-3 sm:py-3.5 text-foreground placeholder-[#939bb4] outline-none font-bold text-base sm:text-lg transition-colors`} 
             />
-            {errors.title && <span className="text-red-500 text-[13px] font-bold ml-1">{errors.title}</span>}
+            {errors.title && <span className="text-red-500 text-[12px] font-bold ml-1">{errors.title}</span>}
           </div>
           <div className="relative group">
             <input 
@@ -413,69 +421,140 @@ export default function CreateSetPage() {
               placeholder="Add a description..." 
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-card border-b-[3px] border-transparent focus:border-white rounded-lg px-4 py-4 text-foreground placeholder-[#939bb4] outline-none text-base transition-colors focus:bg-[#3a466a]" 
+              className="w-full bg-background/50 border-b-2 border-transparent focus:border-[#4255ff] rounded-xl px-4 py-2.5 sm:py-3 text-foreground placeholder-[#939bb4] outline-none text-xs sm:text-base font-medium transition-colors" 
             />
           </div>
         </div>
 
-        {/* Toolbar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+        {/* Mobile Toolbar (< sm) */}
+        <div className="flex flex-col gap-2.5 sm:hidden mb-6">
+          {/* Row 1: Primary Actions */}
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={handleAddCard}
+              className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#4255ff] to-[#6d7bff] text-white text-xs font-bold shadow-md shadow-[#4255ff]/20 active:scale-95 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" /> Add card
+            </button>
+            <button 
+              onClick={handleBulkAutoFill}
+              className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-card border border-white/10 text-[#9fa6ff] text-xs font-bold hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
+              title="Auto-fill Phonetics & POS"
+            >
+              <Wand2 className="w-4 h-4 text-[#9fa6ff]" /> Auto-fill
+            </button>
+          </div>
+
+          {/* Row 2: Card Counter, Search & Clear */}
+          <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-card/60 border border-white/5 backdrop-blur-md">
+            <span className="text-xs font-bold text-muted-foreground">
+              {searchQuery ? (
+                <>Found: <strong className="text-[#9fa6ff]">{filteredCards.length}</strong>/{cards.length}</>
+              ) : (
+                <>Total: <strong className="text-white">{cards.length}</strong> cards</>
+              )}
+            </span>
+
+            <div className="flex items-center gap-1.5">
+              {isSearching ? (
+                <div className="flex items-center bg-background border border-[#3a466a] rounded-lg h-8 px-2.5 w-40 focus-within:border-[#4255ff] transition-all">
+                  <Search className="h-3.5 w-3.5 text-muted-foreground mr-1.5 shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="bg-transparent border-none outline-none text-xs text-foreground w-full"
+                    autoFocus
+                  />
+                  <button 
+                    onClick={() => { setIsSearching(false); setSearchQuery(''); }}
+                    className="text-muted-foreground hover:text-white shrink-0 ml-1"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => setIsSearching(true)}
+                  className="h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all cursor-pointer border border-white/5 text-muted-foreground hover:text-white"
+                  title="Search cards"
+                >
+                  <Search className="h-3.5 w-3.5" />
+                </button>
+              )}
+
+              <button 
+                onClick={() => setCards([{ id: 'card-1', term: '', definition: '', image_url: null, image_file: null, phonetic: null, audio_url: null }])}
+                className="h-8 w-8 rounded-lg bg-[#ff4242]/15 flex items-center justify-center hover:bg-[#ff4242]/25 active:scale-95 transition-all cursor-pointer border border-[#ff4242]/20 text-[#ff4242]"
+                title="Clear all cards"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Toolbar (>= sm) */}
+        <div className="hidden sm:flex items-center justify-between mb-6 bg-card/40 p-3.5 rounded-2xl border border-white/5">
           <div className="flex items-center gap-3">
             <button 
               onClick={handleAddCard}
-              className="flex items-center px-4 py-2 rounded-full bg-[#4255ff] text-white text-sm font-bold hover:bg-[#5b6aff] transition-colors cursor-pointer"
+              className="flex items-center px-4 py-2 rounded-xl bg-[#4255ff] text-white text-sm font-bold hover:bg-[#5b6aff] active:scale-95 transition-all cursor-pointer shadow-md shadow-[#4255ff]/20"
             >
               <Plus className="mr-2 h-4 w-4" /> Add card
             </button>
             <button 
               onClick={handleBulkAutoFill}
-              className="flex items-center px-4 py-2 rounded-full bg-card text-[#4255ff] text-sm font-bold hover:bg-[#3a466a] transition-colors cursor-pointer"
+              className="flex items-center px-4 py-2 rounded-xl bg-card text-[#9fa6ff] text-sm font-bold hover:bg-white/10 active:scale-95 transition-all cursor-pointer border border-white/5"
             >
-              <Wand2 className="mr-2 h-4 w-4" /> Auto-fill Phonetics
+              <Wand2 className="mr-2 h-4 w-4 text-[#9fa6ff]" /> Auto-fill Phonetics
             </button>
-            <div className="flex items-center px-4 py-2 rounded-full bg-[#2e3856] text-white text-sm font-semibold select-none border border-white/5 shadow-sm">
+            <div className="flex items-center px-3.5 py-2 rounded-xl bg-white/5 text-muted-foreground text-xs font-bold border border-white/5">
               <span>
                 {searchQuery ? (
-                  <>Found: <strong className="text-[#4255ff]">{filteredCards.length}</strong>/{cards.length}</>
+                  <>Found: <strong className="text-[#9fa6ff]">{filteredCards.length}</strong>/{cards.length}</>
                 ) : (
-                  <>Cards: <strong className="text-[#4255ff]">{cards.length}</strong></>
+                  <>Cards: <strong className="text-[#9fa6ff]">{cards.length}</strong></>
                 )}
               </span>
             </div>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             {isSearching ? (
-              <div className="flex items-center bg-card rounded-full h-10 px-4 w-64 border-[1px] border-[#3a466a] focus-within:border-white transition-colors">
-                <Search className="h-4 w-4 text-muted-foreground mr-2" />
+              <div className="flex items-center bg-background border border-[#3a466a] rounded-xl h-9 px-3 w-64 focus-within:border-[#4255ff] transition-all">
+                <Search className="h-3.5 w-3.5 text-muted-foreground mr-2 shrink-0" />
                 <input
                   type="text"
                   placeholder="Search cards..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-transparent border-none outline-none text-sm text-foreground w-full"
+                  className="bg-transparent border-none outline-none text-xs text-foreground w-full"
                   autoFocus
                 />
                 <button 
                   onClick={() => { setIsSearching(false); setSearchQuery(''); }}
-                  className="text-muted-foreground hover:text-white"
+                  className="text-muted-foreground hover:text-white shrink-0 ml-1"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-3.5 w-3.5" />
                 </button>
               </div>
             ) : (
               <button 
                 onClick={() => setIsSearching(true)}
-                className="h-10 w-10 rounded-full bg-card flex items-center justify-center hover:bg-[#3a466a] transition-colors cursor-pointer"
+                className="h-9 w-9 rounded-xl bg-card flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all cursor-pointer border border-white/5"
+                title="Search cards"
               >
-                <Search className="h-5 w-5 text-foreground" />
+                <Search className="h-4 w-4 text-foreground" />
               </button>
             )}
             <button 
               onClick={() => setCards([{ id: 'card-1', term: '', definition: '', image_url: null, image_file: null, phonetic: null, audio_url: null }])}
-              className="h-10 w-10 rounded-full bg-[#ff4242]/20 flex items-center justify-center hover:bg-[#ff4242]/30 transition-colors cursor-pointer"
+              className="h-9 w-9 rounded-xl bg-[#ff4242]/15 flex items-center justify-center hover:bg-[#ff4242]/25 active:scale-95 transition-all cursor-pointer border border-[#ff4242]/20"
+              title="Clear all cards"
             >
-              <Trash2 className="h-5 w-5 text-[#ff4242]" />
+              <Trash2 className="h-4 w-4 text-[#ff4242]" />
             </button>
           </div>
         </div>
@@ -490,7 +569,7 @@ export default function CreateSetPage() {
             items={filteredCards.map(c => c.id)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="flex flex-col gap-5 mb-10">
+            <div className="flex flex-col gap-4 sm:gap-5 mb-10">
               {filteredCards.map((card) => (
                 <FlashcardItem
                   key={card.id}
@@ -510,16 +589,14 @@ export default function CreateSetPage() {
           </SortableContext>
         </DndContext>
 
-
-
       </main>
 
-      {/* Floating Bottom Action Bar */}
-      <div className="fixed bottom-6 right-8 flex items-center gap-3 z-30">
+      {/* Floating Bottom Action Bar (Desktop) */}
+      <div className="hidden sm:flex fixed bottom-6 right-8 items-center gap-3 z-30">
         <button 
           onClick={handleCreateSet}
           disabled={isSubmitting}
-          className="px-6 py-3 rounded-full bg-card text-foreground text-sm font-bold shadow-lg hover:bg-[#3a466a] transition-colors disabled:opacity-50 flex items-center"
+          className="px-6 py-3 rounded-full bg-card text-foreground text-sm font-bold shadow-xl hover:bg-[#3a466a] transition-all active:scale-95 disabled:opacity-50 flex items-center border border-white/10 cursor-pointer"
         >
           {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
           Create
@@ -527,10 +604,30 @@ export default function CreateSetPage() {
         <button 
           onClick={handleCreateSet}
           disabled={isSubmitting}
-          className="px-6 py-3 rounded-full bg-[#4255ff] text-foreground text-sm font-bold hover:bg-[#5b6aff] shadow-lg transition-colors disabled:opacity-50 flex items-center"
+          className="px-6 py-3 rounded-full bg-gradient-to-r from-[#4255ff] to-[#6d7bff] text-white text-sm font-bold hover:brightness-110 shadow-xl transition-all active:scale-95 disabled:opacity-50 flex items-center cursor-pointer shadow-[#4255ff]/30"
         >
           {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
           Create and practice
+        </button>
+      </div>
+
+      {/* Floating Bottom Action Bar (Mobile Sticky Bar) */}
+      <div className="flex sm:hidden fixed bottom-0 left-0 right-0 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-background/95 backdrop-blur-xl border-t border-white/10 items-center justify-between gap-2.5 z-40 shadow-2xl">
+        <button 
+          onClick={handleCreateSet}
+          disabled={isSubmitting}
+          className="flex-1 py-3 rounded-xl bg-card text-foreground text-xs font-bold active:scale-95 disabled:opacity-50 flex items-center justify-center border border-white/10 cursor-pointer"
+        >
+          {isSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
+          Create
+        </button>
+        <button 
+          onClick={handleCreateSet}
+          disabled={isSubmitting}
+          className="flex-1 py-3 rounded-xl bg-gradient-to-r from-[#4255ff] to-[#6d7bff] text-white text-xs font-bold active:scale-95 disabled:opacity-50 flex items-center justify-center cursor-pointer shadow-lg shadow-[#4255ff]/20"
+        >
+          {isSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
+          Create & Practice
         </button>
       </div>
     </div>

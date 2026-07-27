@@ -9,6 +9,7 @@ export interface OxfordWordStats {
   term: string;
   definition: string;
   phonetic?: string | null;
+  phoneticUk?: string | null;
   audioUrl?: string | null;
   partOfSpeech?: string | null;
   cefrLevel?: string | null;

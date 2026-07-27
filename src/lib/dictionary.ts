@@ -1,7 +1,9 @@
 export interface WordData {
   phonetic?: string;
+  phoneticUk?: string;
   partOfSpeech?: string;
   audioUrl?: string;
+  audioUrlUk?: string;
 }
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -32,35 +34,38 @@ export async function fetchWordData(word: string, retries = 3): Promise<WordData
 
     const entry = data[0];
     
-    // Extract phonetic
-    let phonetic = entry.phonetic;
-    if (!phonetic && entry.phonetics && entry.phonetics.length > 0) {
-      const phoneticEntry = entry.phonetics.find((p: any) => p.text);
-      if (phoneticEntry) {
-        phonetic = phoneticEntry.text;
+    let phoneticUs = entry.phonetic || '';
+    let phoneticUk = '';
+    let audioUrlUs = '';
+    let audioUrlUk = '';
+
+    if (entry.phonetics && Array.isArray(entry.phonetics)) {
+      for (const p of entry.phonetics) {
+        const audio = p.audio || '';
+        const text = p.text || '';
+
+        if (audio.includes('-us') || audio.includes('en-us') || audio.includes('/us/')) {
+          if (!audioUrlUs && audio) audioUrlUs = audio;
+          if (!phoneticUs && text) phoneticUs = text;
+        } else if (audio.includes('-uk') || audio.includes('en-uk') || audio.includes('/uk/')) {
+          if (!audioUrlUk && audio) audioUrlUk = audio;
+          if (!phoneticUk && text) phoneticUk = text;
+        } else {
+          if (!phoneticUs && text) phoneticUs = text;
+          if (!audioUrlUs && audio) audioUrlUs = audio;
+        }
       }
     }
 
     // Extract part of speech
-    let partOfSpeech = entry.meanings?.[0]?.partOfSpeech;
-
-    // Extract audio url
-    let audioUrl = '';
-    if (entry.phonetics && entry.phonetics.length > 0) {
-      // Prioritize US, then UK, then any audio
-      const usAudio = entry.phonetics.find((p: any) => p.audio && p.audio.includes('-us.mp3'));
-      const ukAudio = entry.phonetics.find((p: any) => p.audio && p.audio.includes('-uk.mp3'));
-      const anyAudio = entry.phonetics.find((p: any) => p.audio);
-      
-      if (usAudio) audioUrl = usAudio.audio;
-      else if (ukAudio) audioUrl = ukAudio.audio;
-      else if (anyAudio) audioUrl = anyAudio.audio;
-    }
+    let partOfSpeech = entry.meanings?.[0]?.partOfSpeech || '';
 
     return {
-      phonetic,
-      partOfSpeech,
-      audioUrl
+      phonetic: phoneticUs || undefined,
+      phoneticUk: phoneticUk || undefined,
+      partOfSpeech: partOfSpeech || undefined,
+      audioUrl: audioUrlUs || audioUrlUk || undefined,
+      audioUrlUk: audioUrlUk || undefined
     };
   } catch (error) {
     if (retries > 0) {

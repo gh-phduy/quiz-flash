@@ -1,7 +1,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Search, ChevronDown, User as UserIcon, Pencil, Trophy, Star, BookOpen } from 'lucide-react';
+import { Search, ChevronDown, User as UserIcon, Pencil, Trophy, Star, BookOpen, Folder } from 'lucide-react';
 import { ActivityGraph, ActivityData } from '@/components/shared/activity-graph';
 import { UserAvatar } from '@/components/shared/user-avatar';
 import { LibraryView } from './library-view';
@@ -68,9 +68,37 @@ export default async function UserLibraryPage({ params }: { params: Promise<{ id
     : userId.substring(0, 8);
 
   return (
-    <div className="w-full max-w-5xl mx-auto py-10 px-6 font-sans">
+    <div className="w-full max-w-5xl mx-auto py-5 sm:py-10 px-4 sm:px-6 font-sans">
+      {/* Profile Header Banner */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-10 gap-4 p-4 sm:p-8 rounded-3xl bg-gradient-to-r from-card/60 via-card/40 to-transparent border border-white/10 backdrop-blur-md shadow-xl">
+        <div className="flex items-center gap-3.5 sm:gap-4">
+          <div className="relative shrink-0">
+            <UserAvatar 
+              src={avatarUrl}
+              alt="Avatar"
+              fallbackSeed={userId}
+              className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 border-[#b892ff]/40 bg-gray-600 shadow-md"
+            />
+            <div className="absolute -bottom-1 -right-1 p-1 bg-[#4255ff] rounded-full border border-background">
+              <Folder className="w-3 h-3 text-white" />
+            </div>
+          </div>
+          <div>
+            <h1 className="text-lg sm:text-3xl font-black text-white drop-shadow-md">
+              {isOwnLibrary ? 'Your Library' : `${displayName}'s Library`}
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground font-medium mt-0.5">
+              Manage and practice your custom study sets
+            </p>
+          </div>
+        </div>
 
-
+        <div className="flex items-center gap-2 self-stretch sm:self-auto justify-end pt-3 sm:pt-0 border-t sm:border-none border-white/5">
+          <div className="px-3.5 py-1.5 rounded-2xl bg-white/5 border border-white/10 text-xs font-bold text-[#9fa6ff]">
+            {sets.length + savedSetsData.length} Total Sets
+          </div>
+        </div>
+      </div>
 
       <LibraryView 
         sets={sets} 

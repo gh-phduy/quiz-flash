@@ -18,6 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { RankBadge } from '@/components/shared/rank-badge';
 
 interface HomeDashboardProps {
   user: any;
@@ -114,45 +115,51 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto py-10 px-6 font-sans relative">
+    <div className="w-full max-w-7xl mx-auto py-5 sm:py-8 md:py-10 px-4 sm:px-6 font-sans relative">
       {/* Welcome Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
-        <div>
-          <h1 className="text-3xl md:text-5xl font-black mb-3 drop-shadow-md flex items-center gap-3 text-transparent bg-clip-text bg-gradient-to-r from-[#9fa6ff] to-[#b892ff]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 sm:mb-12 gap-4 sm:gap-6 bg-gradient-to-r from-card/50 via-card/30 to-transparent p-4 sm:p-0 rounded-3xl border border-white/5 sm:border-none backdrop-blur-sm sm:backdrop-blur-none">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl md:text-5xl font-black mb-1.5 sm:mb-3 drop-shadow-md flex items-center gap-2 sm:gap-3 text-transparent bg-clip-text bg-gradient-to-r from-[#9fa6ff] to-[#b892ff] truncate">
             Welcome back, {displayName}! 👋
           </h1>
-          <p className="font-semibold text-lg text-muted-foreground">
+          <p className="font-semibold text-xs sm:text-lg text-muted-foreground">
             Ready to conquer your next learning goal?
           </p>
         </div>
         
-        {/* Current Rank */}
-        <div className="flex flex-col items-start md:items-end justify-end">
-          <span className="text-xs font-bold tracking-[0.2em] uppercase mb-1 drop-shadow-sm text-muted-foreground">
+        {/* Current Rank Badge */}
+        <div className="flex flex-col items-start sm:items-end shrink-0 pt-3 sm:pt-0 border-t border-white/5 sm:border-none">
+          <span className="text-[10px] sm:text-xs font-extrabold tracking-[0.2em] uppercase mb-1 sm:mb-1.5 text-muted-foreground/80">
             Current Rank
           </span>
-          <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-[#9fa6ff] via-[#b892ff] to-[#ff92d0] drop-shadow-[0_0_20px_rgba(184,146,255,0.4)]">
-            {profile?.current_rank || 'Iron'}
-          </h2>
+          <RankBadge 
+            rank={profile?.current_rank} 
+            points={profile?.points || 0} 
+            size="lg" 
+            showProgress 
+            className="min-w-[180px] sm:min-w-[210px]"
+          />
         </div>
       </div>
       
       {/* Daily Review Banner */}
       {dueCount > 0 && (
-        <div className="mb-6 relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-[#9fa6ff]/20 to-[#b892ff]/20 border border-[#b892ff]/30 p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-8 group">
+        <div className="mb-6 sm:mb-8 relative overflow-hidden rounded-3xl sm:rounded-[2.5rem] bg-gradient-to-r from-[#9fa6ff]/20 via-[#b892ff]/20 to-[#ff92d0]/15 border border-[#b892ff]/30 p-5 sm:p-8 md:p-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 sm:gap-8 group shadow-xl">
           <div className="absolute inset-0 bg-gradient-to-r from-[#9fa6ff]/10 to-[#b892ff]/10 mix-blend-overlay group-hover:opacity-70 transition-opacity"></div>
           <div className="relative z-10">
-            <h2 className="text-2xl md:text-3xl font-extrabold text-white mb-2 flex items-center gap-3">
-              <Flame className="w-7 h-7 md:w-8 md:h-8 text-[#ff92d0]" />
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white mb-1.5 sm:mb-2 flex items-center gap-2.5">
+              <div className="p-1.5 sm:p-2 rounded-xl bg-[#ff92d0]/20 border border-[#ff92d0]/30 shrink-0">
+                <Flame className="w-5 h-5 sm:w-7 sm:h-7 text-[#ff92d0] animate-pulse" />
+              </div>
               Time to review!
             </h2>
-            <p className="text-lg text-white/80 font-medium">
-              You have <strong className="text-[#ff92d0] text-xl mx-1">{dueCount}</strong> cards due for review today to maintain your memory.
+            <p className="text-xs sm:text-lg text-white/80 font-medium leading-relaxed">
+              You have <strong className="text-[#ff92d0] text-sm sm:text-xl mx-1 font-bold">{dueCount}</strong> cards due for review today to maintain your memory.
             </p>
           </div>
           <Link 
             href="/review"
-            className="relative z-10 w-full md:w-auto text-center shrink-0 px-6 py-3 md:px-8 md:py-4 bg-gradient-to-r from-[#ff92d0] to-[#b892ff] text-white rounded-2xl font-bold text-lg hover:scale-105 hover:shadow-[0_0_30px_rgba(255,146,208,0.5)] transition-all shadow-lg"
+            className="relative z-10 w-full sm:w-auto text-center shrink-0 px-6 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-[#ff92d0] to-[#b892ff] text-white rounded-2xl font-bold text-sm sm:text-lg hover:scale-[1.03] active:scale-[0.98] hover:shadow-[0_0_30px_rgba(255,146,208,0.5)] transition-all shadow-lg border border-white/20"
           >
             Review Now
           </Link>
@@ -160,109 +167,111 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
       )}
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-12">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-8 sm:mb-12">
         <Link 
           href="/create-set"
-          className="group relative overflow-hidden p-6 rounded-3xl transition-all duration-300 flex items-center justify-between shadow-lg bg-gradient-to-br from-[#4255ff] to-[#6d7bff] hover:from-[#5b6aff] hover:to-[#8a94ff] shadow-[0_0_30px_rgba(66,85,255,0.3)] hover:shadow-[0_0_40px_rgba(66,85,255,0.5)] hover:-translate-y-1"
+          className="group relative overflow-hidden p-4 sm:p-6 rounded-2xl sm:rounded-3xl transition-all duration-300 flex items-center justify-between shadow-lg bg-gradient-to-br from-[#4255ff] to-[#6d7bff] hover:from-[#5b6aff] hover:to-[#8a94ff] shadow-[0_0_30px_rgba(66,85,255,0.3)] hover:shadow-[0_0_40px_rgba(66,85,255,0.5)] active:scale-[0.99]"
         >
           <div className="relative z-10">
-            <h3 className="text-2xl font-bold text-white mb-1">
+            <h3 className="text-xl sm:text-2xl font-bold text-white mb-0.5 sm:mb-1">
               Create new set
             </h3>
-            <p className="text-white/80 font-medium text-sm">
+            <p className="text-white/80 font-medium text-xs sm:text-sm">
               Build your own custom flashcards
             </p>
           </div>
-          <div className="w-14 h-14 rounded-full flex items-center justify-center shrink-0 backdrop-blur-md relative z-10 group-hover:scale-110 transition-transform bg-white/20 text-white">
-            <Plus className="w-8 h-8" />
+          <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-2xl sm:rounded-full flex items-center justify-center shrink-0 backdrop-blur-md relative z-10 group-hover:scale-110 transition-transform bg-white/20 text-white border border-white/20">
+            <Plus className="w-6 h-6 sm:w-8 sm:h-8" />
           </div>
         </Link>
         
         <button 
-          className="group relative overflow-hidden backdrop-blur-xl border p-6 rounded-3xl transition-all duration-300 flex items-center justify-between bg-card/60 border-white/10 hover:bg-card/80 hover:border-[#b892ff]/50"
+          className="group relative overflow-hidden backdrop-blur-xl border p-4 sm:p-6 rounded-2xl sm:rounded-3xl transition-all duration-300 flex items-center justify-between bg-card/60 border-white/10 hover:bg-card/80 hover:border-[#b892ff]/50 active:scale-[0.99] text-left cursor-pointer"
         >
-          <div className="relative z-10 text-left">
-            <h3 className="text-2xl font-bold text-white mb-1 transition-colors group-hover:text-[#b892ff]">
+          <div className="relative z-10">
+            <h3 className="text-xl sm:text-2xl font-bold text-white mb-0.5 sm:mb-1 transition-colors group-hover:text-[#b892ff]">
               Play Live
             </h3>
-            <p className="text-muted-foreground font-medium text-sm">
+            <p className="text-muted-foreground font-medium text-xs sm:text-sm">
               Compete with friends in real-time
             </p>
           </div>
-          <div className="w-14 h-14 rounded-full flex items-center justify-center shrink-0 relative z-10 transition-colors bg-[#b892ff]/10 text-[#b892ff]">
-            <Users className="w-8 h-8" />
+          <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-2xl sm:rounded-full flex items-center justify-center shrink-0 relative z-10 transition-colors bg-[#b892ff]/10 text-[#b892ff] border border-[#b892ff]/20">
+            <Users className="w-6 h-6 sm:w-8 sm:h-8" />
           </div>
         </button>
       </div>
 
       {/* Ways to Play & Learn */}
-      <div className="mb-14">
-        <div className="flex items-center gap-3 mb-6">
-          <h2 className="text-2xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
+      <div className="mb-10 sm:mb-14">
+        <div className="flex items-center gap-3 mb-4 sm:mb-6">
+          <h2 className="text-xl sm:text-2xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
             Ways to Play & Learn
           </h2>
           <div className="h-[1px] flex-1 bg-gradient-to-r from-white/10 to-transparent"></div>
         </div>
         
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
           {GAME_MODES.map((mode) => (
             <button
               key={mode.id}
               onClick={() => !mode.disabled && handleModeClick(mode as any)}
               disabled={mode.disabled}
-              className={`group relative overflow-hidden bg-gradient-to-br ${mode.bg} backdrop-blur-xl border ${mode.border} ${mode.disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-card/80 hover:-translate-y-1 cursor-pointer'} p-5 rounded-3xl transition-all duration-300 flex flex-col items-center justify-center text-center shadow-lg`}
+              className={`group relative overflow-hidden bg-gradient-to-br ${mode.bg} backdrop-blur-xl border ${mode.border} ${mode.disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-card/80 active:scale-[0.97] cursor-pointer'} p-4 sm:p-5 rounded-2xl sm:rounded-3xl transition-all duration-300 flex flex-col items-center justify-center text-center shadow-md`}
             >
-              <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 shadow-inner bg-background/50 border border-white/5">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center mb-2.5 sm:mb-4 shadow-inner bg-background/50 border border-white/5 group-hover:scale-105 transition-transform">
                 {mode.icon}
               </div>
-              <h3 className="text-lg font-bold text-white mb-1">{mode.name}</h3>
-              <p className="text-[11px] text-muted-foreground font-medium leading-tight">{mode.desc}</p>
+              <h3 className="text-sm sm:text-lg font-bold text-white mb-0.5">{mode.name}</h3>
+              <p className="text-[10px] sm:text-[11px] text-muted-foreground font-medium leading-snug line-clamp-2">{mode.desc}</p>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Sets Section */}
-      <div className="mb-6 flex items-center gap-4 pb-4 border-b border-white/10">
-        <button 
-          onClick={() => setActiveTab('created')}
-          className={`text-xl font-bold transition-all ${
-            activeTab === 'created' 
-              ? 'text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]' 
-              : 'text-muted-foreground hover:text-white/80'
-          }`}
-        >
-          Your Sets
-        </button>
-        <button 
-          onClick={() => setActiveTab('saved')}
-          className={`text-xl font-bold transition-all ${
-            activeTab === 'saved' 
-              ? 'text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]' 
-              : 'text-muted-foreground hover:text-white/80'
-          }`}
-        >
-          Saved Sets
-        </button>
+      {/* Sets Section - Segmented Control */}
+      <div className="mb-6 flex items-center justify-between pb-2 border-b border-white/10">
+        <div className="inline-flex p-1 bg-card/60 backdrop-blur-md border border-white/10 rounded-2xl gap-1">
+          <button 
+            onClick={() => setActiveTab('created')}
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              activeTab === 'created' 
+                ? 'bg-gradient-to-r from-[#4255ff] to-[#6d7bff] text-white shadow-md' 
+                : 'text-muted-foreground hover:text-white'
+            }`}
+          >
+            Your Sets ({sets.length})
+          </button>
+          <button 
+            onClick={() => setActiveTab('saved')}
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              activeTab === 'saved' 
+                ? 'bg-gradient-to-r from-[#4255ff] to-[#6d7bff] text-white shadow-md' 
+                : 'text-muted-foreground hover:text-white'
+            }`}
+          >
+            Saved Sets ({currentSavedSets.length})
+          </button>
+        </div>
       </div>
 
       {/* Sets Grid */}
       {displayedSets.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
           {displayedSets.map((set) => (
             <Dialog key={set.id}>
               <DialogTrigger 
                 render={<div />}
                 nativeButton={false}
-                className="cursor-pointer group relative rounded-3xl p-6 transition-all duration-300 flex flex-col w-full text-left h-[230px] bg-[#0a092d]/50 backdrop-blur-xl border border-white/5 hover:bg-[#0a092d]/80 hover:border-[#9fa6ff]/30 hover:shadow-[0_0_30px_rgba(159,166,255,0.15)]"
+                className="cursor-pointer group relative rounded-2xl sm:rounded-3xl p-5 sm:p-6 transition-all duration-300 flex flex-col w-full text-left min-h-[190px] sm:h-[230px] bg-[#0a092d]/50 backdrop-blur-xl border border-white/5 hover:bg-[#0a092d]/80 hover:border-[#9fa6ff]/30 hover:shadow-[0_0_30px_rgba(159,166,255,0.15)] active:scale-[0.99]"
               >
                 <div className="flex-1">
-                  <div className="flex justify-between items-start gap-4 mb-4 w-full">
-                    <div className="flex items-center gap-2.5 flex-wrap min-w-0">
-                      <h3 className="text-xl font-bold transition-colors line-clamp-2 leading-snug text-white group-hover:text-[#9fa6ff]">
+                  <div className="flex justify-between items-start gap-3 mb-3 w-full">
+                    <div className="flex items-center gap-2 flex-wrap min-w-0">
+                      <h3 className="text-lg sm:text-xl font-bold transition-colors line-clamp-2 leading-snug text-white group-hover:text-[#9fa6ff]">
                         {set.title}
                       </h3>
-                      <span className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md shrink-0 text-[#6b7bff] bg-[#4255ff]/10">
+                      <span className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md shrink-0 text-[#9fa6ff] bg-[#4255ff]/15 border border-[#4255ff]/30">
                         {set.cards?.[0]?.count || 0} terms
                       </span>
                     </div>
@@ -284,62 +293,62 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
                   </div>
 
                   {set.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-4 font-medium">
+                    <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mb-4 font-medium">
                       {set.description}
                     </p>
                   )}
                 </div>
 
                 {/* Card Footer */}
-                <div className="flex items-center justify-between pt-4 border-t border-white/5 text-xs text-muted-foreground mt-auto">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-white/5 text-[11px] sm:text-xs text-muted-foreground mt-auto">
+                  <div className="flex items-center gap-2 min-w-0">
                     {set.author?.avatar_url ? (
                       <Image 
                         src={set.author.avatar_url} 
                         alt="Author" 
                         width={20} 
                         height={20} 
-                        className="rounded-full object-cover"
+                        className="rounded-full object-cover shrink-0"
                       />
                      ) : (
-                      <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold">
+                      <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold shrink-0">
                         {(set.author?.full_name || set.author?.email || (set.user_id ? 'User' : 'QuizFlash'))[0].toUpperCase()}
                       </div>
                     )}
-                    <span className="font-medium truncate max-w-[120px]">
+                    <span className="font-medium truncate max-w-[100px] sm:max-w-[120px]">
                       {set.author?.full_name || set.author?.email?.split('@')[0] || (set.user_id ? 'User' : 'QuizFlash')}
                     </span>
                   </div>
                   
-                  <span className="font-mono text-[11px]">
+                  <span className="font-mono text-[10px] sm:text-[11px] shrink-0">
                     {formatDistanceToNow(new Date(set.created_at), { addSuffix: true })}
                   </span>
                 </div>
               </DialogTrigger>
 
               {/* Mode Selector Dialog */}
-              <DialogContent className="sm:max-w-md bg-[#0d0c22] border-white/10 text-white rounded-3xl p-6">
-                <DialogHeader className="space-y-3">
-                  <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+              <DialogContent className="w-[92vw] sm:max-w-md bg-[#0d0c22] border-white/10 text-white rounded-3xl p-5 sm:p-6">
+                <DialogHeader className="space-y-2">
+                  <DialogTitle className="text-xl sm:text-2xl font-bold flex items-center gap-2">
                     Choose Mode
                   </DialogTitle>
-                  <p className="text-sm text-muted-foreground font-medium">
+                  <p className="text-xs sm:text-sm text-muted-foreground font-medium">
                     Select how you want to study <strong className="text-white">{set.title}</strong>
                   </p>
                 </DialogHeader>
 
-                <div className="grid grid-cols-2 gap-3 my-4">
+                <div className="grid grid-cols-2 gap-2.5 sm:gap-3 my-4">
                   {GAME_MODES.map((mode) => (
                     <button
                       key={mode.id}
                       onClick={() => handleSetClickForMode(set.id)}
                       disabled={mode.disabled}
-                      className="p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-white/20 hover:bg-white/10 flex flex-col items-center gap-2 text-center transition-all cursor-pointer group"
+                      className="p-3.5 sm:p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-white/20 hover:bg-white/10 flex flex-col items-center gap-2 text-center transition-all cursor-pointer group active:scale-95"
                     >
-                      <div className="p-3 rounded-xl bg-white/5 group-hover:scale-110 transition-transform">
+                      <div className="p-2.5 rounded-xl bg-white/5 group-hover:scale-110 transition-transform">
                         {mode.icon}
                       </div>
-                      <span className="text-sm font-bold">{mode.name}</span>
+                      <span className="text-xs sm:text-sm font-bold">{mode.name}</span>
                     </button>
                   ))}
                 </div>
@@ -348,18 +357,18 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
           ))}
         </div>
       ) : (
-        <div className="text-center py-16 bg-card/30 border border-white/5 rounded-3xl p-8">
-          <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-          <h3 className="text-xl font-bold text-white mb-2">No sets found</h3>
-          <p className="text-muted-foreground max-w-sm mx-auto mb-6">
+        <div className="text-center py-12 sm:py-16 bg-card/30 border border-white/5 rounded-3xl p-6 sm:p-8">
+          <BookOpen className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+          <h3 className="text-lg sm:text-xl font-bold text-white mb-2">No sets found</h3>
+          <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mx-auto mb-6">
             {activeTab === 'created' ? "You haven't created any study sets yet." : "You haven't saved any study sets yet."}
           </p>
           {activeTab === 'created' && (
             <Link 
               href="/create-set"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[#4255ff] hover:bg-[#5b6aff] text-white font-bold rounded-xl transition-all"
+              className="inline-flex items-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 bg-[#4255ff] hover:bg-[#5b6aff] text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-lg active:scale-95"
             >
-              <Plus className="w-5 h-5" /> Create your first set
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" /> Create your first set
             </Link>
           )}
         </div>
@@ -367,7 +376,7 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
 
       {/* Mode Selection Dialog */}
       <Dialog open={isModeDialogOpen} onOpenChange={setIsModeDialogOpen}>
-        <DialogContent className="bg-background text-foreground border border-white/10 sm:max-w-xl w-[90vw] rounded-2xl shadow-2xl">
+        <DialogContent className="bg-background text-foreground border border-white/10 sm:max-w-xl w-[92vw] rounded-2xl shadow-2xl">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-center mb-2 bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
               Play {selectedMode?.name}

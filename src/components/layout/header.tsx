@@ -27,12 +27,12 @@ export default async function Header() {
   }
 
   return (
-    <header className="flex h-[56px] items-center justify-between px-4 bg-background border-b border-border shrink-0 z-50 relative">
+    <header className="flex h-[56px] items-center justify-between px-3 md:px-4 bg-background/90 backdrop-blur-md border-b border-border shrink-0 z-50 relative">
       {/* Left */}
-      <div className="flex items-center gap-3 md:gap-5 shrink-0">
+      <div className="flex items-center gap-2 md:gap-5 shrink-0">
         <SidebarToggle />
         <MobileNav />
-        <Link href="/" className="text-[24px] font-black tracking-tight bg-gradient-to-r from-[#b892ff] via-[#6d7bff] to-[#4255ff] text-transparent bg-clip-text hover:brightness-125 transition-all drop-shadow-[0_2px_10px_rgba(184,146,255,0.3)] pr-4">
+        <Link href="/" className="text-[20px] md:text-[24px] font-black tracking-tight bg-gradient-to-r from-[#b892ff] via-[#6d7bff] to-[#4255ff] text-transparent bg-clip-text hover:brightness-125 transition-all drop-shadow-[0_2px_10px_rgba(184,146,255,0.3)] pr-2 md:pr-4">
           Quiz Flash
         </Link>
       </div>
@@ -50,29 +50,29 @@ export default async function Header() {
       </div>
 
       {/* Right */}
-      <div className="flex items-center justify-end gap-2 md:gap-4 shrink-0">
-        <button className="md:hidden w-10 h-10 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors hover:bg-white/5 rounded-xl">
+      <div className="flex items-center justify-end gap-1.5 md:gap-4 shrink-0">
+        <button className="md:hidden w-9 h-9 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors hover:bg-white/5 rounded-xl active:scale-95">
           <Search className="h-5 w-5" />
         </button>
         {user ? (
           <>
-            <Link href="/create-set" className="h-10 w-10 rounded-full bg-[#4255ff] flex items-center justify-center hover:bg-[#5b6aff] transition-colors shrink-0 md:mr-1">
-              <Plus className="h-6 w-6 text-foreground" />
+            <Link href="/create-set" className="h-9 w-9 md:h-10 md:w-10 rounded-full bg-[#4255ff] flex items-center justify-center hover:bg-[#5b6aff] active:scale-95 transition-all shrink-0 md:mr-1 shadow-md shadow-[#4255ff]/20">
+              <Plus className="h-5 w-5 md:h-6 md:w-6 text-foreground" />
             </Link>
             
             <UserMenu user={user} />
           </>
         ) : (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <Link 
               href="/login" 
-              className="px-4 py-2 text-sm font-bold text-foreground hover:text-muted-foreground transition-colors"
+              className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold text-foreground hover:text-muted-foreground transition-colors"
             >
               Log in
             </Link>
             <Link 
               href="/login" 
-              className="px-4 py-2 text-sm font-bold text-[#0a092d] bg-[#ffcd1f] rounded-[4px] hover:bg-[#e5b81c] transition-colors"
+              className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold text-[#0a092d] bg-[#ffcd1f] rounded-[4px] hover:bg-[#e5b81c] transition-colors"
             >
               Sign up
             </Link>

@@ -13,10 +13,11 @@ import {
   Trophy,
   BarChart3,
   LineChart,
-  Menu
+  Menu,
+  X
 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
-import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader, SheetClose } from '@/components/ui/sheet';
 
 export default function MobileNav() {
   const pathname = usePathname();
@@ -59,11 +60,31 @@ export default function MobileNav() {
       >
         <Menu className="h-6 w-6" />
       </SheetTrigger>
-      <SheetContent side="left" className="w-[280px] p-0 border-r border-border bg-background">
-        <SheetHeader className="p-4 border-b border-white/5 text-left sr-only">
+      <SheetContent side="left" className="w-[280px] p-0 border-r border-border bg-background flex flex-col h-full" showCloseButton={false}>
+        {/* Header section with brand logo and close button */}
+        <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/10 shrink-0">
+          <Link href="/" className="flex items-center gap-2" onClick={() => setIsOpen(false)}>
+            <span className="text-[20px] font-black tracking-tight bg-gradient-to-r from-[#b892ff] via-[#6d7bff] to-[#4255ff] text-transparent bg-clip-text">
+              Quiz Flash
+            </span>
+          </Link>
+          <SheetClose 
+            render={
+              <button 
+                className="w-9 h-9 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/10 active:scale-95 transition-all cursor-pointer border border-white/5"
+                aria-label="Close navigation menu"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            } 
+          />
+        </div>
+        <SheetHeader className="sr-only">
           <SheetTitle>Navigation Menu</SheetTitle>
         </SheetHeader>
-        <div className="flex flex-col py-4 px-2 h-full overflow-y-auto">
+
+        {/* Scrollable Content */}
+        <div className="flex flex-col py-3 px-2 flex-1 overflow-y-auto">
           {/* Top Nav Items */}
           <div className="flex flex-col gap-1 w-full">
             {topNavItems.map((item, i) => (
@@ -86,8 +107,8 @@ export default function MobileNav() {
             ))}
           </div>
 
-          <div className="w-full flex justify-center my-4">
-            <div className="w-[80%] h-px bg-border"></div>
+          <div className="w-full flex justify-center my-3">
+            <div className="w-[85%] h-px bg-border"></div>
           </div>
 
           <div className="flex flex-col gap-1 w-full">
@@ -108,8 +129,8 @@ export default function MobileNav() {
             </Link>
           </div>
 
-          <div className="w-full flex justify-center my-4">
-            <div className="w-[80%] h-px bg-border"></div>
+          <div className="w-full flex justify-center my-3">
+            <div className="w-[85%] h-px bg-border"></div>
           </div>
 
           <div className="flex flex-col gap-1 w-full">

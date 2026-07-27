@@ -8,6 +8,7 @@ import EditDisplayName from '../_components/edit-display-name';
 import ModePerformance from '../_components/mode-performance';
 import DailyGoalCard from '../_components/daily-goal-card';
 import { createClient } from '@/utils/supabase/server';
+import { RankBadge } from '@/components/shared/rank-badge';
 
 export const revalidate = 0; // Fresh stats on each load
 
@@ -86,27 +87,24 @@ export default async function UserStatusPage({ params }: PageProps) {
         
         {/* Stats Badges */}
         <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-3 px-5 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl transition-all hover:bg-white/10 hover:scale-105 group hover:border-[#b892ff]/40">
-            <Trophy className="w-6 h-6 group-hover:scale-110 transition-transform" style={{ stroke: 'url(#logoGradient)' }} />
-            <div>
-              <p className="text-[10px] bg-gradient-to-r from-[#b892ff] via-[#6d7bff] to-[#4255ff] text-transparent bg-clip-text uppercase font-extrabold tracking-widest">Rank</p>
-              <p className="font-bold text-white text-base">{profile?.current_rank || 'Iron'}</p>
-            </div>
+          <div className="flex flex-col gap-1.5 p-4 bg-[#0a092d]/60 backdrop-blur-xl border border-white/10 rounded-2xl transition-all hover:bg-white/10 min-w-[200px]">
+            <p className="text-[10px] bg-gradient-to-r from-[#b892ff] via-[#6d7bff] to-[#4255ff] text-transparent bg-clip-text uppercase font-extrabold tracking-widest">Rank Tier & Progress</p>
+            <RankBadge rank={profile?.current_rank} points={profile?.points || 0} size="md" showProgress />
           </div>
           
-          <div className="flex items-center gap-3 px-5 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl transition-all hover:bg-white/10 hover:scale-105 group hover:border-[#b892ff]/40">
-            <Star className="w-6 h-6 group-hover:scale-110 transition-transform" style={{ stroke: 'url(#logoGradient)' }} />
+          <div className="flex items-center gap-3 px-5 py-4 bg-[#0a092d]/60 backdrop-blur-xl border border-white/10 rounded-2xl transition-all hover:bg-white/10 group">
+            <Star className="w-6 h-6 text-amber-400 group-hover:scale-110 transition-transform fill-amber-400/20" />
             <div>
               <p className="text-[10px] bg-gradient-to-r from-[#b892ff] via-[#6d7bff] to-[#4255ff] text-transparent bg-clip-text uppercase font-extrabold tracking-widest">Points</p>
-              <p className="font-bold text-white text-base">{profile?.points || 0}</p>
+              <p className="font-bold text-amber-300 text-lg font-mono">{profile?.points?.toLocaleString() || 0}</p>
             </div>
           </div>
           
-          <div className="flex items-center gap-3 px-5 py-3 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl transition-all hover:bg-white/10 hover:scale-105 group hover:border-[#b892ff]/40">
-            <BookOpen className="w-6 h-6 group-hover:scale-110 transition-transform" style={{ stroke: 'url(#logoGradient)' }} />
+          <div className="flex items-center gap-3 px-5 py-4 bg-[#0a092d]/60 backdrop-blur-xl border border-white/10 rounded-2xl transition-all hover:bg-white/10 group">
+            <BookOpen className="w-6 h-6 text-[#9fa6ff] group-hover:scale-110 transition-transform" />
             <div>
-              <p className="text-[10px] bg-gradient-to-r from-[#b892ff] via-[#6d7bff] to-[#4255ff] text-transparent bg-clip-text uppercase font-extrabold tracking-widest">Words</p>
-              <p className="font-bold text-white text-base">{profile?.words_learned || 0}</p>
+              <p className="text-[10px] bg-gradient-to-r from-[#b892ff] via-[#6d7bff] to-[#4255ff] text-transparent bg-clip-text uppercase font-extrabold tracking-widest">Words Learned</p>
+              <p className="font-bold text-white text-lg font-mono">{profile?.words_learned?.toLocaleString() || 0}</p>
             </div>
           </div>
         </div>
