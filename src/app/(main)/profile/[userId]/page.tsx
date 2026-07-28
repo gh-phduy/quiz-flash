@@ -5,6 +5,7 @@ import { Star, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import { UserAvatar } from '@/components/shared/user-avatar';
 import EditDisplayName from '../_components/edit-display-name';
+import EditAvatar from '../_components/edit-avatar';
 import ModePerformance from '../../status/_components/mode-performance';
 import DailyGoalCard from '../../status/_components/daily-goal-card';
 import { createClient } from '@/utils/supabase/server';
@@ -70,12 +71,17 @@ export default async function UserProfilePage({ params }: PageProps) {
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#b892ff]/15 rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-5 sm:gap-6 relative z-10">
-          <UserAvatar 
-            src={avatarUrl}
-            alt="Avatar"
-            fallbackSeed={profile?.id || 'default'}
-            className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-[3px] border-[#b892ff] bg-gray-900 shrink-0 shadow-[0_0_25px_rgba(184,146,255,0.4)]"
-          />
+          <div className="relative shrink-0 group">
+            <UserAvatar 
+              src={avatarUrl}
+              alt="Avatar"
+              fallbackSeed={profile?.id || 'default'}
+              className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-[3px] border-[#b892ff] bg-gray-900 shadow-[0_0_25px_rgba(184,146,255,0.4)]"
+            />
+            {isOwner && (
+              <EditAvatar currentUrl={avatarUrl} userId={userId} />
+            )}
+          </div>
           <div className="space-y-1.5 min-w-0">
             {isOwner ? (
               <EditDisplayName currentName={displayName} />

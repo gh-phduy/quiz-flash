@@ -86,7 +86,7 @@ export default function PwaInstallPrompt() {
   if (!isVisible || isStandalone) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 left-4 sm:left-auto sm:max-w-md z-50 animate-in fade-in slide-in-from-bottom-5 duration-300 pointer-events-none">
+    <div className="md:hidden fixed bottom-4 right-4 left-4 sm:left-auto sm:max-w-md z-50 animate-in fade-in slide-in-from-bottom-5 duration-300 pointer-events-none">
       <div className="relative overflow-hidden rounded-2xl bg-slate-900/90 border border-indigo-500/30 p-4 shadow-2xl backdrop-blur-xl text-white pointer-events-auto">
         {/* Ambient Glow */}
         <div className="absolute -top-12 -left-12 w-24 h-24 bg-indigo-500/20 rounded-full blur-2xl pointer-events-none" />

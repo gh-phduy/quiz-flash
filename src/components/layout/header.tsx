@@ -32,8 +32,8 @@ export default async function Header() {
       <div className="flex items-center gap-2 md:gap-5 shrink-0">
         <SidebarToggle />
         <MobileNav />
-        <Link href="/" className="text-[20px] md:text-[24px] font-black tracking-tight bg-gradient-to-r from-[#b892ff] via-[#6d7bff] to-[#4255ff] text-transparent bg-clip-text hover:brightness-125 transition-all drop-shadow-[0_2px_10px_rgba(184,146,255,0.3)] pr-2 md:pr-4">
-          Quiz Flash
+        <Link href="/" className="text-[24px] md:text-[28px] font-black tracking-tight bg-gradient-to-r from-[#b892ff] via-[#6d7bff] to-[#4255ff] text-transparent bg-clip-text hover:brightness-125 transition-all drop-shadow-[0_2px_10px_rgba(184,146,255,0.3)] pr-2 md:pr-4">
+          QuizFlash
         </Link>
       </div>
 

@@ -46,3 +46,43 @@ export async function updateDisplayName(newName: string) {
     return { success: false, error: 'Failed to update display name' };
   }
 }
+
+export async function updateAvatarUrl(newAvatarUrl: string) {
+  try {
+    const supabase = await createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    const { error: authError } = await supabase.auth.updateUser({
+      data: { avatar_url: newAvatarUrl }
+    });
+
+    if (authError) {
+      return { success: false, error: authError.message };
+    }
+
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ avatar_url: newAvatarUrl })
+      .eq('id', session.user.id);
+      
+    if (profileError) {
+      console.error('Error updating profile avatar:', profileError);
+      // We don't fail completely if auth updated successfully
+    }
+
+    revalidatePath('/profile');
+    revalidatePath('/status');
+    revalidatePath('/leaderboard');
+    revalidatePath('/user/[id]', 'page');
+    revalidatePath('/', 'layout');
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating avatar:', error);
+    return { success: false, error: 'Failed to update avatar' };
+  }
+}

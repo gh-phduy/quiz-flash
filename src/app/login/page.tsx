@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 function LoginContent() {
   const router = useRouter();
@@ -24,18 +25,51 @@ function LoginContent() {
     }
   }, [searchParams]);
 
+  // Handle implicit flow (e.g. email confirmation links with hash fragment)
+  useEffect(() => {
+    const supabase = createClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        router.push('/');
+        router.refresh();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [router]);
+
+  // Fix stuck loading state when navigating back (BFCache)
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        setLoading(false);
+        toast.dismiss(); // dismiss any loading toasts
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
+
   // Form State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const clearMessages = () => {
+    setErrorMsg(null);
+    setSuccessMsg(null);
+  };
 
   const handleGoogleLogin = async () => {
     if (loading) return;
     setLoading(true);
-    setErrorMsg(null);
-    const loadingToast = toast.loading('Đang chuyển hướng sang Google Login...');
+    clearMessages();
+    const loadingToast = toast.loading('Redirecting to Google Login...');
 
     try {
       const supabase = createClient();
@@ -51,14 +85,14 @@ function LoginContent() {
 
       if (error) {
         console.error('Google Auth Error:', error);
-        setErrorMsg(`Lỗi Google Login: ${error.message}`);
+        setErrorMsg(`Google Login Error: ${error.message}`);
         toast.dismiss(loadingToast);
-        toast.error(`Google Login thất bại: ${error.message}`);
+        toast.error(`Google Login failed: ${error.message}`);
         setLoading(false);
       }
     } catch (err: any) {
       console.error('Google Auth Exception:', err);
-      const msg = err.message || 'Không thể kết nối đến Google OAuth.';
+      const msg = err.message || 'Unable to connect to Google OAuth.';
       setErrorMsg(msg);
       toast.dismiss(loadingToast);
       toast.error(msg);
@@ -68,24 +102,24 @@ function LoginContent() {
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg(null);
+    clearMessages();
 
     if (!email.trim() || !password.trim()) {
-      const msg = 'Vui lòng nhập đầy đủ Email và Mật khẩu!';
+      const msg = 'Please enter your Email and Password!';
       setErrorMsg(msg);
       toast.error(msg);
       return;
     }
 
     if (!isLogin && !acceptTerms) {
-      const msg = 'Vui lòng tích chọn đồng ý Điều khoản dịch vụ!';
+      const msg = 'Please accept the Terms of Service!';
       setErrorMsg(msg);
       toast.error(msg);
       return;
     }
 
     setLoading(true);
-    const authToast = toast.loading(isLogin ? 'Đang đăng nhập...' : 'Đang tạo tài khoản...');
+    const authToast = toast.loading(isLogin ? 'Logging in...' : 'Creating account...');
 
     try {
       const supabase = createClient();
@@ -99,13 +133,14 @@ function LoginContent() {
         if (error) {
           toast.dismiss(authToast);
           setErrorMsg(error.message);
-          toast.error(`Đăng nhập thất bại: ${error.message}`);
+          toast.error(`Login failed: ${error.message}`);
           setLoading(false);
           return;
         }
 
         toast.dismiss(authToast);
-        toast.success('Đăng nhập thành công!');
+        toast.success('Logged in successfully!');
+        setLoading(false);
         router.push('/');
         router.refresh();
       } else {
@@ -123,14 +158,14 @@ function LoginContent() {
         if (error) {
           toast.dismiss(authToast);
           setErrorMsg(error.message);
-          toast.error(`Đăng ký thất bại: ${error.message}`);
+          toast.error(`Sign up failed: ${error.message}`);
           setLoading(false);
           return;
         }
 
         if (data?.user?.identities?.length === 0) {
           toast.dismiss(authToast);
-          const msg = 'Email này đã được đăng ký tài khoản trước đó.';
+          const msg = 'This email is already registered.';
           setErrorMsg(msg);
           toast.error(msg);
           setLoading(false);
@@ -138,14 +173,24 @@ function LoginContent() {
         }
 
         toast.dismiss(authToast);
-        toast.success('Đăng ký thành công! Chào mừng bạn đến với QuizFlash.');
-        router.push('/');
-        router.refresh();
+        setLoading(false);
+        
+        if (data.session === null) {
+          // Requires email confirmation
+          toast.success('Signed up successfully!');
+          setSuccessMsg('Almost there! Please check your email to verify your account.');
+          setIsLogin(true); // Switch to login tab
+        } else {
+          // Logged in automatically
+          toast.success('Signed up successfully! Welcome to QuizFlash.');
+          router.push('/');
+          router.refresh();
+        }
       }
     } catch (err: any) {
       console.error(err);
       toast.dismiss(authToast);
-      const msg = err.message || 'Xảy ra lỗi trong quá trình xác thực.';
+      const msg = err.message || 'An error occurred during authentication.';
       setErrorMsg(msg);
       toast.error(msg);
       setLoading(false);
@@ -171,17 +216,16 @@ function LoginContent() {
       </div>
 
       {/* Right side - Form */}
-      <div className="w-full lg:w-[55%] bg-white flex flex-col py-8 sm:py-12 px-6 sm:px-20 lg:px-32 relative z-20">
-        <div className="max-w-[480px] w-full mx-auto mt-2 sm:mt-6">
+      <div className="w-full lg:w-[55%] bg-white flex flex-col justify-center py-8 sm:py-12 px-6 sm:px-20 lg:px-32 relative z-20">
+        <div className="max-w-[480px] w-full mx-auto">
           
           {/* High-Contrast Segmented Tab Switcher */}
           <div className="flex p-1.5 rounded-2xl bg-slate-100 border border-slate-200 mb-6 relative z-50 shadow-inner">
             <button 
               type="button"
               onClick={() => {
-                console.log("Tab Sign up clicked");
                 setIsLogin(false);
-                setErrorMsg(null);
+                clearMessages();
               }}
               className={`flex-1 py-3 text-base sm:text-lg font-black rounded-xl transition-all duration-200 select-none cursor-pointer text-center touch-manipulation ${
                 !isLogin 
@@ -194,9 +238,8 @@ function LoginContent() {
             <button 
               type="button"
               onClick={() => {
-                console.log("Tab Log in clicked");
                 setIsLogin(true);
-                setErrorMsg(null);
+                clearMessages();
               }}
               className={`flex-1 py-3 text-base sm:text-lg font-black rounded-xl transition-all duration-200 select-none cursor-pointer text-center touch-manipulation ${
                 isLogin 
@@ -208,15 +251,22 @@ function LoginContent() {
             </button>
           </div>
 
-          {/* Mode Description Indicator */}
-          <div className="mb-6 px-4 py-3 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-900 text-xs sm:text-sm font-bold flex items-center justify-between">
-            <span>Đang chọn chế độ: <strong className="text-[#4255ff] uppercase font-black ml-1">{isLogin ? 'Đăng nhập (Log in)' : 'Tạo tài khoản (Sign up)'}</strong></span>
-          </div>
 
-          {/* Error Banner */}
-          {errorMsg && (
-            <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs sm:text-sm font-semibold relative z-30">
-              ⚠️ {errorMsg}
+          {/* Status Banners */}
+          {(errorMsg || successMsg) && (
+            <div className="relative z-30 mb-6 space-y-3">
+              {errorMsg && (
+                <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs sm:text-sm font-semibold flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300 shadow-sm">
+                  <span className="text-lg">⚠️</span>
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+              {successMsg && (
+                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs sm:text-sm font-semibold flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300 shadow-sm">
+                  <span className="text-lg">✅</span>
+                  <span>{successMsg}</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -235,16 +285,25 @@ function LoginContent() {
                 <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
                 <path fill="none" d="M0 0h48v48H0z"/>
               </svg>
-              <span>{loading ? 'Đang xử lý...' : 'Continue with Google'}</span>
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-slate-500" />
+                  <span className="text-slate-500">Processing...</span>
+                </div>
+              ) : (
+                <span>Continue with Google</span>
+              )}
             </button>
           </div>
           
           {/* Divider */}
           <div className="mt-6 mb-6 flex items-center gap-4 relative z-30">
             <div className="flex-1 h-[2px] bg-slate-100"></div>
-            <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">hoặc dùng email</span>
+            <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">or continue with email</span>
             <div className="flex-1 h-[2px] bg-slate-100"></div>
           </div>
+
+          {/* Demo Account Info Removed */}
 
           {/* Email/Password Form */}
           <form onSubmit={handleEmailAuth} className="space-y-4 relative z-30">
@@ -287,16 +346,16 @@ function LoginContent() {
             </div>
 
             {!isLogin && (
-              <div className="flex items-start gap-3 mt-3">
+              <div className="flex items-center gap-3 mt-3">
                 <input 
                   type="checkbox" 
                   id="terms"
                   checked={acceptTerms}
                   onChange={(e) => setAcceptTerms(e.target.checked)}
-                  className="mt-1 w-5 h-5 border-2 border-[#e5e7eb] rounded cursor-pointer accent-[#4255ff] shrink-0" 
+                  className="w-5 h-5 border-2 border-[#e5e7eb] rounded cursor-pointer accent-[#4255ff] shrink-0" 
                 />
                 <label htmlFor="terms" className="text-[13px] text-[#586380] font-semibold cursor-pointer select-none">
-                  Tôi đồng ý với Điều khoản dịch vụ và Chính sách bảo mật của QuizFlash.
+                  I agree to QuizFlash's Terms of Service and Privacy Policy.
                 </label>
               </div>
             )}
@@ -304,9 +363,16 @@ function LoginContent() {
             <button 
               type="submit"
               disabled={loading}
-              className="w-full bg-[#4255ff] text-white font-bold rounded-xl p-4 mt-6 hover:bg-[#5b6aff] active:bg-[#3646d9] active:scale-[0.98] transition-all cursor-pointer shadow-lg disabled:opacity-50 select-none touch-manipulation"
+              className="w-full bg-[#4255ff] text-white font-bold rounded-xl p-4 mt-6 hover:bg-[#5b6aff] active:bg-[#3646d9] active:scale-[0.98] transition-all cursor-pointer shadow-lg disabled:opacity-50 select-none touch-manipulation flex items-center justify-center gap-2"
             >
-              {loading ? 'Đang xử lý...' : (isLogin ? 'Đăng nhập (Log in)' : 'Tạo tài khoản (Sign up)')}
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Processing...</span>
+                </>
+              ) : (
+                <span>{isLogin ? 'Log in' : 'Sign up'}</span>
+              )}
             </button>
           </form>
         </div>
@@ -317,7 +383,7 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center font-bold text-slate-800">Đang tải trang xác thực...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center font-bold text-slate-800">Loading authentication page...</div>}>
       <LoginContent />
     </Suspense>
   );

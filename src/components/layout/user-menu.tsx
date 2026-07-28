@@ -1,10 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Trophy, Settings, Sun, Moon, LogOut } from 'lucide-react';
-import { useTheme } from 'next-themes';
 import Link from 'next/link';
-import Image from 'next/image';
+import { UserAvatar } from '@/components/shared/user-avatar';
 
 interface UserMenuProps {
   user: {
@@ -19,7 +17,6 @@ interface UserMenuProps {
 export default function UserMenu({ user }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const { theme, setTheme } = useTheme();
 
   const email = user.email || '';
   const username = user.user_metadata?.full_name || email.split('@')[0];
@@ -41,13 +38,11 @@ export default function UserMenu({ user }: UserMenuProps) {
         onClick={() => setIsOpen(!isOpen)}
         className="relative block h-10 w-10 rounded-full bg-gray-600 overflow-hidden border-2 border-transparent hover:border-border transition-all cursor-pointer outline-none focus:ring-2 focus:ring-ring"
       >
-        <Image 
+        <UserAvatar 
           src={avatarUrl}
           alt="Avatar" 
-          fill
-          sizes="40px"
-          referrerPolicy="no-referrer"
-          className="object-cover"
+          fallbackSeed={email}
+          className="w-full h-full"
         />
       </button>
 
@@ -57,45 +52,12 @@ export default function UserMenu({ user }: UserMenuProps) {
           {/* User Info */}
           <div className="p-4 flex items-center gap-3 bg-background">
             <div className="relative h-12 w-12 rounded-full overflow-hidden shrink-0 border border-border bg-white">
-              <Image src={avatarUrl} alt="Avatar" fill sizes="48px" referrerPolicy="no-referrer" className="object-cover" />
+              <UserAvatar src={avatarUrl} alt="Avatar" fallbackSeed={email} className="w-full h-full" />
             </div>
             <div className="flex flex-col min-w-0">
               <span className="font-bold text-[15px] truncate">{username}</span>
               <span className="text-sm text-muted-foreground truncate">{email}</span>
             </div>
-          </div>
-
-          <div className="h-[1px] bg-border" />
-
-          {/* Primary Actions */}
-          <div className="py-2 bg-card">
-            <Link href="/achievements" className="flex items-center gap-3 px-4 py-2 hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setIsOpen(false)}>
-              <Trophy className="w-5 h-5 text-muted-foreground" />
-              <span className="text-sm font-semibold text-foreground">Achievements</span>
-            </Link>
-            <Link href="/settings" className="flex items-center gap-3 px-4 py-2 hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setIsOpen(false)}>
-              <Settings className="w-5 h-5 text-muted-foreground" />
-              <span className="text-sm font-semibold text-foreground">Settings</span>
-            </Link>
-            <button 
-              className="w-full flex items-center gap-3 px-4 py-2 hover:bg-muted/50 transition-colors cursor-pointer text-left" 
-              onClick={() => {
-                setTheme(theme === 'dark' ? 'light' : 'dark');
-                setIsOpen(false);
-              }}
-            >
-              {theme === 'dark' ? (
-                <>
-                  <Sun className="w-5 h-5 text-muted-foreground" />
-                  <span className="text-sm font-semibold text-foreground">Light mode</span>
-                </>
-              ) : (
-                <>
-                  <Moon className="w-5 h-5 text-muted-foreground" />
-                  <span className="text-sm font-semibold text-foreground">Dark mode</span>
-                </>
-              )}
-            </button>
           </div>
 
           <div className="h-[1px] bg-border" />
@@ -107,21 +69,6 @@ export default function UserMenu({ user }: UserMenuProps) {
                 Log out
               </button>
             </form>
-          </div>
-
-          <div className="h-[1px] bg-border" />
-
-          {/* Footer Links */}
-          <div className="py-2 bg-background">
-            <Link href="/privacy" className="block px-4 py-2 text-sm font-semibold text-foreground hover:bg-accent transition-colors cursor-pointer" onClick={() => setIsOpen(false)}>
-              Privacy policy
-            </Link>
-            <Link href="/help" className="block px-4 py-2 text-sm font-semibold text-foreground hover:bg-accent transition-colors cursor-pointer" onClick={() => setIsOpen(false)}>
-              Help and feedback
-            </Link>
-            <Link href="/upgrade" className="block px-4 py-2 text-sm font-semibold text-foreground hover:bg-accent transition-colors cursor-pointer" onClick={() => setIsOpen(false)}>
-              Upgrade
-            </Link>
           </div>
         </div>
       )}

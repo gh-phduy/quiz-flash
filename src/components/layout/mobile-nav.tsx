@@ -63,7 +63,7 @@ export default function MobileNav() {
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/10 shrink-0">
           <Link href="/" className="flex items-center gap-2" onClick={() => setIsOpen(false)}>
             <span className="text-[20px] font-black tracking-tight bg-gradient-to-r from-[#b892ff] via-[#6d7bff] to-[#4255ff] text-transparent bg-clip-text">
-              Quiz Flash
+              QuizFlash
             </span>
           </Link>
           <SheetClose 

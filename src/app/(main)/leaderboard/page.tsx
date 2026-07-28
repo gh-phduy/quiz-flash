@@ -1,7 +1,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { Trophy, Medal, Star, BookOpen, Crown, Sparkles, UserCheck } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { UserAvatar } from '@/components/shared/user-avatar';
 import { RankBadge } from '@/components/shared/rank-badge';
 
 export const revalidate = 60; // Revalidate every 60 seconds
@@ -67,13 +67,12 @@ export default async function LeaderboardPage() {
                 className="flex flex-col items-center p-2.5 sm:p-5 rounded-2xl sm:rounded-3xl bg-[#0a092d]/70 backdrop-blur-xl border border-slate-300/30 hover:border-slate-300/60 shadow-xl transition-all active:scale-95 group text-center relative min-w-0"
               >
                 <div className="relative mb-2 sm:mb-3">
-                  <div className="relative w-12 h-12 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 sm:border-3 border-slate-300 shadow-[0_0_15px_rgba(203,213,225,0.4)] group-hover:scale-105 transition-transform">
-                    <Image 
+                  <div className="relative w-12 h-12 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 sm:border-3 border-slate-300 shadow-[0_0_15px_rgba(203,213,225,0.4)] group-hover:scale-105 transition-transform bg-gray-900">
+                    <UserAvatar 
                       src={top2.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${top2.id}`} 
                       alt={top2.full_name || 'Player'} 
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 48px, 80px"
+                      fallbackSeed={top2.id}
+                      className="w-full h-full"
                     />
                   </div>
                   <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-slate-300 text-slate-950 font-black text-[10px] sm:text-xs shadow-md border border-white">
@@ -103,13 +102,12 @@ export default async function LeaderboardPage() {
                   <Crown className="w-7 h-7 sm:w-9 sm:h-9 fill-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.8)]" />
                 </div>
                 <div className="relative mb-2 sm:mb-3 mt-1 sm:mt-2">
-                  <div className="relative w-16 h-16 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 sm:border-4 border-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.5)] group-hover:scale-105 transition-transform">
-                    <Image 
+                  <div className="relative w-16 h-16 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 sm:border-4 border-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.5)] group-hover:scale-105 transition-transform bg-gray-900">
+                    <UserAvatar 
                       src={top1.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${top1.id}`} 
                       alt={top1.full_name || 'Champion'} 
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 56px, 96px"
+                      fallbackSeed={top1.id}
+                      className="w-full h-full"
                     />
                   </div>
                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-yellow-400 text-yellow-950 font-black text-xs shadow-lg border border-white">
@@ -136,13 +134,12 @@ export default async function LeaderboardPage() {
                 className="flex flex-col items-center p-2.5 sm:p-5 rounded-2xl sm:rounded-3xl bg-[#0a092d]/70 backdrop-blur-xl border border-[#cd7f32]/30 hover:border-[#cd7f32]/60 shadow-xl transition-all active:scale-95 group text-center relative min-w-0"
               >
                 <div className="relative mb-2 sm:mb-3">
-                  <div className="relative w-12 h-12 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 sm:border-3 border-[#cd7f32] shadow-[0_0_15px_rgba(205,127,50,0.4)] group-hover:scale-105 transition-transform">
-                    <Image 
+                  <div className="relative w-12 h-12 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 sm:border-3 border-[#cd7f32] shadow-[0_0_15px_rgba(205,127,50,0.4)] group-hover:scale-105 transition-transform bg-gray-900">
+                    <UserAvatar 
                       src={top3.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${top3.id}`} 
                       alt={top3.full_name || 'Player'} 
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 48px, 80px"
+                      fallbackSeed={top3.id}
+                      className="w-full h-full"
                     />
                   </div>
                   <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-[#cd7f32] text-white font-black text-[10px] sm:text-xs shadow-md border border-white">
@@ -215,7 +212,7 @@ export default async function LeaderboardPage() {
                     <div className={`relative w-9 h-9 sm:w-11 sm:h-11 rounded-full overflow-hidden bg-gray-900 shrink-0 border-2 ${
                       isCurrentUser ? 'border-[#b892ff] shadow-[0_0_10px_rgba(184,146,255,0.4)]' : 'border-white/10'
                     }`}>
-                      <Image src={avatar} alt={displayName} fill sizes="(max-width: 768px) 36px, 44px" referrerPolicy="no-referrer" className="object-cover" />
+                      <UserAvatar src={avatar} alt={displayName} fallbackSeed={player.id} className="w-full h-full" />
                     </div>
                     <div className="flex flex-col min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
@@ -280,13 +277,12 @@ export default async function LeaderboardPage() {
             <div className="px-2 py-1 rounded-lg bg-[#4255ff]/20 text-[#9fa6ff] border border-[#4255ff]/30 text-xs font-black font-mono shrink-0">
               #{currentUserRank}
             </div>
-            <div className="relative w-8 h-8 rounded-full overflow-hidden border border-[#b892ff] shrink-0">
-                <Image 
+            <div className="relative w-8 h-8 rounded-full overflow-hidden border border-[#b892ff] shrink-0 bg-gray-900">
+                <UserAvatar 
                   src={user.user_metadata?.avatar_url || currentUserPlayer.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`} 
                   alt="Avatar" 
-                  fill
-                  sizes="32px"
-                  className="object-cover" 
+                  fallbackSeed={user.id}
+                  className="w-full h-full" 
                 />
             </div>
             <div className="flex flex-col min-w-0">
