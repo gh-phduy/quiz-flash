@@ -6,6 +6,7 @@ import {
   Mic, Square, Volume2, VolumeX, Play, Pause, X, Home, RefreshCw, 
   Trophy, ThumbsUp, ThumbsDown, SlidersHorizontal, Settings
 } from 'lucide-react';
+import Image from 'next/image';
 import confetti from 'canvas-confetti';
 import { ModeSwitcher } from '@/components/shared/mode-switcher';
 import { playAudio } from '@/lib/speech';
@@ -512,8 +513,7 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
             {/* Optional Image */}
             {currentCard.image_url && (
               <div className="w-28 h-28 relative rounded-2xl overflow-hidden border border-white/10 mb-4">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={currentCard.image_url} alt={currentCard.term} className="w-full h-full object-cover" />
+                <Image src={currentCard.image_url} alt={currentCard.term} fill sizes="112px" className="object-cover" />
               </div>
             )}
 

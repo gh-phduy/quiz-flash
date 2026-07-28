@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Trophy, Settings, Sun, Moon, LogOut } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface UserMenuProps {
   user: {
@@ -40,11 +41,13 @@ export default function UserMenu({ user }: UserMenuProps) {
         onClick={() => setIsOpen(!isOpen)}
         className="block h-10 w-10 rounded-full bg-gray-600 overflow-hidden border-2 border-transparent hover:border-border transition-all cursor-pointer outline-none focus:ring-2 focus:ring-ring"
       >
-        <img 
+        <Image 
           src={avatarUrl}
           alt="Avatar" 
+          fill
+          sizes="40px"
           referrerPolicy="no-referrer"
-          className="w-full h-full object-cover"
+          className="object-cover"
         />
       </button>
 
@@ -54,7 +57,7 @@ export default function UserMenu({ user }: UserMenuProps) {
           {/* User Info */}
           <div className="p-4 flex items-center gap-3 bg-background">
             <div className="h-12 w-12 rounded-full overflow-hidden shrink-0 border border-border bg-white">
-              <img src={avatarUrl} alt="Avatar" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+              <Image src={avatarUrl} alt="Avatar" fill sizes="48px" referrerPolicy="no-referrer" className="object-cover" />
             </div>
             <div className="flex flex-col min-w-0">
               <span className="font-bold text-[15px] truncate">{username}</span>

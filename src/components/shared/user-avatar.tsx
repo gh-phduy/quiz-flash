@@ -15,11 +15,13 @@ export function UserAvatar({ src, alt, fallbackSeed, className = "" }: UserAvata
 
   return (
     <div className={`relative overflow-hidden ${className}`}>
-      <img
+      <Image
         src={imgSrc}
         alt={alt}
+        fill
+        sizes="(max-width: 768px) 40px, 56px"
         referrerPolicy="no-referrer"
-        className="w-full h-full object-cover"
+        className="object-cover"
         onError={() => {
           // If the primary image fails, fallback to dicebear
           setImgSrc(`https://api.dicebear.com/7.x/avataaars/svg?seed=${fallbackSeed}`);

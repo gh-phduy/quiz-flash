@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { X, RotateCcw, Home, Lightbulb, Volume2, VolumeX } from 'lucide-react';
 import { ModeSwitcher } from '@/components/shared/mode-switcher';
+import Image from 'next/image';
 import { recordStudyActivity } from '@/actions/study';
 import { recordCardReview } from '@/actions/review';
 import { updateGameScores, logGameSession, checkNewCardsForSession, generateGameSession } from '@/actions/game';
@@ -476,11 +477,12 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
                   {tile.imageUrl ? (
                     <div className="w-full h-full flex flex-col items-center justify-center gap-1 overflow-hidden pt-1">
                       <div className="relative w-full flex-1 max-h-[50%] sm:max-h-[58%] rounded-xl overflow-hidden shrink-0 border border-white/5 group-hover:border-indigo-500/25 transition-colors">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img 
+                        <Image 
                           src={tile.imageUrl} 
                           alt="card image" 
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          fill
+                          sizes="(max-width: 768px) 150px, 200px"
+                          className="object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       </div>
                       <div className="flex flex-col items-center gap-0.5 min-h-0">

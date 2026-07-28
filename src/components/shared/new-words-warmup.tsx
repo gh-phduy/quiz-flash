@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Volume2, Sparkles, CheckCircle2, XCircle, ArrowRight, Zap, Play } from 'lucide-react';
+import Image from 'next/image';
 import confetti from 'canvas-confetti';
 import { playAudio } from '@/lib/speech';
 import { VoiceSettingsSidebar, VoiceSettingsTriggerButton } from '@/components/shared/voice-settings-sidebar';
@@ -201,8 +202,7 @@ export function NewWordsWarmup({ newCards, allSetCards = [], onComplete, onSkip 
             <div className="space-y-5 flex flex-col items-center text-center relative z-10">
               {currentCard.image_url && (
                 <div className="w-28 h-28 sm:w-36 sm:h-36 relative rounded-2xl overflow-hidden border border-white/15 shadow-xl mb-1">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={currentCard.image_url} alt={currentCard.term} className="w-full h-full object-cover" />
+                  <Image src={currentCard.image_url} alt={currentCard.term} fill sizes="(max-width: 768px) 112px, 144px" className="object-cover" />
                 </div>
               )}
 

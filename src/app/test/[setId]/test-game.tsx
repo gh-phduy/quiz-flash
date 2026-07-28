@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { X, Check, X as XIcon, Settings, Printer, Lightbulb, RotateCcw, Home, ArrowLeft } from 'lucide-react';
+import Image from 'next/image';
 import { getTestEvaluation, EvaluationResult } from '@/utils/evaluation';
 import {
   Dialog,
@@ -430,8 +431,8 @@ export default function TestGame({ set, cards }: TestGameProps) {
                       )}
                     </div>
                     {q.promptImage && (
-                      <div className="w-32 h-32 rounded-lg overflow-hidden shrink-0">
-                        <img src={q.promptImage} alt="Prompt" className="w-full h-full object-cover" />
+                      <div className="w-32 h-32 relative rounded-lg overflow-hidden shrink-0">
+                        <Image src={q.promptImage} alt="Prompt" fill sizes="128px" className="object-cover" />
                       </div>
                     )}
                   </div>

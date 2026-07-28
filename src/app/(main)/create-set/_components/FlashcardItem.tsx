@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import Image from 'next/image';
 import { GripHorizontal, Trash2, Image as ImageIcon, Search, Upload, X, Loader2, ClipboardPaste } from 'lucide-react';
 import { CardItem, FormErrors } from '@/shared/types/set';
 import { fetchWordData } from '@/lib/dictionary';
@@ -346,10 +347,12 @@ export const FlashcardItem = React.memo(function FlashcardItem({
             {card.image_url ? (
               // Trạng thái đã có ảnh
               <div className="relative w-full h-full rounded-lg overflow-hidden group/image border border-border bg-background">
-                <img 
+                <Image 
                   src={card.image_url} 
                   alt="Uploaded preview" 
-                  className="w-full h-full object-cover"
+                  fill
+                  sizes="(max-width: 768px) 110px, 140px"
+                  className="object-cover"
                 />
                 <button 
                   type="button"
@@ -465,7 +468,7 @@ export const FlashcardItem = React.memo(function FlashcardItem({
                     }}
                     className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 border-transparent hover:border-blue-500 hover:scale-105 transition-all shadow-md relative group bg-black/30 cursor-pointer"
                   >
-                    <img src={imgUrl} alt="suggestion" className="absolute inset-0 w-full h-full object-cover" />
+                    <Image src={imgUrl} alt="suggestion" fill sizes="80px" className="object-cover" />
                   </button>
                 ))}
               </div>
