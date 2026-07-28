@@ -517,10 +517,12 @@ export default function TypingGame({ set, cards }: TypingGameProps) {
 
       {/* Header Bar */}
       <header className="px-4 sm:px-8 py-4 border-b border-white/10 flex items-center justify-between gap-4 relative z-10 bg-slate-950/60 backdrop-blur-md">
-        <ModeSwitcher currentMode="Typing" setId={set.id} />
+        <div className="flex items-center gap-2 flex-1">
+          <ModeSwitcher currentMode="Typing" setId={set.id} />
+        </div>
 
         {/* Progress Center Bar */}
-        <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center w-full max-w-[150px] sm:max-w-xs md:max-w-md space-y-1.5 pointer-events-none">
+        <div className="flex flex-col items-center justify-center shrink-0 px-2 sm:px-4 w-full max-w-[150px] sm:max-w-xs md:max-w-md space-y-1.5 pointer-events-none">
           <div className="flex items-center justify-between text-[10px] sm:text-xs font-bold w-full">
             <span className="text-slate-400">Card {currentIndex + 1} of {activeCards.length}</span>
             <span className="text-sky-400">{progressPercent}%</span>
@@ -533,7 +535,7 @@ export default function TypingGame({ set, cards }: TypingGameProps) {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-end gap-3 flex-1">
           <button 
             type="button"
             onClick={() => {

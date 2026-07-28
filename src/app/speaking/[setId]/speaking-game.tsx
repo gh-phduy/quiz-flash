@@ -479,15 +479,19 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans overflow-hidden relative">
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-white/5 relative z-10">
-        <ModeSwitcher currentMode="Speaking" setId={set.id} />
-
-        <div className="flex items-center gap-2 font-mono text-sm font-bold bg-white/5 px-4 py-1.5 rounded-full border border-white/10">
-          <span className="text-rose-400">{currentIndex + 1}</span>
-          <span className="text-white/40">/</span>
-          <span className="text-white/80">{activeCards.length}</span>
+        <div className="flex items-center gap-2 flex-1">
+          <ModeSwitcher currentMode="Speaking" setId={set.id} />
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-center shrink-0 px-2 sm:px-4">
+          <div className="flex items-center gap-2 font-mono text-sm font-bold bg-white/5 px-4 py-1.5 rounded-full border border-white/10">
+            <span className="text-rose-400">{currentIndex + 1}</span>
+            <span className="text-white/40">/</span>
+            <span className="text-white/80">{activeCards.length}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 flex-1">
           <VoiceSettingsTriggerButton />
           <button
             onClick={() => router.push('/')}

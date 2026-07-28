@@ -262,20 +262,22 @@ export default function TestGame({ set, cards }: TestGameProps) {
       
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 sticky top-0 bg-background z-20 border-b border-white/5">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-1">
           <ModeSwitcher currentMode="Test" setId={set.id} />
         </div>
 
-        {!showSetup && (
-          <div className="flex flex-col items-center absolute left-1/2 -translate-x-1/2">
-            <span className="text-sm font-bold text-foreground mb-0.5">
-              {Object.keys(answers).length} / {questions.length}
-            </span>
-            <span className="text-xs font-bold text-muted-foreground">{set.title}</span>
-          </div>
-        )}
+        <div className="flex flex-col items-center justify-center shrink-0 px-2 sm:px-4">
+          {!showSetup && (
+            <>
+              <span className="text-sm font-bold text-foreground mb-0.5">
+                {Object.keys(answers).length} / {questions.length}
+              </span>
+              <span className="text-xs font-bold text-muted-foreground">{set.title}</span>
+            </>
+          )}
+        </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center justify-end gap-4 flex-1">
           <button onClick={() => setShowSetup(true)} className="text-muted-foreground hover:text-foreground transition cursor-pointer" title="Options">
             <Settings className="w-5 h-5" />
           </button>

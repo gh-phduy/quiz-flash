@@ -573,11 +573,11 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
     <div className="h-screen w-screen bg-[#07061d] text-foreground flex flex-col font-sans overflow-hidden">
       {/* Header */}
       <header className="flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-4 shrink-0 z-20 relative border-b border-white/10 bg-[#0c0d28]/80 backdrop-blur-md">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-1">
           <ModeSwitcher currentMode="Flashcards" setId={set.id} />
         </div>
 
-        <div className="flex flex-col items-center justify-center">
+        <div className="flex flex-col items-center justify-center shrink-0 px-2 sm:px-4">
           <span className="text-sm sm:text-base font-black font-mono text-white">
             {currentIndex + 1} / {activeCards.length}
           </span>
@@ -586,7 +586,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-3">
+        <div className="flex items-center justify-end gap-1.5 sm:gap-3 flex-1">
           <button 
             onClick={() => {
               const newVal = !isAutoPlay;

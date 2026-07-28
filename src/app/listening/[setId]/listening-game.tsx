@@ -427,15 +427,19 @@ export default function ListeningGame({ set, cards }: ListeningGameProps) {
     <div className={`min-h-screen text-foreground flex flex-col font-sans transition-colors duration-500 ${bgClass}`}>
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-white/5 relative z-10">
-        <ModeSwitcher currentMode="Listening" setId={set.id} />
-
-        <div className="flex items-center gap-2 font-mono text-sm font-bold bg-white/5 px-4 py-1.5 rounded-full border border-white/10">
-          <span className="text-amber-400">{currentIndex + 1}</span>
-          <span className="text-white/40">/</span>
-          <span className="text-white/80">{activeCards.length}</span>
+        <div className="flex items-center gap-2 flex-1">
+          <ModeSwitcher currentMode="Listening" setId={set.id} />
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-center shrink-0 px-2 sm:px-4">
+          <div className="flex items-center gap-2 font-mono text-sm font-bold bg-white/5 px-4 py-1.5 rounded-full border border-white/10">
+            <span className="text-amber-400">{currentIndex + 1}</span>
+            <span className="text-white/40">/</span>
+            <span className="text-white/80">{activeCards.length}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 flex-1">
           <VoiceSettingsTriggerButton />
           <button
             onClick={() => router.push('/')}
