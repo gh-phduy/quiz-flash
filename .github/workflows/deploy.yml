@@ -12,6 +12,9 @@ jobs:
     environment:
       name: Production
       url: https://quiz-flash.evnnpd.workers.dev
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://ogbwpzclxbidlnygckfz.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9nYndwemNseGJpZGxueWdja2Z6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0NDY3NzYsImV4cCI6MjEwMDAyMjc3Nn0.5zHmtaMEbk-DmVspfnE9SlLma09pBz4gJrmfhJRDSnI
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
