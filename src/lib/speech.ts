@@ -14,7 +14,20 @@ export function playAudio(
   volumeOverride?: number,
   accent?: 'US' | 'UK'
 ) {
-  fallbackToSpeechSynthesis(textToSpeak, volumeOverride, accent);
+  if (audioUrl) {
+    const audio = new Audio(audioUrl);
+    const storeSettings = useVoiceStore.getState();
+    const targetVolume = volumeOverride !== undefined ? volumeOverride : storeSettings.volume ?? 1.0;
+    audio.volume = Math.max(0, Math.min(1, targetVolume));
+    
+    // Play native audio, fallback to TTS if it fails or gets blocked
+    audio.play().catch((err) => {
+      console.warn('Native audio failed to play, falling back to TTS:', err);
+      fallbackToSpeechSynthesis(textToSpeak, volumeOverride, accent);
+    });
+  } else {
+    fallbackToSpeechSynthesis(textToSpeak, volumeOverride, accent);
+  }
 }
 
 export function fallbackToSpeechSynthesis(
@@ -27,9 +40,6 @@ export function fallbackToSpeechSynthesis(
     console.warn('SpeechSynthesis API not supported in this browser.');
     return;
   }
-
-  // Cancel any ongoing speech
-  window.speechSynthesis.cancel();
 
   const storeSettings = useVoiceStore.getState();
   const utterance = new SpeechSynthesisUtterance(text);
@@ -118,5 +128,16 @@ export function fallbackToSpeechSynthesis(
     volumeOverride !== undefined ? volumeOverride : storeSettings.volume ?? 1.0;
   utterance.volume = Math.max(0, Math.min(1, targetVolume));
 
-  window.speechSynthesis.speak(utterance);
+  // Safari / iOS PWA fix:
+  // Calling cancel() immediately before speak() causes speak() to be ignored.
+  // We check if it's currently speaking/pending.
+  if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+    window.speechSynthesis.cancel();
+    // Using a tiny timeout allows the cancel event to clear before speaking again
+    setTimeout(() => {
+      window.speechSynthesis.speak(utterance);
+    }, 50);
+  } else {
+    window.speechSynthesis.speak(utterance);
+  }
 }
