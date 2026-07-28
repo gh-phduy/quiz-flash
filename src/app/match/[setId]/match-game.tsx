@@ -308,17 +308,17 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
     <div className="h-screen w-screen bg-[#07061d] text-foreground flex flex-col font-sans overflow-hidden">
       {/* Header */}
       <header className="flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-4 shrink-0 z-10 relative border-b border-white/10 bg-[#0c0d28]/80 backdrop-blur-md">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-1">
           <ModeSwitcher currentMode="Match" setId={set.id} />
         </div>
 
-        <div className="flex items-center justify-center">
+        <div className="flex items-center justify-center shrink-0 px-2 sm:px-4">
           <span className={`text-xl sm:text-3xl md:text-4xl font-black font-mono transition-colors duration-300 ${isFinished ? 'text-emerald-400' : 'text-white'}`}>
             {formatTime(timeMs)}s
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-3">
+        <div className="flex items-center justify-end gap-1.5 sm:gap-3 flex-1">
           <button
             onClick={() => {
               const newVal = !isAutoSpeak;
