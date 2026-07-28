@@ -36,7 +36,7 @@ export default async function LeaderboardPage() {
   const currentUserRank = currentUserIndex !== -1 ? currentUserIndex + 1 : null;
 
   return (
-    <div className="w-full max-w-5xl mx-auto py-5 sm:py-10 px-4 sm:px-6 font-sans relative pb-24 sm:pb-12">
+    <div className="w-full max-w-5xl mx-auto py-5 sm:py-10 px-4 sm:px-6 font-sans relative pb-24 sm:pb-12 overflow-x-clip">
       {/* Background neon glows */}
       <div className="absolute top-0 left-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-[#4255ff]/10 rounded-full blur-3xl -z-10 pointer-events-none" />
       <div className="absolute bottom-10 right-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-[#b892ff]/10 rounded-full blur-3xl -z-10 pointer-events-none" />
@@ -63,7 +63,7 @@ export default async function LeaderboardPage() {
             {top2 && (
               <Link 
                 href={`/profile/${top2.id}`}
-                className="flex flex-col items-center p-3 sm:p-5 rounded-2xl sm:rounded-3xl bg-[#0a092d]/70 backdrop-blur-xl border border-slate-300/30 hover:border-slate-300/60 shadow-xl transition-all active:scale-95 group text-center relative"
+                className="flex flex-col items-center p-2.5 sm:p-5 rounded-2xl sm:rounded-3xl bg-[#0a092d]/70 backdrop-blur-xl border border-slate-300/30 hover:border-slate-300/60 shadow-xl transition-all active:scale-95 group text-center relative min-w-0"
               >
                 <div className="relative mb-2 sm:mb-3">
                   <div className="w-12 h-12 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 sm:border-3 border-slate-300 shadow-[0_0_15px_rgba(203,213,225,0.4)] group-hover:scale-105 transition-transform">
@@ -82,9 +82,11 @@ export default async function LeaderboardPage() {
                 </span>
                 <div className="flex items-center gap-1 mt-1 text-[11px] sm:text-xs font-extrabold text-amber-300 mb-2">
                   <Star className="w-3 h-3 fill-amber-300 shrink-0" />
-                  <span>{top2.points?.toLocaleString()}</span>
+                  <span className="truncate">{top2.points?.toLocaleString()}</span>
                 </div>
-                <RankBadge rank={top2.current_rank} points={top2.points} size="xs" />
+                <div className="shrink-0 max-w-full overflow-hidden">
+                  <RankBadge rank={top2.current_rank} points={top2.points} size="xs" />
+                </div>
               </Link>
             )}
 
@@ -92,13 +94,13 @@ export default async function LeaderboardPage() {
             {top1 && (
               <Link 
                 href={`/profile/${top1.id}`}
-                className="flex flex-col items-center p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-b from-[#4255ff]/20 via-[#0a092d]/90 to-[#0a092d]/90 backdrop-blur-xl border-2 border-yellow-400/50 hover:border-yellow-400 shadow-[0_0_30px_rgba(250,204,21,0.25)] transition-all active:scale-95 group text-center relative -mt-4 sm:-mt-6"
+                className="flex flex-col items-center p-3 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-b from-[#4255ff]/20 via-[#0a092d]/90 to-[#0a092d]/90 backdrop-blur-xl border-2 border-yellow-400/50 hover:border-yellow-400 shadow-[0_0_30px_rgba(250,204,21,0.25)] transition-all active:scale-95 group text-center relative -mt-4 sm:-mt-6 min-w-0"
               >
                 <div className="absolute -top-4 sm:-top-6 left-1/2 -translate-x-1/2 text-yellow-400 animate-bounce">
                   <Crown className="w-7 h-7 sm:w-9 sm:h-9 fill-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.8)]" />
                 </div>
                 <div className="relative mb-2 sm:mb-3 mt-1 sm:mt-2">
-                  <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full overflow-hidden border-3 sm:border-4 border-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.6)] group-hover:scale-105 transition-transform">
+                  <div className="w-14 h-14 sm:w-24 sm:h-24 rounded-full overflow-hidden border-3 sm:border-4 border-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.6)] group-hover:scale-105 transition-transform">
                     <img 
                       src={top1.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${top1.id}`} 
                       alt={top1.full_name || 'Champion'} 
@@ -109,14 +111,16 @@ export default async function LeaderboardPage() {
                     #1
                   </div>
                 </div>
-                <span className="font-black text-white text-sm sm:text-lg truncate w-full group-hover:text-yellow-300 transition-colors">
+                <span className="font-black text-white text-xs sm:text-lg truncate w-full group-hover:text-yellow-300 transition-colors">
                   {top1.full_name || top1.email?.split('@')[0] || 'Champion'}
                 </span>
                 <div className="flex items-center gap-1 mt-1 text-xs sm:text-sm font-black text-yellow-400 mb-2">
                   <Star className="w-3.5 h-3.5 fill-yellow-400 shrink-0" />
-                  <span>{top1.points?.toLocaleString()}</span>
+                  <span className="truncate">{top1.points?.toLocaleString()}</span>
                 </div>
-                <RankBadge rank={top1.current_rank || 'Challenger'} points={top1.points} size="sm" />
+                <div className="shrink-0 max-w-full overflow-hidden">
+                  <RankBadge rank={top1.current_rank || 'Challenger'} points={top1.points} size="sm" />
+                </div>
               </Link>
             )}
 
@@ -124,7 +128,7 @@ export default async function LeaderboardPage() {
             {top3 && (
               <Link 
                 href={`/profile/${top3.id}`}
-                className="flex flex-col items-center p-3 sm:p-5 rounded-2xl sm:rounded-3xl bg-[#0a092d]/70 backdrop-blur-xl border border-[#cd7f32]/30 hover:border-[#cd7f32]/60 shadow-xl transition-all active:scale-95 group text-center relative"
+                className="flex flex-col items-center p-2.5 sm:p-5 rounded-2xl sm:rounded-3xl bg-[#0a092d]/70 backdrop-blur-xl border border-[#cd7f32]/30 hover:border-[#cd7f32]/60 shadow-xl transition-all active:scale-95 group text-center relative min-w-0"
               >
                 <div className="relative mb-2 sm:mb-3">
                   <div className="w-12 h-12 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 sm:border-3 border-[#cd7f32] shadow-[0_0_15px_rgba(205,127,50,0.4)] group-hover:scale-105 transition-transform">
@@ -143,9 +147,11 @@ export default async function LeaderboardPage() {
                 </span>
                 <div className="flex items-center gap-1 mt-1 text-[11px] sm:text-xs font-extrabold text-amber-300 mb-2">
                   <Star className="w-3 h-3 fill-amber-300 shrink-0" />
-                  <span>{top3.points?.toLocaleString()}</span>
+                  <span className="truncate">{top3.points?.toLocaleString()}</span>
                 </div>
-                <RankBadge rank={top3.current_rank} points={top3.points} size="xs" />
+                <div className="shrink-0 max-w-full overflow-hidden">
+                  <RankBadge rank={top3.current_rank} points={top3.points} size="xs" />
+                </div>
               </Link>
             )}
 
@@ -258,12 +264,9 @@ export default async function LeaderboardPage() {
             </div>
           )}
         </div>
-      </div>
-
-      {/* Floating Bottom Bar for Logged-In User Rank (Mobile) */}
-      {user && currentUserPlayer && (
-        <div className="fixed bottom-4 left-4 right-4 z-40 sm:hidden">
-          <div className="bg-[#0a092d]/95 backdrop-blur-xl border border-[#b892ff]/40 p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3">
+        {/* Logged-In User Rank Standing (Mobile Fixed Footer) */}
+        {user && currentUserPlayer && (
+          <div className="fixed inset-x-4 bottom-4 z-50 sm:hidden bg-[#0c0d28]/95 backdrop-blur-xl border border-[#b892ff]/40 rounded-2xl p-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] flex items-center justify-between gap-2.5 shadow-[0_10px_40px_rgba(0,0,0,0.8)]">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="px-2 py-1 rounded-lg bg-[#4255ff]/20 text-[#9fa6ff] border border-[#4255ff]/30 text-xs font-black font-mono shrink-0">
                 #{currentUserRank}
@@ -278,16 +281,18 @@ export default async function LeaderboardPage() {
               <div className="flex flex-col min-w-0">
                 <span className="font-bold text-white text-xs truncate">Your Standing</span>
                 <span className="text-[10px] text-amber-300 font-black font-mono flex items-center gap-1">
-                  <Star className="w-2.5 h-2.5 fill-amber-300" />
-                  {currentUserPlayer.points?.toLocaleString()} pts
+                  <Star className="w-2.5 h-2.5 fill-amber-300 shrink-0" />
+                  <span className="truncate">{currentUserPlayer.points?.toLocaleString()} pts</span>
                 </span>
               </div>
             </div>
 
-            <RankBadge rank={currentUserPlayer.current_rank} points={currentUserPlayer.points} size="xs" />
+            <div className="shrink-0">
+              <RankBadge rank={currentUserPlayer.current_rank} points={currentUserPlayer.points} size="xs" />
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

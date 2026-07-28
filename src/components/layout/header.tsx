@@ -65,13 +65,13 @@ export default async function Header() {
         ) : (
           <div className="flex items-center gap-1.5 sm:gap-2">
             <Link 
-              href="/login" 
+              href="/login?mode=login" 
               className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold text-foreground hover:text-muted-foreground transition-colors"
             >
               Log in
             </Link>
             <Link 
-              href="/login" 
+              href="/login?mode=signup" 
               className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-bold text-[#0a092d] bg-[#ffcd1f] rounded-[4px] hover:bg-[#e5b81c] transition-colors"
             >
               Sign up

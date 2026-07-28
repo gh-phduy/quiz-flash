@@ -43,12 +43,11 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
   const router = useRouter();
 
   // Active session cards & setup state
-  const [activeCards, setActiveCards] = useState<CardData[]>(() => cards.slice(0, Math.min(20, cards.length)));
+  const [activeCards, setActiveCards] = useState<CardData[]>(() => cards.slice(0, Math.min(10, cards.length)));
   const [showSetup, setShowSetup] = useState<boolean>(true);
-  const [selectedLimit, setSelectedLimit] = useState<number>(() => Math.min(20, cards.length));
+  const [selectedLimit, setSelectedLimit] = useState<number>(() => Math.min(10, cards.length));
   const [isCustomLimit, setIsCustomLimit] = useState<boolean>(false);
-  const [customVal, setCustomVal] = useState<number>(() => Math.min(20, cards.length));
-  const [selectedStrategy, setSelectedStrategy] = useState<'smart' | 'random' | 'sequential'>('smart');
+  const [customVal, setCustomVal] = useState<number>(() => Math.min(10, cards.length));
   const [isPreparing, setIsPreparing] = useState<boolean>(false);
 
   // Game Progress State
@@ -88,20 +87,13 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
     const limit = limitOverride || selectedLimit;
     setIsPreparing(true);
     let newBatch: CardData[] = [];
-
-    if (selectedStrategy === 'smart') {
-      const res = await generateGameSession(set.id, limit, 'speaking');
-      if (res.success && res.cards && res.cards.length > 0) {
-        newBatch = res.cards as CardData[];
-      }
+    const res = await generateGameSession(set.id, limit, 'speaking');
+    if (res.success && res.cards && res.cards.length > 0) {
+      newBatch = res.cards as CardData[];
     }
 
     if (newBatch.length === 0) {
-      if (selectedStrategy === 'random') {
-        newBatch = [...cards].sort(() => 0.5 - Math.random()).slice(0, limit);
-      } else {
-        newBatch = cards.slice(0, limit);
-      }
+      newBatch = cards.slice(0, limit);
     }
 
     // Check for unreviewed new cards in this active batch
@@ -299,8 +291,6 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
 
   // SETUP MODAL
   if (showSetup) {
-    const limits = [5, 10, 15, 20, cards.length].filter((val, index, self) => val <= cards.length && self.indexOf(val) === index);
-
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-rose-500/10 rounded-full blur-[120px] pointer-events-none" />
@@ -323,9 +313,8 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
             <label className="text-xs font-black uppercase tracking-wider text-white/70 block mb-2.5">
               Select Number of Cards
             </label>
-            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-3">
-              {limits.map((limit) => {
-                const isAll = limit === cards.length;
+            <div className="grid grid-cols-4 gap-2 mb-3">
+              {[10, 20, 30].map((limit) => {
                 const isSelected = !isCustomLimit && selectedLimit === limit;
                 return (
                   <button
@@ -333,7 +322,7 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
                     type="button"
                     onClick={() => {
                       setIsCustomLimit(false);
-                      setSelectedLimit(limit);
+                      setSelectedLimit(Math.min(limit, cards.length));
                     }}
                     className={`py-3 px-2 rounded-xl text-xs font-black transition-all cursor-pointer border ${
                       isSelected
@@ -341,7 +330,7 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
                         : 'bg-white/5 text-white/80 border-white/10 hover:bg-white/10'
                     }`}
                   >
-                    {isAll ? `All (${limit})` : `${limit} Cards`}
+                    {limit} Cards
                   </button>
                 );
               })}
@@ -371,10 +360,10 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
                 <input
                   type="number"
                   min={1}
-                  max={cards.length}
+                  max={Math.min(30, cards.length)}
                   value={customVal}
                   onChange={(e) => {
-                    const val = Math.max(1, Math.min(cards.length, parseInt(e.target.value) || 1));
+                    const val = Math.max(1, Math.min(Math.min(30, cards.length), parseInt(e.target.value) || 1));
                     setCustomVal(val);
                     setSelectedLimit(val);
                   }}
@@ -384,47 +373,6 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
             )}
           </div>
 
-          {/* Algorithm Strategy Selection */}
-          <div className="w-full mb-8">
-            <label className="text-xs font-black uppercase tracking-wider text-white/70 block mb-2.5">
-              Algorithm Strategy
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setSelectedStrategy('smart')}
-                className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                  selectedStrategy === 'smart'
-                    ? 'bg-rose-500/20 border-rose-500 text-white shadow-lg'
-                    : 'bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10'
-                }`}
-              >
-                <span className="font-bold text-sm text-white flex items-center gap-1.5 mb-1">
-                  🧠 Smart Waterfall (SM-2)
-                </span>
-                <span className="text-[11px] leading-snug opacity-80">
-                  Prioritizes due reviews, weak words & new cards
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSelectedStrategy('random')}
-                className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                  selectedStrategy === 'random'
-                    ? 'bg-rose-500/20 border-rose-500 text-white shadow-lg'
-                    : 'bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10'
-                }`}
-              >
-                <span className="font-bold text-sm text-white flex items-center gap-1.5 mb-1">
-                  🔀 Random Shuffle
-                </span>
-                <span className="text-[11px] leading-snug opacity-80">
-                  Randomly selects words across the entire set
-                </span>
-              </button>
-            </div>
-          </div>
 
           <div className="flex gap-3 w-full">
             <button

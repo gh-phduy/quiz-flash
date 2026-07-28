@@ -42,12 +42,12 @@ interface FlashcardPlayerProps {
 
 export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
   const router = useRouter();
-  const [activeCards, setActiveCards] = useState<CardData[]>(() => cards.slice(0, Math.min(20, cards.length)));
-  const [showSetup, setShowSetup] = useState<boolean>(() => cards.length > 20);
-  const [selectedLimit, setSelectedLimit] = useState<number>(() => Math.min(20, cards.length));
+  const [activeCards, setActiveCards] = useState<CardData[]>(() => cards.slice(0, Math.min(10, cards.length)));
+  const [showSetup, setShowSetup] = useState<boolean>(() => cards.length > 10);
+  const [selectedLimit, setSelectedLimit] = useState<number>(() => Math.min(10, cards.length));
   const [isCustomLimit, setIsCustomLimit] = useState<boolean>(false);
-  const [customVal, setCustomVal] = useState<number>(() => Math.min(20, cards.length));
-  const [selectedStrategy, setSelectedStrategy] = useState<'smart' | 'random' | 'sequential'>('smart');
+  const [customVal, setCustomVal] = useState<number>(() => Math.min(10, cards.length));
+
   const [isPreparing, setIsPreparing] = useState<boolean>(false);
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -77,20 +77,13 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
     const limit = limitOverride || selectedLimit;
     setIsPreparing(true);
     let newBatch: CardData[] = [];
-
-    if (selectedStrategy === 'smart') {
-      const res = await generateGameSession(set.id, limit, 'flashcards');
-      if (res.success && res.cards && res.cards.length > 0) {
-        newBatch = res.cards as CardData[];
-      }
+    const res = await generateGameSession(set.id, limit, 'flashcards');
+    if (res.success && res.cards && res.cards.length > 0) {
+      newBatch = res.cards as CardData[];
     }
 
     if (newBatch.length === 0) {
-      if (selectedStrategy === 'random') {
-        newBatch = [...cards].sort(() => 0.5 - Math.random()).slice(0, limit);
-      } else {
-        newBatch = cards.slice(0, limit);
-      }
+      newBatch = cards.slice(0, limit);
     }
 
     // Check for unreviewed new cards in this active batch
@@ -127,7 +120,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
     if (hasInitializedRef.current) return;
     if (cards && cards.length > 0 && !showSetup) {
       hasInitializedRef.current = true;
-      const initialBatch = cards.slice(0, Math.min(20, cards.length));
+      const initialBatch = cards.slice(0, Math.min(10, cards.length));
       checkNewCardsForSession(initialBatch.map(c => c.id)).then(unreviewed => {
         if (unreviewed && unreviewed.length > 0) {
           setNewCardsForWarmup(unreviewed);
@@ -362,8 +355,8 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
               </label>
               <span className="text-xs font-bold text-[#9fa6ff]">{selectedLimit} cards</span>
             </div>
-            <div className="grid grid-cols-6 gap-2">
-              {[15, 30, 50, 100].map((qty) => (
+            <div className="grid grid-cols-4 gap-2">
+              {[10, 20, 30].map((qty) => (
                 <button
                   key={qty}
                   type="button"
@@ -394,20 +387,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
               >
                 Custom
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedLimit(cards.length);
-                  setIsCustomLimit(false);
-                }}
-                className={`py-3 rounded-xl font-bold text-xs transition-all cursor-pointer ${
-                  selectedLimit === cards.length && !isCustomLimit
-                    ? 'bg-[#4255ff] text-white shadow-[0_0_15px_rgba(66,85,255,0.4)] border border-white/20'
-                    : 'bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-white border border-white/5'
-                }`}
-              >
-                All
-              </button>
+
             </div>
 
             {isCustomLimit && (
@@ -419,10 +399,10 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
                 <input
                   type="number"
                   min={1}
-                  max={cards.length}
+                  max={Math.min(30, cards.length)}
                   value={customVal}
                   onChange={(e) => {
-                    const val = Math.max(1, Math.min(cards.length, parseInt(e.target.value) || 1));
+                    const val = Math.max(1, Math.min(Math.min(30, cards.length), parseInt(e.target.value) || 1));
                     setCustomVal(val);
                     setSelectedLimit(val);
                   }}
@@ -432,47 +412,6 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
             )}
           </div>
 
-          {/* Algorithm Selection */}
-          <div className="w-full mb-8">
-            <label className="text-xs font-black uppercase tracking-wider text-white/70 block mb-2.5">
-              Algorithm Strategy
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setSelectedStrategy('smart')}
-                className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                  selectedStrategy === 'smart'
-                    ? 'bg-[#4255ff]/15 border-[#4255ff] text-white shadow-lg'
-                    : 'bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10'
-                }`}
-              >
-                <span className="font-bold text-sm text-white flex items-center gap-1.5 mb-1">
-                  🧠 Smart Waterfall
-                </span>
-                <span className="text-[11px] leading-snug opacity-80">
-                  Prioritizes due reviews, weak words & new cards
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSelectedStrategy('random')}
-                className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                  selectedStrategy === 'random'
-                    ? 'bg-[#4255ff]/15 border-[#4255ff] text-white shadow-lg'
-                    : 'bg-white/5 border-white/5 text-muted-foreground hover:bg-white/10'
-                }`}
-              >
-                <span className="font-bold text-sm text-white flex items-center gap-1.5 mb-1">
-                  🔀 Random Shuffle
-                </span>
-                <span className="text-[11px] leading-snug opacity-80">
-                  Randomly selects words across the entire set
-                </span>
-              </button>
-            </div>
-          </div>
 
           <div className="flex gap-3 w-full">
             {cards.length <= 20 && (

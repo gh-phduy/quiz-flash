@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -40,6 +40,9 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
   const [selectedMode, setSelectedMode] = useState<{ id: string; name: string; href: string } | null>(null);
   const [isModeDialogOpen, setIsModeDialogOpen] = useState(false);
   const [dialogSearchQuery, setDialogSearchQuery] = useState('');
+
+  // Ref for dialog header initial focus
+  const headerRef = useRef<HTMLDivElement>(null);
 
   const GAME_MODES: { id: string; name: string; desc: string; icon: any; href: string; bg: string; border: string; disabled?: boolean }[] = [
     { id: 'flashcards', name: 'Flashcards', desc: 'Review terms & definitions', icon: <Layers className="w-8 h-8 text-blue-400 group-hover:scale-110 transition-transform" />, href: '/flashcards', bg: 'from-blue-500/10 to-blue-600/5', border: 'border-blue-500/20 hover:border-blue-500/40' },
@@ -440,8 +443,10 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
 
       {/* Mode Selection Dialog */}
       <Dialog open={isModeDialogOpen} onOpenChange={setIsModeDialogOpen}>
-        <DialogContent className="bg-background text-foreground border border-white/10 sm:max-w-xl w-[92vw] rounded-2xl shadow-2xl">
-          <DialogHeader>
+        <DialogContent initialFocus={headerRef} className="bg-background text-foreground border border-white/10 sm:max-w-xl w-[92vw] rounded-2xl shadow-2xl">
+          {/* Hidden focus trap to prevent auto-focusing the search input on open */}
+          <div ref={headerRef} tabIndex={-1} className="sr-only" aria-hidden="true" />
+          <DialogHeader className="outline-none">
             <DialogTitle className="text-2xl font-bold text-center mb-2 bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
               Play {selectedMode?.name}
             </DialogTitle>

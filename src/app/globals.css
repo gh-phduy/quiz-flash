@@ -128,6 +128,14 @@
   }
   html {
     @apply font-sans;
+    -webkit-font-smoothing: subpixel-antialiased;
+    -moz-osx-font-smoothing: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  body {
+    -webkit-text-stroke: 0.15px currentColor;
   }
 }
 
