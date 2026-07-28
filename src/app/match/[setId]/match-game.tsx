@@ -70,7 +70,6 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  const matchCardCount = isMobile ? Math.min(4, cards.length) : Math.min(6, cards.length);
   const [isAutoSpeak, setIsAutoSpeak] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('match_auto_speak') !== 'false';
@@ -127,7 +126,7 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
 
   // Initialize Game
   const initGame = useCallback(async (overrideCount?: number) => {
-    const targetCount = overrideCount !== undefined ? overrideCount : (window.innerWidth < 768 ? Math.min(4, cards.length) : Math.min(6, cards.length));
+    const targetCount = overrideCount !== undefined ? overrideCount : (window.innerWidth < 768 ? Math.min(6, cards.length) : Math.min(12, cards.length));
     const countToUse = Math.max(1, Math.min(targetCount, cards.length));
     
     let targetCards: CardData[] = [];
@@ -514,7 +513,7 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
             };
 
             return (
-              <div className="w-full max-w-5xl mx-auto flex-1 flex flex-row items-stretch justify-center gap-2.5 sm:gap-6 relative my-auto py-2 sm:py-4 h-full">
+              <div className="w-full max-w-7xl mx-auto flex-1 flex flex-row items-stretch justify-center gap-2.5 sm:gap-6 relative my-auto py-2 sm:py-4 h-full">
                 {/* Left Column: TERMS */}
                 <div className="flex-1 flex flex-col bg-cyan-950/20 border border-cyan-500/30 rounded-2xl sm:rounded-3xl p-3 sm:p-5 backdrop-blur-md justify-between min-w-0 h-full">
                   <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-4 pb-2 border-b border-cyan-500/20 shrink-0">
