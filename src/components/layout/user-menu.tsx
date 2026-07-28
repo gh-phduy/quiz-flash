@@ -39,7 +39,7 @@ export default function UserMenu({ user }: UserMenuProps) {
     <div className="relative shrink-0" ref={menuRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="block h-10 w-10 rounded-full bg-gray-600 overflow-hidden border-2 border-transparent hover:border-border transition-all cursor-pointer outline-none focus:ring-2 focus:ring-ring"
+        className="relative block h-10 w-10 rounded-full bg-gray-600 overflow-hidden border-2 border-transparent hover:border-border transition-all cursor-pointer outline-none focus:ring-2 focus:ring-ring"
       >
         <Image 
           src={avatarUrl}
@@ -56,7 +56,7 @@ export default function UserMenu({ user }: UserMenuProps) {
           
           {/* User Info */}
           <div className="p-4 flex items-center gap-3 bg-background">
-            <div className="h-12 w-12 rounded-full overflow-hidden shrink-0 border border-border bg-white">
+            <div className="relative h-12 w-12 rounded-full overflow-hidden shrink-0 border border-border bg-white">
               <Image src={avatarUrl} alt="Avatar" fill sizes="48px" referrerPolicy="no-referrer" className="object-cover" />
             </div>
             <div className="flex flex-col min-w-0">
