@@ -57,6 +57,7 @@ export function fallbackToSpeechSynthesis(
   let targetLang = 'en-GB';
   let targetVoice: SpeechSynthesisVoice | undefined;
 
+  // Helper: find voice by name keywords, optionally filtered by lang prefix
   const getVoiceByKeywords = (keywords: string[], langPrefix?: string) => {
     return voices.find((v) => {
       const name = v.name.toLowerCase();
@@ -66,15 +67,60 @@ export function fallbackToSpeechSynthesis(
     });
   };
 
+  // Helper: find voice by exact lang code (e.g. 'en-US', 'en-GB')
+  // Prefers Google voices or voices marked as 'default', as they tend to be higher quality
+  const getVoiceByExactLang = (langCode: string) => {
+    const langLower = langCode.toLowerCase();
+    const exactMatches = voices.filter((v) => v.lang.toLowerCase().replace('_', '-') === langLower);
+    if (exactMatches.length === 0) return undefined;
+    // Prefer Google TTS voices (higher quality on Android)
+    const googleVoice = exactMatches.find((v) => v.name.toLowerCase().includes('google'));
+    if (googleVoice) return googleVoice;
+    // Prefer default voice
+    const defaultVoice = exactMatches.find((v) => v.default);
+    if (defaultVoice) return defaultVoice;
+    return exactMatches[0];
+  };
+
+  // Helper: find any English voice that is NOT Indian English
+  // This prevents falling back to en-IN which sounds very different from en-US/en-GB
+  const getAnyEnglishVoiceExceptIndian = () => {
+    const nonIndian = voices.filter((v) => {
+      const lang = v.lang.toLowerCase().replace('_', '-');
+      return lang.startsWith('en') && !lang.includes('in');
+    });
+    if (nonIndian.length === 0) return undefined;
+    // Prefer US or GB English
+    const usOrGb = nonIndian.find((v) => {
+      const lang = v.lang.toLowerCase().replace('_', '-');
+      return lang === 'en-us' || lang === 'en-gb';
+    });
+    if (usOrGb) return usOrGb;
+    // Prefer Google voice among non-Indian English
+    const googleVoice = nonIndian.find((v) => v.name.toLowerCase().includes('google'));
+    if (googleVoice) return googleVoice;
+    return nonIndian[0];
+  };
+
+  // Helper: last resort - any English voice at all (including en-IN)
+  const getAnyEnglishVoice = () => {
+    return voices.find((v) => v.lang.toLowerCase().replace('_', '-').startsWith('en'));
+  };
+
   switch (selectedURI) {
     case 'uk_female':
     case 'google_tts_en-GB':
       targetLang = 'en-GB';
       targetPitch = 1.25;
       targetVoice =
+        // 1. Try known desktop voice names
         getVoiceByKeywords(['hazel', 'female', 'victoria', 'google uk english female', 'georgia'], 'en') ||
-        voices.find((v) => v.lang.toLowerCase().includes('gb') || v.lang.toLowerCase().includes('uk')) ||
-        voices[0];
+        // 2. Try exact en-GB match (works on mobile)
+        getVoiceByExactLang('en-GB') ||
+        // 3. Any English voice except Indian
+        getAnyEnglishVoiceExceptIndian() ||
+        // 4. Any English voice at all
+        getAnyEnglishVoice();
       break;
 
     case 'uk_male':
@@ -83,8 +129,9 @@ export function fallbackToSpeechSynthesis(
       targetPitch = 0.78;
       targetVoice =
         getVoiceByKeywords(['george', 'male', 'daniel', 'oliver', 'google uk english male'], 'en') ||
-        voices.find((v) => v.lang.toLowerCase().includes('gb') || v.lang.toLowerCase().includes('uk')) ||
-        voices[0];
+        getVoiceByExactLang('en-GB') ||
+        getAnyEnglishVoiceExceptIndian() ||
+        getAnyEnglishVoice();
       break;
 
     case 'us_female':
@@ -93,24 +140,37 @@ export function fallbackToSpeechSynthesis(
       targetPitch = 1.22;
       targetVoice =
         getVoiceByKeywords(['zira', 'female', 'samantha', 'google us english'], 'en') ||
-        voices.find((v) => v.lang.toLowerCase().includes('us')) ||
-        voices[0];
+        getVoiceByExactLang('en-US') ||
+        getAnyEnglishVoiceExceptIndian() ||
+        getAnyEnglishVoice();
       break;
 
     case 'david':
       targetLang = 'en-US';
       targetPitch = 1.0;
-      targetVoice = getVoiceByKeywords(['david']) || voices[0];
+      targetVoice =
+        getVoiceByKeywords(['david']) ||
+        getVoiceByExactLang('en-US') ||
+        getAnyEnglishVoiceExceptIndian() ||
+        getAnyEnglishVoice();
       break;
 
     case 'mark':
       targetLang = 'en-US';
       targetPitch = 0.82;
-      targetVoice = getVoiceByKeywords(['mark']) || voices[0];
+      targetVoice =
+        getVoiceByKeywords(['mark']) ||
+        getVoiceByExactLang('en-US') ||
+        getAnyEnglishVoiceExceptIndian() ||
+        getAnyEnglishVoice();
       break;
 
     default:
-      targetVoice = voices.find((v) => v.voiceURI === selectedURI);
+      targetVoice =
+        voices.find((v) => v.voiceURI === selectedURI) ||
+        getVoiceByExactLang(targetLang) ||
+        getAnyEnglishVoiceExceptIndian() ||
+        getAnyEnglishVoice();
       break;
   }
 
