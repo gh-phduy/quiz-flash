@@ -8,6 +8,35 @@ if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
   };
 }
 
+/**
+ * Play audio using Google Translate TTS via our proxy API.
+ * Returns a promise that resolves if playback succeeds, rejects if it fails.
+ */
+function playGoogleTTS(
+  text: string,
+  volumeOverride?: number,
+  accent?: 'US' | 'UK'
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const storeSettings = useVoiceStore.getState();
+    const lang = accent === 'UK' ? 'en-GB' : 'en';
+    const ttsUrl = `/api/tts?text=${encodeURIComponent(text.slice(0, 200))}&lang=${encodeURIComponent(lang)}`;
+
+    const audio = new Audio(ttsUrl);
+    const targetVolume = volumeOverride !== undefined ? volumeOverride : storeSettings.volume ?? 1.0;
+    audio.volume = Math.max(0, Math.min(1, targetVolume));
+
+    // Adjust playback rate from store settings
+    const rate = storeSettings.rate ?? 0.95;
+    audio.playbackRate = Math.max(0.5, Math.min(2.0, rate));
+
+    audio.onended = () => resolve();
+    audio.onerror = () => reject(new Error('Google TTS audio playback failed'));
+
+    audio.play().catch(reject);
+  });
+}
+
 export function playAudio(
   audioUrl?: string | null,
   textToSpeak?: string | null,
@@ -20,14 +49,31 @@ export function playAudio(
     const targetVolume = volumeOverride !== undefined ? volumeOverride : storeSettings.volume ?? 1.0;
     audio.volume = Math.max(0, Math.min(1, targetVolume));
     
-    // Play native audio, fallback to TTS if it fails or gets blocked
+    // Play native audio, fallback to Google TTS if it fails or gets blocked
     audio.play().catch((err) => {
-      console.warn('Native audio failed to play, falling back to TTS:', err);
-      fallbackToSpeechSynthesis(textToSpeak, volumeOverride, accent);
+      console.warn('Native audio failed to play, falling back to Google TTS:', err);
+      fallbackToGoogleTTS(textToSpeak, volumeOverride, accent);
     });
   } else {
-    fallbackToSpeechSynthesis(textToSpeak, volumeOverride, accent);
+    fallbackToGoogleTTS(textToSpeak, volumeOverride, accent);
   }
+}
+
+/**
+ * Primary fallback: Google Translate TTS via proxy API.
+ * If Google TTS also fails, falls back to browser SpeechSynthesis as last resort.
+ */
+function fallbackToGoogleTTS(
+  text?: string | null,
+  volumeOverride?: number,
+  accent?: 'US' | 'UK'
+) {
+  if (!text) return;
+
+  playGoogleTTS(text, volumeOverride, accent).catch((err) => {
+    console.warn('Google TTS failed, falling back to SpeechSynthesis:', err);
+    fallbackToSpeechSynthesis(text, volumeOverride, accent);
+  });
 }
 
 export function fallbackToSpeechSynthesis(
