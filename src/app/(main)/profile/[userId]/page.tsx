@@ -11,7 +11,7 @@ import DailyGoalCard from '../../status/_components/daily-goal-card';
 import { createClient } from '@/utils/supabase/server';
 import { RankBadge } from '@/components/shared/rank-badge';
 
-export const revalidate = 0; // Fresh stats on each load
+export const dynamic = 'force-dynamic'; // Fresh stats on each load
 
 interface PageProps {
   params: Promise<{ userId: string }>;

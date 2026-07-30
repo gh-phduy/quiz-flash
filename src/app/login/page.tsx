@@ -4,7 +4,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Copy, Eye, EyeOff } from 'lucide-react';
 
 function LoginContent() {
   const router = useRouter();
@@ -57,6 +57,7 @@ function LoginContent() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -303,7 +304,36 @@ function LoginContent() {
             <div className="flex-1 h-[2px] bg-slate-100"></div>
           </div>
 
-          {/* Demo Account Info Removed */}
+          {/* Demo Account Info */}
+          {isLogin && (
+            <div className="bg-[#f8f9fc] border border-slate-200 rounded-xl p-4 mb-6 relative z-30 flex flex-col gap-2">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Demo Account</span>
+              </div>
+              <div className="flex items-center justify-between bg-white border border-slate-200 p-2.5 rounded-lg">
+                <span className="text-sm font-semibold text-slate-700 font-mono">demo@quizflash.app</span>
+                <button 
+                  type="button" 
+                  onClick={() => { navigator.clipboard.writeText('demo@quizflash.app'); toast.success('Copied email!'); }}
+                  className="p-1.5 hover:bg-slate-100 rounded-md transition-colors text-slate-400 hover:text-[#4255ff] cursor-pointer"
+                  title="Copy Email"
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex items-center justify-between bg-white border border-slate-200 p-2.5 rounded-lg">
+                <span className="text-sm font-semibold text-slate-700 font-mono">password</span>
+                <button 
+                  type="button" 
+                  onClick={() => { navigator.clipboard.writeText('password'); toast.success('Copied password!'); }}
+                  className="p-1.5 hover:bg-slate-100 rounded-md transition-colors text-slate-400 hover:text-[#4255ff] cursor-pointer"
+                  title="Copy Password"
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Email/Password Form */}
           <form onSubmit={handleEmailAuth} className="space-y-4 relative z-30">
@@ -334,15 +364,26 @@ function LoginContent() {
 
             <div>
               <label className="block text-[13px] font-bold text-[#586380] mb-1">Password</label>
-              <input 
-                type="password" 
-                required
-                minLength={6}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••" 
-                className="w-full border-2 border-[#e5e7eb] rounded-xl p-3.5 bg-[#f6f7fb] text-[#0a092d] font-semibold outline-none focus:border-[#4255ff] focus:bg-white transition-colors placeholder:text-slate-400" 
-              />
+              <div className="relative">
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••" 
+                  className="w-full border-2 border-[#e5e7eb] rounded-xl p-3.5 pr-12 bg-[#f6f7fb] text-[#0a092d] font-semibold outline-none focus:border-[#4255ff] focus:bg-white transition-colors placeholder:text-slate-400" 
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer"
+                  tabIndex={-1}
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             {!isLogin && (

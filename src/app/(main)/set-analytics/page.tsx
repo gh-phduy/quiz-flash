@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description: 'Track vocabulary mastery, spaced repetition metrics, accuracy rates, and weak word analytics across all your sets.',
 };
 
-export const revalidate = 0; // Always fetch fresh data on page visit
+export const dynamic = 'force-dynamic'; // Always fetch fresh data on page visit
 
 export default async function SetAnalyticsPage() {
   const supabase = await createClient();

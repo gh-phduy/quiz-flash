@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import ReviewGame from './review-game';
 import Link from 'next/link';
 
-export const revalidate = 0; // Fresh fetch every time
+export const dynamic = 'force-dynamic'; // Prevent static caching
 
 export default async function ReviewPage() {
   const supabase = await createClient();

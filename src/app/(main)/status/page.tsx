@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
 
-export const revalidate = 0; // Fresh stats on each load
+export const dynamic = 'force-dynamic'; // Prevent static caching of auth state
 
 export default async function StatusPage() {
   const supabase = await createClient();
