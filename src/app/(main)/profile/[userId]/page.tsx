@@ -24,9 +24,26 @@ export default async function UserProfilePage({ params }: PageProps) {
   const { data: { user } } = await supabase.auth.getUser();
   const isOwner = user?.id === userId;
 
-  const dashboard = await getStatusDashboard(userId);
+  let dashboard = await getStatusDashboard(userId);
 
-  if (!dashboard) {
+  if (!dashboard || !dashboard.profile?.id) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (profile) {
+      dashboard = {
+        profile,
+        modePerformance: [],
+        streakHistory: [],
+        dailyGoal: null
+      };
+    }
+  }
+
+  if (!dashboard || !dashboard.profile) {
     return (
       <div className="w-full max-w-7xl mx-auto py-20 px-6 text-center font-sans">
         <h1 className="text-2xl font-bold text-white mb-4">User Profile Not Found</h1>

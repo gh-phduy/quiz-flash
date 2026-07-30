@@ -1,14 +1,15 @@
 import React from 'react';
-import { getStatusDashboard } from '@/actions/review';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { createClient } from '@/utils/supabase/server';
 
 export const revalidate = 0; // Fresh stats on each load
 
 export default async function StatusPage() {
-  const dashboard = await getStatusDashboard();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  if (!dashboard || !dashboard.profile?.id) {
+  if (!user) {
     return (
       <div className="w-full max-w-7xl mx-auto py-20 px-6 text-center font-sans">
         <h1 className="text-2xl font-bold text-white mb-4">Not Logged In</h1>
@@ -23,5 +24,6 @@ export default async function StatusPage() {
     );
   }
 
-  redirect(`/profile/${dashboard.profile.id}`);
+  redirect(`/profile/${user.id}`);
 }
+

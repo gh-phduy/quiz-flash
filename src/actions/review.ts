@@ -9,24 +9,35 @@ const getBackendUrl = () => {
 };
 
 async function fetchFromBackend(endpoint: string, options: RequestInit = {}) {
-  const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
+  try {
+    const supabase = await createClient();
+    const { data: { session } } = await supabase.auth.getSession();
 
-  if (!session?.access_token) {
-    return { success: false, error: 'Not authenticated' };
-  }
-
-  const backendUrl = getBackendUrl();
-  const response = await fetch(`${backendUrl}${endpoint}`, {
-    ...options,
-    headers: {
-      ...options.headers,
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`
-    }
-  });
+      ...(options.headers as Record<string, string> || {})
+    };
 
-  return await response.json();
+    if (session?.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`;
+    }
+
+    const backendUrl = getBackendUrl();
+    const response = await fetch(`${backendUrl}${endpoint}`, {
+      ...options,
+      headers
+    });
+
+    if (!response.ok) {
+      console.error(`Backend response not OK (${response.status}) for ${endpoint}`);
+      return { success: false, error: `Backend request failed: ${response.status}` };
+    }
+
+    return await response.json();
+  } catch (error: any) {
+    console.error(`Error in fetchFromBackend for ${endpoint}:`, error);
+    return { success: false, error: error?.message || 'Network error' };
+  }
 }
 
 export async function recordCardReview(
