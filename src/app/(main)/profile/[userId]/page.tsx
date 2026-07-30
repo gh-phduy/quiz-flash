@@ -49,7 +49,7 @@ export default async function UserProfilePage({ params }: PageProps) {
   } = dashboard;
 
   const displayName = profile?.full_name || profile?.email?.split('@')[0] || 'Learner';
-  const avatarUrl = profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.id || 'default'}`;
+  const avatarUrl = profile?.avatar_url || (isOwner ? user?.user_metadata?.avatar_url : null);
   const joinedDate = profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Recently';
 
   return (
@@ -75,11 +75,10 @@ export default async function UserProfilePage({ params }: PageProps) {
             <UserAvatar 
               src={avatarUrl}
               alt="Avatar"
-              fallbackSeed={profile?.id || 'default'}
               className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-[3px] border-[#b892ff] bg-gray-900 shadow-[0_0_25px_rgba(184,146,255,0.4)]"
             />
             {isOwner && (
-              <EditAvatar currentUrl={avatarUrl} userId={userId} />
+              <EditAvatar currentUrl={avatarUrl || ''} userId={userId} />
             )}
           </div>
           <div className="space-y-1.5 min-w-0">

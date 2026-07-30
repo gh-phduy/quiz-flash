@@ -20,7 +20,7 @@ export default function UserMenu({ user }: UserMenuProps) {
 
   const email = user.email || '';
   const username = user.user_metadata?.full_name || email.split('@')[0];
-  const avatarUrl = user.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`;
+  const avatarUrl = user.user_metadata?.avatar_url || null;
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -36,12 +36,11 @@ export default function UserMenu({ user }: UserMenuProps) {
     <div className="relative shrink-0" ref={menuRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="relative block h-10 w-10 rounded-full bg-gray-600 overflow-hidden border-2 border-transparent hover:border-border transition-all cursor-pointer outline-none focus:ring-2 focus:ring-ring"
+        className="relative block h-10 w-10 rounded-full bg-slate-800 overflow-hidden border-2 border-transparent hover:border-border transition-all cursor-pointer outline-none focus:ring-2 focus:ring-ring"
       >
         <UserAvatar 
           src={avatarUrl}
           alt="Avatar" 
-          fallbackSeed={email}
           className="w-full h-full"
         />
       </button>
@@ -51,8 +50,8 @@ export default function UserMenu({ user }: UserMenuProps) {
           
           {/* User Info */}
           <div className="p-4 flex items-center gap-3 bg-background">
-            <div className="relative h-12 w-12 rounded-full overflow-hidden shrink-0 border border-border bg-white">
-              <UserAvatar src={avatarUrl} alt="Avatar" fallbackSeed={email} className="w-full h-full" />
+            <div className="relative h-12 w-12 rounded-full overflow-hidden shrink-0 border border-border bg-slate-800">
+              <UserAvatar src={avatarUrl} alt="Avatar" className="w-full h-full" />
             </div>
             <div className="flex flex-col min-w-0">
               <span className="font-bold text-[15px] truncate">{username}</span>

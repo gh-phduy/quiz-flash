@@ -58,14 +58,13 @@ export default async function UserLibraryPage({ params }: { params: Promise<{ id
   }
 
   const isOwnLibrary = currentUser?.id === userId;
+  const targetProfile = profileResult.data;
   
-  const avatarUrl = isOwnLibrary && currentUser?.user_metadata?.avatar_url 
-    ? currentUser.user_metadata.avatar_url 
-    : `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`;
+  const avatarUrl = targetProfile?.avatar_url || (isOwnLibrary ? currentUser?.user_metadata?.avatar_url : null);
     
   const displayName = isOwnLibrary && (currentUser?.user_metadata?.full_name || currentUser?.user_metadata?.name || currentUser?.user_metadata?.custom_username)
     ? (currentUser.user_metadata.full_name || currentUser.user_metadata.name || currentUser.user_metadata.custom_username)
-    : userId.substring(0, 8);
+    : (targetProfile?.email?.split('@')[0] || userId.substring(0, 8));
 
   return (
     <div className="w-full max-w-5xl mx-auto py-5 sm:py-10 px-4 sm:px-6 font-sans">
@@ -76,7 +75,6 @@ export default async function UserLibraryPage({ params }: { params: Promise<{ id
             <UserAvatar 
               src={avatarUrl}
               alt="Avatar"
-              fallbackSeed={userId}
               className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 border-[#b892ff]/40 bg-gray-600 shadow-md"
             />
             <div className="absolute -bottom-1 -right-1 p-1 bg-[#4255ff] rounded-full border border-background">

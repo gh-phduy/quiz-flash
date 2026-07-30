@@ -69,9 +69,8 @@ export default async function LeaderboardPage() {
                 <div className="relative mb-2 sm:mb-3">
                   <div className="relative w-12 h-12 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 sm:border-3 border-slate-300 shadow-[0_0_15px_rgba(203,213,225,0.4)] group-hover:scale-105 transition-transform bg-gray-900">
                     <UserAvatar 
-                      src={top2.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${top2.id}`} 
+                      src={top2.avatar_url || null} 
                       alt={top2.full_name || 'Player'} 
-                      fallbackSeed={top2.id}
                       className="w-full h-full"
                     />
                   </div>
@@ -104,9 +103,8 @@ export default async function LeaderboardPage() {
                 <div className="relative mb-2 sm:mb-3 mt-1 sm:mt-2">
                   <div className="relative w-16 h-16 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 sm:border-4 border-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.5)] group-hover:scale-105 transition-transform bg-gray-900">
                     <UserAvatar 
-                      src={top1.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${top1.id}`} 
+                      src={top1.avatar_url || null} 
                       alt={top1.full_name || 'Champion'} 
-                      fallbackSeed={top1.id}
                       className="w-full h-full"
                     />
                   </div>
@@ -136,9 +134,8 @@ export default async function LeaderboardPage() {
                 <div className="relative mb-2 sm:mb-3">
                   <div className="relative w-12 h-12 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 sm:border-3 border-[#cd7f32] shadow-[0_0_15px_rgba(205,127,50,0.4)] group-hover:scale-105 transition-transform bg-gray-900">
                     <UserAvatar 
-                      src={top3.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${top3.id}`} 
+                      src={top3.avatar_url || null} 
                       alt={top3.full_name || 'Player'} 
-                      fallbackSeed={top3.id}
                       className="w-full h-full"
                     />
                   </div>
@@ -188,7 +185,7 @@ export default async function LeaderboardPage() {
 
               const avatar = isCurrentUser && user?.user_metadata?.avatar_url
                 ? user.user_metadata.avatar_url
-                : (player.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${player.id}`);
+                : (player.avatar_url || null);
 
               return (
                 <Link 
@@ -212,7 +209,7 @@ export default async function LeaderboardPage() {
                     <div className={`relative w-9 h-9 sm:w-11 sm:h-11 rounded-full overflow-hidden bg-gray-900 shrink-0 border-2 ${
                       isCurrentUser ? 'border-[#b892ff] shadow-[0_0_10px_rgba(184,146,255,0.4)]' : 'border-white/10'
                     }`}>
-                      <UserAvatar src={avatar} alt={displayName} fallbackSeed={player.id} className="w-full h-full" />
+                      <UserAvatar src={avatar} alt={displayName} className="w-full h-full" />
                     </div>
                     <div className="flex flex-col min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
@@ -279,9 +276,8 @@ export default async function LeaderboardPage() {
             </div>
             <div className="relative w-8 h-8 rounded-full overflow-hidden border border-[#b892ff] shrink-0 bg-gray-900">
                 <UserAvatar 
-                  src={user.user_metadata?.avatar_url || currentUserPlayer.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`} 
+                  src={user.user_metadata?.avatar_url || currentUserPlayer.avatar_url || null} 
                   alt="Avatar" 
-                  fallbackSeed={user.id}
                   className="w-full h-full" 
                 />
             </div>

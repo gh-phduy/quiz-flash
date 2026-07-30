@@ -128,7 +128,6 @@ export default function NotificationsPage() {
                   <UserAvatar 
                     src={notif.sender?.avatar_url} 
                     alt="Avatar" 
-                    fallbackSeed={notif.sender?.id || 'default'} 
                     className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-slate-900 shrink-0 border-2 border-[#b892ff]/40 shadow-md"
                   />
                   <div className="flex flex-col justify-center min-w-0">

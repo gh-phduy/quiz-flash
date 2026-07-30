@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Pencil, Shuffle, Check, X, RefreshCw } from 'lucide-react';
+import { Pencil, Check, X, RefreshCw, Upload, Trash2, Link as LinkIcon } from 'lucide-react';
 import { updateAvatarUrl } from '@/actions/profile';
 import { toast } from 'sonner';
 import { UserAvatar } from '@/components/shared/user-avatar';
+import { createClient } from '@/utils/supabase/client';
 
 interface EditAvatarProps {
   currentUrl: string;
@@ -15,45 +16,98 @@ interface EditAvatarProps {
 export default function EditAvatar({ currentUrl, userId }: EditAvatarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [previewSeed, setPreviewSeed] = useState(userId);
-  const [previewStyle, setPreviewStyle] = useState('avataaars');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [customUrl, setCustomUrl] = useState('');
+  const [previewUrl, setPreviewUrl] = useState<string | null>(currentUrl || null);
+  const [isResetToDefault, setIsResetToDefault] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const STYLES = ['avataaars', 'bottts', 'fun-emoji', 'lorelei', 'micah', 'notionists', 'pixel-art'];
-
-  const getPreviewUrl = () => {
-    return `https://api.dicebear.com/7.x/${previewStyle}/svg?seed=${previewSeed}`;
+  const handleOpen = () => {
+    setPreviewUrl(currentUrl || null);
+    setSelectedFile(null);
+    setCustomUrl('');
+    setIsResetToDefault(false);
+    setIsOpen(true);
   };
 
-  const handleShuffle = () => {
-    // Random string for seed
-    const randomSeed = Math.random().toString(36).substring(7);
-    setPreviewSeed(randomSeed);
-    
-    // Random style
-    const randomStyle = STYLES[Math.floor(Math.random() * STYLES.length)];
-    setPreviewStyle(randomStyle);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Kích thước ảnh tối đa là 5MB');
+        return;
+      }
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+      setIsResetToDefault(false);
+    }
+  };
+
+  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setCustomUrl(val);
+    setSelectedFile(null);
+    setIsResetToDefault(false);
+    setPreviewUrl(val.trim() || null);
+  };
+
+  const handleResetDefault = () => {
+    setSelectedFile(null);
+    setCustomUrl('');
+    setIsResetToDefault(true);
+    setPreviewUrl(null);
   };
 
   const handleSave = async () => {
     setIsLoading(true);
-    const newUrl = getPreviewUrl();
-    const result = await updateAvatarUrl(newUrl);
-    
-    if (result.success) {
-      toast.success('Avatar updated successfully!');
-      setIsOpen(false);
-    } else {
-      toast.error(result.error || 'Failed to update avatar');
+    try {
+      let finalAvatarUrl = currentUrl;
+
+      if (isResetToDefault) {
+        finalAvatarUrl = '';
+      } else if (selectedFile) {
+        const supabase = createClient();
+        const fileExt = selectedFile.name.split('.').pop() || 'png';
+        const fileName = `avatars/${userId}-${Date.now()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('flashcard-images')
+          .upload(fileName, selectedFile, { upsert: true });
+
+        if (uploadError) {
+          throw new Error('Lỗi tải ảnh lên Supabase: ' + uploadError.message);
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('flashcard-images')
+          .getPublicUrl(fileName);
+
+        finalAvatarUrl = publicUrl;
+      } else if (customUrl.trim()) {
+        finalAvatarUrl = customUrl.trim();
+      }
+
+      const result = await updateAvatarUrl(finalAvatarUrl);
+
+      if (result.success) {
+        toast.success('Cập nhật avatar thành công!');
+        setIsOpen(false);
+      } else {
+        toast.error(result.error || 'Cập nhật avatar thất bại');
+      }
+    } catch (error: any) {
+      toast.error(error?.message || 'Có lỗi xảy ra khi tải ảnh lên');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   return (
     <>
       <button
-        onClick={() => setIsOpen(true)}
+        onClick={handleOpen}
         className="absolute bottom-0 right-0 p-2 sm:p-2.5 rounded-full bg-[#4255ff] hover:bg-[#5b6aff] text-white shadow-lg transition-transform hover:scale-105 cursor-pointer z-10"
-        title="Change Avatar"
+        title="Đổi ảnh đại diện"
       >
         <Pencil className="w-4 h-4" />
       </button>
@@ -69,25 +123,61 @@ export default function EditAvatar({ currentUrl, userId }: EditAvatarProps) {
               <X className="w-5 h-5" />
             </button>
             
-            <h2 className="text-xl font-bold text-white mb-6 text-center">Customize Avatar</h2>
+            <h2 className="text-xl font-bold text-white mb-6 text-center">Đổi ảnh đại diện</h2>
             
-            <div className="flex justify-center mb-8 relative">
-              <div className="w-32 h-32 rounded-full border-4 border-[#b892ff] bg-gray-900 overflow-hidden relative shadow-[0_0_25px_rgba(184,146,255,0.4)] mx-auto">
+            <div className="flex justify-center mb-6">
+              <div className="w-28 h-28 rounded-full border-4 border-[#b892ff] bg-slate-800 overflow-hidden relative shadow-[0_0_25px_rgba(184,146,255,0.4)] mx-auto flex items-center justify-center">
                 <UserAvatar 
-                  src={getPreviewUrl()} 
+                  src={previewUrl} 
                   alt="Preview Avatar" 
-                  fallbackSeed={previewSeed}
                   className="w-full h-full"
                 />
               </div>
+            </div>
+
+            {/* Actions: Upload or URL or Reset */}
+            <div className="space-y-3 mb-6">
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                accept="image/*" 
+                onChange={handleFileChange} 
+                className="hidden" 
+              />
+              
               <button
-                onClick={handleShuffle}
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
                 disabled={isLoading}
-                className="absolute bottom-0 right-8 bg-amber-400 hover:bg-amber-500 text-amber-950 p-3 rounded-full shadow-lg transition-transform hover:scale-110 disabled:opacity-50"
-                title="Randomize"
+                className="w-full py-2.5 px-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
               >
-                <Shuffle className="w-5 h-5" />
+                <Upload className="w-4 h-4 text-[#b892ff]" />
+                Tải ảnh từ máy tính
               </button>
+
+              <div className="relative">
+                <input
+                  type="url"
+                  placeholder="Hoặc dán URL hình ảnh..."
+                  value={customUrl}
+                  onChange={handleUrlChange}
+                  disabled={isLoading}
+                  className="w-full py-2 px-3 pl-9 rounded-xl border border-white/10 bg-white/5 text-white placeholder-slate-400 text-xs focus:outline-none focus:border-[#b892ff]"
+                />
+                <LinkIcon className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              </div>
+
+              {previewUrl && (
+                <button
+                  type="button"
+                  onClick={handleResetDefault}
+                  disabled={isLoading}
+                  className="w-full py-2 px-3 rounded-xl border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Sử dụng ảnh mặc định
+                </button>
+              )}
             </div>
 
             <div className="flex gap-3">
@@ -96,7 +186,7 @@ export default function EditAvatar({ currentUrl, userId }: EditAvatarProps) {
                 disabled={isLoading}
                 className="flex-1 py-3 px-4 rounded-xl font-bold text-white bg-white/10 hover:bg-white/20 transition-colors disabled:opacity-50 cursor-pointer"
               >
-                Cancel
+                Hủy
               </button>
               <button
                 onClick={handleSave}
@@ -104,7 +194,7 @@ export default function EditAvatar({ currentUrl, userId }: EditAvatarProps) {
                 className="flex-1 py-3 px-4 rounded-xl font-bold text-white bg-gradient-to-r from-[#4255ff] to-[#6b7bff] hover:opacity-90 transition-opacity disabled:opacity-50 shadow-lg flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isLoading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
-                Save
+                Lưu
               </button>
             </div>
           </div>
@@ -114,3 +204,4 @@ export default function EditAvatar({ currentUrl, userId }: EditAvatarProps) {
     </>
   );
 }
+
