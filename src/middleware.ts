@@ -36,7 +36,12 @@ export async function middleware(request: NextRequest) {
   const path = url.pathname
 
   // Public paths that do not require authentication
-  const isPublicPath = path.startsWith('/login') || path.startsWith('/auth') || path === '/sitemap.xml' || path === '/robots.txt'
+  const publicPaths = [
+    '/login', '/auth', '/sitemap.xml', '/robots.txt', 
+    '/explore', '/leaderboard',
+    '/flashcards', '/listening', '/speaking', '/match', '/test', '/typing'
+  ]
+  const isPublicPath = publicPaths.some(p => path === p || path.startsWith(`${p}/`)) || path === '/'
 
   if (!user && !isPublicPath) {
     // If not logged in and trying to access a protected route, redirect to login
