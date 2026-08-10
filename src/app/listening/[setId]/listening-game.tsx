@@ -145,19 +145,18 @@ export default function ListeningGame({ set, cards }: ListeningGameProps) {
           .filter(c => !correctCardsRef.current.has(c.id))
           .map(c => c.id);
 
-        await Promise.all([
-          recordStudyActivity(set.id, xp, activeCards.length, 'listening'),
-          updateGameScores(Array.from(correctCardsRef.current), incorrectCardIds),
-          logGameSession({
-            setId: set.id,
-            mode: 'listening',
-            totalCards: activeCards.length,
-            correctCount: score,
-            incorrectCount: activeCards.length - score,
-            durationSeconds: totalSecs,
-            pointsEarned: xp
-          })
-        ]);
+        // Run sequentially to avoid CPU limit crash on Cloudflare Workers
+        await recordStudyActivity(set.id, xp, activeCards.length, 'listening');
+        await updateGameScores(Array.from(correctCardsRef.current), incorrectCardIds);
+        await logGameSession({
+          setId: set.id,
+          mode: 'listening',
+          totalCards: activeCards.length,
+          correctCount: score,
+          incorrectCount: activeCards.length - score,
+          durationSeconds: totalSecs,
+          pointsEarned: xp
+        });
       } catch (e) {
         console.warn('Error saving listening results:', e);
       } finally {
@@ -177,7 +176,7 @@ export default function ListeningGame({ set, cards }: ListeningGameProps) {
       if (currentCard) {
         correctCardsRef.current.add(currentCard.id);
         cardReviewsRef.current.push({ cardId: currentCard.id, quality: 5 });
-        recordCardReview(currentCard.id, 5, 'listening').catch(console.error);
+        recordCardReview(currentCard.id, 5, 'listening', new Date().toLocaleDateString('en-CA')).catch(console.error);
       }
       confetti({
         particleCount: 120,
@@ -199,7 +198,7 @@ export default function ListeningGame({ set, cards }: ListeningGameProps) {
       setStatus('wrong');
       if (currentCard) {
         cardReviewsRef.current.push({ cardId: currentCard.id, quality: 1 });
-        recordCardReview(currentCard.id, 1, 'listening').catch(console.error);
+        recordCardReview(currentCard.id, 1, 'listening', new Date().toLocaleDateString('en-CA')).catch(console.error);
       }
       if (inputRef.current) {
         inputRef.current.select();
@@ -210,7 +209,7 @@ export default function ListeningGame({ set, cards }: ListeningGameProps) {
   const handleSkip = () => {
     if (currentCard) {
       cardReviewsRef.current.push({ cardId: currentCard.id, quality: 1 });
-      recordCardReview(currentCard.id, 1, 'listening').catch(console.error);
+      recordCardReview(currentCard.id, 1, 'listening', new Date().toLocaleDateString('en-CA')).catch(console.error);
     }
     const nextIndex = currentIndex + 1;
     if (nextIndex < activeCards.length) {

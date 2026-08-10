@@ -159,7 +159,7 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
       cardId: currentCard.id,
       quality
     });
-    recordCardReview(currentCard.id, quality, 'flashcards').catch(console.error);
+    recordCardReview(currentCard.id, quality, 'flashcards', new Date().toLocaleDateString('en-CA')).catch(console.error);
 
     // Start sliding out animation
     setSlideDirection(status === 'known' ? 'right' : 'left');
@@ -203,19 +203,18 @@ export default function FlashcardPlayer({ set, cards }: FlashcardPlayerProps) {
         const incorrectCards = finalLearning > 0 ? activeCards.filter(c => c).map(c => c.id) : [];
 
         // Record activity
-        const [res, bulkRes] = await Promise.all([
-          recordStudyActivity(set.id, earned, activeCards.length, 'flashcards'),
-          updateGameScores(correctCards, incorrectCards),
-          logGameSession({
-            setId: set.id,
-            mode: 'flashcards',
-            totalCards: activeCards.length,
-            correctCount: finalKnown,
-            incorrectCount: finalLearning,
-            durationSeconds,
-            pointsEarned: earned
-          })
-        ]);
+        // Run sequentially to avoid CPU limit crash on Cloudflare Workers
+        const res = await recordStudyActivity(set.id, earned, activeCards.length, 'flashcards');
+        const bulkRes = await updateGameScores(correctCards, incorrectCards);
+        await logGameSession({
+          setId: set.id,
+          mode: 'flashcards',
+          totalCards: activeCards.length,
+          correctCount: finalKnown,
+          incorrectCount: finalLearning,
+          durationSeconds,
+          pointsEarned: earned
+        });
         
         setIsSaving(false);
         

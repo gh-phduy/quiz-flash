@@ -1,4 +1,5 @@
 import { getDueCardsToReview } from '@/actions/review';
+import { getServerLocalDateStr } from '@/utils/timezone';
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import ReviewGame from './review-game';
@@ -14,11 +15,19 @@ export default async function ReviewPage() {
     redirect('/login');
   }
 
-  const dueCards = await getDueCardsToReview();
+  const todayStr = await getServerLocalDateStr();
+  const dueCardsResult = await getDueCardsToReview(todayStr);
   
-  // Limit to 50 cards per session to prevent Edge Worker CPU limits (Error 1102)
+  // Limit to 10 cards per session to prevent Edge Worker CPU limits (Error 1102)
   // when Next.js serializes massive arrays into the RSC payload.
-  const limitedCards = (dueCards || []).slice(0, 50);
+  let limitedCards = [];
+  if (Array.isArray(dueCardsResult)) {
+    limitedCards = dueCardsResult.slice(0, 10);
+  } else if (dueCardsResult && Array.isArray(dueCardsResult.data)) {
+    limitedCards = dueCardsResult.data.slice(0, 10);
+  } else {
+    console.error("Failed to load due cards:", dueCardsResult);
+  }
   
   // Always render ReviewGame. We let the Client Component handle the empty state.
   // This prevents the Server Action re-renders from blowing away the UI state when dueCards becomes empty.

@@ -660,23 +660,32 @@ export default function TestGame({ set, cards }: TestGameProps) {
               }
 
          setIsSubmitted(true);
-
-        Promise.all([
-          recordStudyActivity(set.id, earned, Object.keys(cardQualities).length, 'test'),
-          ...Object.keys(cardQualities).map(cardId => {
-            const minQuality = Math.min(...cardQualities[cardId]);
-            return recordCardReview(cardId, minQuality, 'test');
-          }),
-          updateGameScores(finalCorrect, finalIncorrect),
-          logGameSession({
-            setId: set.id,
-            mode: 'test',
-            totalCards: Object.keys(cardQualities).length,
-            correctCount: finalCorrect.length,
-            incorrectCount: finalIncorrect.length,
-            pointsEarned: earned
-          })
-        ]);
+         
+         const saveResults = async () => {
+           try {
+             // Run sequentially to avoid CPU limit crash on Cloudflare Workers
+             await recordStudyActivity(set.id, earned, Object.keys(cardQualities).length, 'test');
+             
+             // Run card reviews sequentially
+             for (const cardId of Object.keys(cardQualities)) {
+               const minQuality = Math.min(...cardQualities[cardId]);
+               await recordCardReview(cardId, minQuality, 'test', new Date().toLocaleDateString('en-CA'));
+             }
+             
+             await updateGameScores(finalCorrect, finalIncorrect);
+             await logGameSession({
+               setId: set.id,
+               mode: 'test',
+               totalCards: Object.keys(cardQualities).length,
+               correctCount: finalCorrect.length,
+               incorrectCount: finalIncorrect.length,
+               pointsEarned: earned
+             });
+           } catch (e) {
+             console.error('Error saving test results:', e);
+           }
+         };
+         saveResults();
             }}
             className="px-12 py-4 bg-[#4255ff] text-foreground text-lg font-bold rounded-full hover:bg-[#5b6aff] shadow-lg transition-transform hover:scale-105 active:scale-95"
           >

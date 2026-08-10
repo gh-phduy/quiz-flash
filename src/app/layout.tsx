@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import PwaRegister from "@/components/pwa/pwa-register";
 import PwaInstallPrompt from "@/components/pwa/pwa-install-prompt";
+import TimezoneSetter from "@/components/timezone-setter";
 
 const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://quizflash.click';
 
@@ -131,6 +132,7 @@ export default function RootLayout({
           <QueryProvider>
             {children}
           </QueryProvider>
+          <TimezoneSetter />
           <PwaRegister />
           <PwaInstallPrompt />
           <Toaster position="top-right" />

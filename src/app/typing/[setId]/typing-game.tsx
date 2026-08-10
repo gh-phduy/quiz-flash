@@ -197,7 +197,7 @@ export default function TypingGame({ set, cards }: TypingGameProps) {
     }
 
     // Record review to backend with 'typing' mode (SM-2 exempt!)
-    recordCardReview(currentCard.id, quality, 'typing').catch(console.error);
+    recordCardReview(currentCard.id, quality, 'typing', new Date().toLocaleDateString('en-CA')).catch(console.error);
 
     setIsChecking(false);
 
@@ -240,21 +240,20 @@ export default function TypingGame({ set, cards }: TypingGameProps) {
     }
 
     try {
-      await Promise.all([
-        recordPoints(earned),
-        recordStudyActivity(set.id, earned, activeCards.length, 'typing'),
-        logGameSession({
-          setId: set.id,
-          mode: 'typing',
-          totalCards: activeCards.length,
-          correctCount: finalCorrect,
-          incorrectCount: finalIncorrect,
-          durationSeconds: activeCards.length * 5,
-          newCardsCount: 0,
-          reviewCardsCount: activeCards.length,
-          pointsEarned: earned,
-        }),
-      ]);
+      // Run sequentially to avoid CPU limit crash on Cloudflare Workers
+      await recordPoints(earned);
+      await recordStudyActivity(set.id, earned, activeCards.length, 'typing');
+      await logGameSession({
+        setId: set.id,
+        mode: 'typing',
+        totalCards: activeCards.length,
+        correctCount: finalCorrect,
+        incorrectCount: finalIncorrect,
+        durationSeconds: activeCards.length * 5,
+        newCardsCount: 0,
+        reviewCardsCount: activeCards.length,
+        pointsEarned: earned,
+      });
     } catch (err) {
       console.error('Error recording typing session:', err);
     } finally {

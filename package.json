@@ -8,6 +8,7 @@
     "build:next": "next build",
     "build": "opennextjs-cloudflare build",
     "start": "next start",
+    "dev:backend": "cd be && npm run dev",
     "lint": "eslint"
   },
   "dependencies": {

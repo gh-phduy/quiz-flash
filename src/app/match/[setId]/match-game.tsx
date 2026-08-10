@@ -105,19 +105,25 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
       const correctCards = playedCardIds.filter(id => !mistakesPerCard[id]);
       const incorrectCards = playedCardIds.filter(id => mistakesPerCard[id] > 0);
 
-      Promise.all([
-        recordStudyActivity(set.id, earned, playedCardIds.length, 'match'),
-        updateGameScores(correctCards, incorrectCards),
-        logGameSession({
-          setId: set.id,
-          mode: 'match',
-          totalCards: playedCardIds.length,
-          correctCount: correctCards.length,
-          incorrectCount: incorrectCards.length,
-          durationSeconds: Math.round(timeMs / 1000),
-          pointsEarned: earned
-        })
-      ]);
+      const saveResults = async () => {
+        try {
+          // Run sequentially to avoid CPU limit crash on Cloudflare Workers
+          await recordStudyActivity(set.id, earned, playedCardIds.length, 'match');
+          await updateGameScores(correctCards, incorrectCards);
+          await logGameSession({
+            setId: set.id,
+            mode: 'match',
+            totalCards: playedCardIds.length,
+            correctCount: correctCards.length,
+            incorrectCount: incorrectCards.length,
+            durationSeconds: Math.round(timeMs / 1000),
+            pointsEarned: earned
+          });
+        } catch (e) {
+          console.error('Error saving match game results:', e);
+        }
+      };
+      saveResults();
     }
   }, [isFinished, hasRecorded, timeMs, cards.length, set.id, mistakesPerCard, tiles]);
 
@@ -245,7 +251,7 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
 
       if (tile1.cardId === tile2.cardId) {
         // MATCH!
-        recordCardReview(tile1.cardId, 4, 'match').catch(console.error);
+        recordCardReview(tile1.cardId, 4, 'match', new Date().toLocaleDateString('en-CA')).catch(console.error);
         setTimeout(() => {
           setTiles(prev => {
             const nextTiles = prev.map(t => 
@@ -262,8 +268,8 @@ export default function MatchGame({ set, cards }: MatchGameProps) {
         }, 300);
       } else {
         // MISMATCH!
-        recordCardReview(tile1.cardId, 1, 'match').catch(console.error);
-        recordCardReview(tile2.cardId, 1, 'match').catch(console.error);
+        recordCardReview(tile1.cardId, 1, 'match', new Date().toLocaleDateString('en-CA')).catch(console.error);
+        recordCardReview(tile2.cardId, 1, 'match', new Date().toLocaleDateString('en-CA')).catch(console.error);
         setTiles(prev => prev.map(t => 
           newSelectedIds.includes(t.id) ? { ...t, status: 'error' as TileStatus } : t
         ));

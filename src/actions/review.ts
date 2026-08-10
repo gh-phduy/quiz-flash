@@ -43,12 +43,13 @@ async function fetchFromBackend(endpoint: string, options: RequestInit = {}) {
 export async function recordCardReview(
   cardId: string, 
   quality: number, 
-  mode?: GameModeType
+  mode?: GameModeType,
+  clientLocalDateStr?: string
 ) {
   try {
     const result = await fetchFromBackend('/review/record', {
       method: 'POST',
-      body: JSON.stringify({ cardId, quality, mode })
+      body: JSON.stringify({ cardId, quality, mode, clientLocalDateStr })
     });
     
     if (result.success !== false) {
@@ -58,6 +59,7 @@ export async function recordCardReview(
       revalidatePath('/status');
       revalidatePath('/dashboard');
       revalidatePath('/leaderboard');
+      revalidatePath('/review');
     }
     return result;
   } catch (error) {
@@ -67,16 +69,18 @@ export async function recordCardReview(
 }
 
 export async function recordBulkCardReviews(
-  reviews: Array<{ cardId: string; quality: number; mode?: GameModeType }>
+  reviews: Array<{ cardId: string; quality: number; mode?: GameModeType }>,
+  clientLocalDateStr?: string
 ) {
   try {
     const result = await fetchFromBackend('/review/record-bulk', {
       method: 'POST',
-      body: JSON.stringify({ reviews })
+      body: JSON.stringify({ reviews, clientLocalDateStr })
     });
 
     revalidatePath('/status');
     revalidatePath('/study');
+    revalidatePath('/review');
     return result;
   } catch (error) {
     console.error('Error calling recordBulkCardReviews API:', error);
@@ -92,6 +96,7 @@ export async function resetUserProgress() {
 
     revalidatePath('/status');
     revalidatePath('/study');
+    revalidatePath('/review');
     return result;
   } catch (error) {
     console.error('Error calling resetUserProgress API:', error);
@@ -123,10 +128,12 @@ export async function getUpcomingReviews(targetUserId?: string) {
   }
 }
 
-export async function getDueCardsToReview() {
+export async function getDueCardsToReview(clientLocalDateStr?: string) {
   try {
-    return await fetchFromBackend('/review/due', {
-      method: 'GET'
+    const query = clientLocalDateStr ? `?localDate=${clientLocalDateStr}` : '';
+    return await fetchFromBackend(`/review/due${query}`, {
+      method: 'GET',
+      cache: 'no-store'
     });
   } catch (error) {
     console.error('Error calling getDueCardsToReview API:', error);

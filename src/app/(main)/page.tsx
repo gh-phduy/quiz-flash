@@ -1,7 +1,7 @@
 import { createClient } from '@/utils/supabase/server';
 import HomeDashboard from './home-dashboard';
 
-import { formatDateToYYYYMMDD } from '@/lib/sm2';
+import { getServerLocalDateStr } from '@/utils/timezone';
 
 export default async function Home() {
   const supabase = await createClient();
@@ -16,7 +16,7 @@ export default async function Home() {
   let dueCount = 0;
   
   if (user) {
-    const todayStr = formatDateToYYYYMMDD(new Date());
+    const todayStr = await getServerLocalDateStr();
 
     const [
       { data: profileData },

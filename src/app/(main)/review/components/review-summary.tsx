@@ -7,6 +7,8 @@ interface ReviewSummaryProps {
   incorrectCount: number;
   totalCards: number;
   pointsEarned: number;
+  onContinue: () => void;
+  isPending?: boolean;
 }
 
 export function ReviewSummary({
@@ -14,6 +16,8 @@ export function ReviewSummary({
   incorrectCount,
   totalCards,
   pointsEarned,
+  onContinue,
+  isPending,
 }: ReviewSummaryProps) {
   const accuracy = totalCards > 0 ? Math.round((correctCount / (correctCount + incorrectCount)) * 100) : 0;
 
@@ -86,9 +90,20 @@ export function ReviewSummary({
         >
           <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out"></div>
           <span className="relative z-10 flex items-center gap-2">
-            View My Stats <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            View My Stats
           </span>
         </a>
+
+        <button
+          onClick={onContinue}
+          disabled={isPending}
+          className={`group relative px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl font-bold text-lg overflow-hidden transition-all flex items-center gap-3 w-full sm:w-auto min-w-[220px] justify-center ${isPending ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 hover:shadow-[0_0_40px_rgba(16,185,129,0.4)]'}`}
+        >
+          <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out"></div>
+          <span className="relative z-10 flex items-center gap-2">
+            {isPending ? 'Loading...' : <>Continue Review <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" /></>}
+          </span>
+        </button>
 
         <a
           href="/"

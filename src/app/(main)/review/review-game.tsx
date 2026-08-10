@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { recordCardReview } from '@/actions/review';
+import { recordCardReview, getDueCardsToReview } from '@/actions/review';
 import { recordPoints, recordStudyActivity } from '@/actions/study';
 import { logGameSession } from '@/actions/game';
 import { playAudio } from '@/lib/speech';
@@ -22,6 +22,9 @@ export default function ReviewGame({ cards }: ReviewGameProps) {
   const [inputValue, setInputValue] = useState('');
   const [isChecking, setIsChecking] = useState(false);
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
+
+  const [isPending, startTransition] = useTransition();
+  const [isFetchingNewCards, setIsFetchingNewCards] = useState(false);
 
   const [correctCount, setCorrectCount] = useState(0);
   const [incorrectCount, setIncorrectCount] = useState(0);
@@ -71,22 +74,23 @@ export default function ReviewGame({ cards }: ReviewGameProps) {
     const setId = cards[0]?.card?.set_id || '';
 
     try {
-      await Promise.all([
-        recordPoints(earned),
-        recordStudyActivity(setId, earned, cards.length, 'review'),
-        logGameSession({
-          setId,
-          mode: 'review',
-          totalCards,
-          correctCount: finalCorrect,
-          incorrectCount: finalIncorrect,
-          durationSeconds: totalCards * 6,
-          newCardsCount: 0,
-          reviewCardsCount: cards.length,
-          pointsEarned: earned,
-        }),
-      ]);
-      // router.refresh(); // Removed to prevent unmounting ReviewSummary
+      // Run sequentially to avoid Next.js Server Actions CPU spike on Cloudflare Workers
+      await recordPoints(earned);
+      await recordStudyActivity(setId, earned, cards.length, 'review');
+      await logGameSession({
+        setId,
+        mode: 'review',
+        totalCards,
+        correctCount: finalCorrect,
+        incorrectCount: finalIncorrect,
+        durationSeconds: totalCards * 6,
+        newCardsCount: 0,
+        reviewCardsCount: cards.length,
+        pointsEarned: earned,
+      });
+      startTransition(() => {
+        router.refresh(); // Fetch new cards from server in the background and update Router Cache
+      });
     } catch (err) {
       console.error('Error saving review session:', err);
     }
@@ -150,15 +154,22 @@ export default function ReviewGame({ cards }: ReviewGameProps) {
         console.error('Audio play failed:', audioErr);
       }
 
+      let recordPromise = Promise.resolve<any>(null);
       if (currentCard.id) {
-        recordCardReview(currentCard.id, quality, 'review').catch((err) => {
+        recordPromise = recordCardReview(currentCard.id, quality, 'review', new Date().toLocaleDateString('en-CA')).catch((err) => {
           console.error('Failed to record card review:', err);
         });
       }
 
+      // Ensure the database update finishes before moving to the next card/finishing
+      // Awaiting it here ensures both correct and incorrect answers are fully recorded,
+      // avoiding race conditions if the user reaches this card again very quickly.
+      await recordPromise;
+
       setIsChecking(false);
 
       if (isCorrect) {
+        // Just add a short visual delay before moving to the next card
         setTimeout(() => {
           handleNext(nextCorrect, nextIncorrect);
         }, 1200);
@@ -170,6 +181,43 @@ export default function ReviewGame({ cards }: ReviewGameProps) {
     }
   };
 
+  const handleContinue = async () => {
+    if (isPending || isFetchingNewCards) return;
+    setIsFetchingNewCards(true);
+    
+    try {
+      // Manually fetch new cards to bypass Next.js and Cloudflare Router Caches!
+      const todayStr = new Date().toLocaleDateString('en-CA');
+      const dueCardsResult = await getDueCardsToReview(todayStr);
+      
+      let newCards: ReviewCard[] = [];
+      if (Array.isArray(dueCardsResult)) {
+        newCards = dueCardsResult.slice(0, 10);
+      } else if (dueCardsResult && Array.isArray(dueCardsResult.data)) {
+        newCards = dueCardsResult.data.slice(0, 10);
+      }
+      
+      setQueue(newCards);
+      queueRef.current = newCards;
+      setCurrentIndex(0);
+      currentIndexRef.current = 0;
+      setCorrectCount(0);
+      correctCountRef.current = 0;
+      setIncorrectCount(0);
+      incorrectCountRef.current = 0;
+      setIsFinished(false);
+      isFinishedRef.current = false;
+      setInputValue('');
+      setFeedback(null);
+      setPointsEarned(0);
+      setDebugError(null);
+    } catch (err) {
+      console.error('Failed to fetch new cards', err);
+    } finally {
+      setIsFetchingNewCards(false);
+    }
+  };
+
   if (isFinished) {
     return (
       <ReviewSummary
@@ -177,6 +225,8 @@ export default function ReviewGame({ cards }: ReviewGameProps) {
         incorrectCount={incorrectCount}
         totalCards={queue.length}
         pointsEarned={pointsEarned}
+        onContinue={handleContinue}
+        isPending={isPending || isFetchingNewCards}
       />
     );
   }

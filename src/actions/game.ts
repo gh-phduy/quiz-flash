@@ -40,6 +40,9 @@ export async function updateGameScores(correctCardIds: string[], incorrectCardId
   return await fetchFromBackend('/game/scores', { method: 'POST', body: JSON.stringify({ correctCardIds, incorrectCardIds }) });
 }
 export async function logGameSession(params: any) {
-  return await fetchFromBackend('/game/log', { method: 'POST', body: JSON.stringify(params) });
+  const result = await fetchFromBackend('/game/log', { method: 'POST', body: JSON.stringify(params) });
+  revalidatePath('/review');
+  revalidatePath('/review', 'page');
+  return result;
 }
   

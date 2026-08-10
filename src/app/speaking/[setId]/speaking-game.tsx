@@ -160,19 +160,18 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
           .filter(c => !correctCardsRef.current.has(c.id))
           .map(c => c.id);
 
-        await Promise.all([
-          recordStudyActivity(set.id, xp, activeCards.length, 'speaking'),
-          updateGameScores(Array.from(correctCardsRef.current), incorrectCardIds),
-          logGameSession({
-            setId: set.id,
-            mode: 'speaking',
-            totalCards: activeCards.length,
-            correctCount: score,
-            incorrectCount: activeCards.length - score,
-            durationSeconds: totalSecs,
-            pointsEarned: xp
-          })
-        ]);
+        // Run sequentially to avoid CPU limit crash on Cloudflare Workers
+        await recordStudyActivity(set.id, xp, activeCards.length, 'speaking');
+        await updateGameScores(Array.from(correctCardsRef.current), incorrectCardIds);
+        await logGameSession({
+          setId: set.id,
+          mode: 'speaking',
+          totalCards: activeCards.length,
+          correctCount: score,
+          incorrectCount: activeCards.length - score,
+          durationSeconds: totalSecs,
+          pointsEarned: xp
+        });
       } catch (e) {
         console.warn('Lỗi khi lưu kết quả Speaking:', e);
       } finally {
@@ -263,7 +262,7 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
     if (currentCard) {
       correctCardsRef.current.add(currentCard.id);
       cardReviewsRef.current.push({ cardId: currentCard.id, quality: 5 });
-      recordCardReview(currentCard.id, 5, 'speaking').catch(console.error);
+      recordCardReview(currentCard.id, 5, 'speaking', new Date().toLocaleDateString('en-CA')).catch(console.error);
     }
     setScore(prev => prev + 1);
     handleNextCard();
@@ -272,7 +271,7 @@ export default function SpeakingGame({ set, cards }: SpeakingGameProps) {
   const handleRateIncorrect = () => {
     if (currentCard) {
       cardReviewsRef.current.push({ cardId: currentCard.id, quality: 1 });
-      recordCardReview(currentCard.id, 1, 'speaking').catch(console.error);
+      recordCardReview(currentCard.id, 1, 'speaking', new Date().toLocaleDateString('en-CA')).catch(console.error);
     }
     handleNextCard();
   };
