@@ -71,6 +71,7 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
     setError(null);
     setSearchQuery('');
     setPosFilter('all');
+    setShowPlayMenu(false);
 
     getSetCards(setId)
       .then((res) => {
@@ -102,6 +103,8 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
       if (e.key === 'Escape') {
         if (selectedImage) {
           setSelectedImage(null);
+        } else if (showPlayMenu) {
+          setShowPlayMenu(false);
         } else {
           onClose();
         }
@@ -109,7 +112,7 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose, selectedImage]);
+  }, [onClose, selectedImage, showPlayMenu]);
 
   // Click outside play menu
   useEffect(() => {
@@ -190,16 +193,16 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
     (setData?.author?.email ? setData.author.email.split('@')[0] : (setData?.user_id ? 'User' : 'QuizFlash'));
 
   const GAME_MODES = [
-    { id: 'flashcards', name: 'Flashcards', desc: 'Lật thẻ học từ', icon: <Layers className="w-4 h-4 text-blue-400" />, href: `/flashcards/${setId}` },
-    { id: 'typing', name: 'Typing', desc: 'Gõ phím nhớ từ', icon: <Keyboard className="w-4 h-4 text-sky-400" />, href: `/typing/${setId}` },
-    { id: 'speaking', name: 'Speaking', desc: 'Luyện phát âm', icon: <Mic className="w-4 h-4 text-rose-400" />, href: `/speaking/${setId}` },
-    { id: 'listening', name: 'Listening', desc: 'Luyện nghe phản xạ', icon: <Headphones className="w-4 h-4 text-amber-400" />, href: `/listening/${setId}` },
-    { id: 'test', name: 'Test', desc: 'Kiểm tra trắc nghiệm', icon: <FileText className="w-4 h-4 text-indigo-400" />, href: `/test/${setId}` },
-    { id: 'match', name: 'Match', desc: 'Ghép thẻ tốc độ', icon: <Sparkles className="w-4 h-4 text-cyan-400" />, href: `/match/${setId}` },
+    { id: 'flashcards', name: 'Flashcards', desc: 'Review terms & definitions', icon: <Layers className="w-4 h-4 text-blue-400" />, href: `/flashcards/${setId}` },
+    { id: 'typing', name: 'Typing', desc: 'Master spelling & typing', icon: <Keyboard className="w-4 h-4 text-sky-400" />, href: `/typing/${setId}` },
+    { id: 'speaking', name: 'Speaking', desc: 'Train your pronunciation', icon: <Mic className="w-4 h-4 text-rose-400" />, href: `/speaking/${setId}` },
+    { id: 'listening', name: 'Listening', desc: 'Train your ears', icon: <Headphones className="w-4 h-4 text-amber-400" />, href: `/listening/${setId}` },
+    { id: 'test', name: 'Test', desc: 'Evaluate your knowledge', icon: <FileText className="w-4 h-4 text-indigo-400" />, href: `/test/${setId}` },
+    { id: 'match', name: 'Match', desc: 'Race against time', icon: <Sparkles className="w-4 h-4 text-cyan-400" />, href: `/match/${setId}` },
   ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-hidden font-sans animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-hidden font-sans animate-in fade-in duration-200">
       <div className="relative w-full h-[95vh] sm:h-[90vh] max-w-5xl bg-gradient-to-b from-[#0c0d28] via-[#0b0a26] to-[#07061d] border border-[#b892ff]/30 rounded-2xl sm:rounded-3xl shadow-[0_0_60px_rgba(66,85,255,0.25)] flex flex-col overflow-hidden text-white">
         
         {/* Background Ambient Glow */}
@@ -207,14 +210,14 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
         <div className="absolute bottom-0 left-0 w-72 h-72 bg-[#b892ff]/10 rounded-full blur-3xl pointer-events-none" />
 
         {/* Modal Header */}
-        <div className="relative z-10 p-4 sm:p-6 border-b border-white/10 bg-[#07061d]/80 backdrop-blur-xl shrink-0 space-y-3 sm:space-y-4">
+        <div className="relative z-30 p-4 sm:p-6 border-b border-white/10 bg-[#07061d]/95 backdrop-blur-xl shrink-0 space-y-3 sm:space-y-4">
           
           {/* Top Row: Badges & Close Button */}
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 flex-wrap min-w-0">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#4255ff]/20 border border-[#4255ff]/40 text-[#9fa6ff] text-xs font-black uppercase tracking-wider shadow-sm">
                 <BookOpen className="w-3.5 h-3.5" />
-                <span>Chi tiết từ vựng</span>
+                <span>Vocabulary Terms</span>
               </div>
 
               {cefrBadge && (
@@ -225,7 +228,7 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
 
               <span className="flex items-center gap-1 text-xs font-mono font-extrabold text-[#9fa6ff] bg-[#4255ff]/15 border border-[#4255ff]/30 px-2.5 py-0.5 rounded-xl">
                 <Layers className="w-3 h-3" />
-                {cards.length > 0 ? `${cards.length} từ` : `${initialSetInfo?.totalCards || 0} từ`}
+                {cards.length > 0 ? `${cards.length} terms` : `${initialSetInfo?.totalCards || 0} terms`}
               </span>
             </div>
 
@@ -235,10 +238,10 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
                 <button
                   onClick={handleCopyList}
                   className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
-                  title="Sao chép toàn bộ danh sách từ"
+                  title="Copy all terms to clipboard"
                 >
                   {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span className="hidden sm:inline">{isCopied ? 'Đã chép' : 'Sao chép'}</span>
+                  <span className="hidden sm:inline">{isCopied ? 'Copied' : 'Copy'}</span>
                 </button>
               )}
 
@@ -246,7 +249,7 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
               <button
                 onClick={onClose}
                 className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border border-white/10 hover:border-rose-500/30 flex items-center justify-center transition-all cursor-pointer active:scale-95"
-                title="Đóng modal (Esc)"
+                title="Close (Esc)"
               >
                 <X className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
@@ -257,7 +260,7 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
             <div className="min-w-0 flex-1">
               <h2 className="text-lg sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#9fa6ff] via-[#b892ff] to-[#ff92d0] leading-tight truncate" title={setData?.title}>
-                {setData?.title || 'Đang tải bộ thẻ...'}
+                {setData?.title || 'Loading set...'}
               </h2>
               
               {setData?.description && (
@@ -299,15 +302,15 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
                 className="w-full sm:w-auto px-4 py-2.5 bg-gradient-to-r from-[#4255ff] to-[#6d7bff] hover:from-[#5b6aff] hover:to-[#8a94ff] text-white font-black text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(66,85,255,0.4)] hover:shadow-[0_0_30px_rgba(66,85,255,0.6)] transition-all cursor-pointer active:scale-95 border border-white/20"
               >
                 <Play className="w-4 h-4 fill-current" />
-                <span>Bắt đầu học ngay</span>
+                <span>Start Practice</span>
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showPlayMenu ? 'rotate-180' : ''}`} />
               </button>
 
               {/* Mode Dropdown Menu */}
               {showPlayMenu && (
-                <div className="absolute right-0 mt-2 w-64 bg-[#0a092d]/95 backdrop-blur-2xl border border-[#b892ff]/40 rounded-2xl p-2 shadow-2xl z-30 animate-in fade-in zoom-in-95 duration-150 space-y-1">
-                  <div className="px-2 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                    Chọn chế độ luyện tập:
+                <div className="absolute right-0 top-full mt-2 w-64 bg-[#0a0928] border border-[#b892ff]/50 rounded-2xl p-2 shadow-[0_20px_60px_rgba(0,0,0,0.95)] z-[120] animate-in fade-in zoom-in-95 duration-150 space-y-1">
+                  <div className="px-2.5 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                    Select Practice Mode:
                   </div>
                   {GAME_MODES.map((mode) => (
                     <button
@@ -317,18 +320,18 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
                         onClose();
                         router.push(mode.href);
                       }}
-                      className="w-full flex items-center justify-between p-2 rounded-xl hover:bg-[#4255ff]/20 text-left transition-colors group cursor-pointer"
+                      className="w-full flex items-center justify-between p-2 rounded-xl bg-white/[0.03] hover:bg-[#4255ff]/25 text-left transition-colors group cursor-pointer border border-transparent hover:border-[#b892ff]/30"
                     >
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-black/40 border border-white/10 flex items-center justify-center">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-black/60 border border-white/10 flex items-center justify-center shrink-0">
                           {mode.icon}
                         </div>
-                        <div>
-                          <div className="text-xs font-bold text-white group-hover:text-[#9fa6ff] transition-colors">{mode.name}</div>
-                          <div className="text-[10px] text-slate-400">{mode.desc}</div>
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-white group-hover:text-[#9fa6ff] transition-colors truncate">{mode.name}</div>
+                          <div className="text-[10px] text-slate-400 truncate">{mode.desc}</div>
                         </div>
                       </div>
-                      <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                      <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
                     </button>
                   ))}
                 </div>
@@ -338,7 +341,7 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
         </div>
 
         {/* Search & Filter Toolbar */}
-        <div className="relative z-10 px-4 sm:px-6 py-3 bg-[#07061d]/60 border-b border-white/10 shrink-0 space-y-2.5">
+        <div className="relative z-10 px-4 sm:px-6 py-3 bg-[#07061d]/80 border-b border-white/10 shrink-0 space-y-2.5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             
             {/* Search Input */}
@@ -346,7 +349,7 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
-                placeholder="Tìm từ vựng, nghĩa tiếng Việt, loại từ..."
+                placeholder="Search by term, definition, or part of speech..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-9 py-2 bg-[#0c0d28]/90 border border-white/15 rounded-xl text-white text-xs sm:text-sm placeholder:text-slate-500 focus:outline-none focus:border-[#b892ff]/60 focus:ring-1 focus:ring-[#b892ff]/30 transition-all"
@@ -372,7 +375,7 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
                       ? 'bg-indigo-600 text-white shadow-sm' 
                       : 'text-slate-400 hover:text-white'
                   }`}
-                  title="Phát âm giọng Mỹ (US)"
+                  title="US Pronunciation"
                 >
                   🇺🇸 US
                 </button>
@@ -383,7 +386,7 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
                       ? 'bg-indigo-600 text-white shadow-sm' 
                       : 'text-slate-400 hover:text-white'
                   }`}
-                  title="Phát âm giọng Anh (UK)"
+                  title="UK Pronunciation"
                 >
                   🇬🇧 UK
                 </button>
@@ -391,7 +394,7 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
 
               {/* Showing Count */}
               <div className="text-[11px] font-mono font-bold text-slate-400">
-                Hiển thị <strong className="text-white">{filteredCards.length}</strong> / {cards.length} từ
+                Showing <strong className="text-white">{filteredCards.length}</strong> of {cards.length} terms
               </div>
             </div>
           </div>
@@ -400,7 +403,7 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
           {availablePosList.length > 1 && (
             <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 shrink-0 mr-1 flex items-center gap-1">
-                <Filter className="w-3 h-3" /> Loại từ:
+                <Filter className="w-3 h-3" /> Part of speech:
               </span>
               <button
                 onClick={() => setPosFilter('all')}
@@ -410,7 +413,7 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
                     : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-white/5'
                 }`}
               >
-                Tất cả ({cards.length})
+                All ({cards.length})
               </button>
               {availablePosList.map((pos) => {
                 const count = cards.filter((c) => c.part_of_speech?.toLowerCase() === pos).length;
@@ -461,7 +464,7 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
               </div>
               <h3 className="text-lg font-bold text-white">{error}</h3>
               <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                Không thể tải danh sách từ vựng của set này. Vui lòng kiểm tra lại kết nối mạng hoặc thử lại sau.
+                Could not load vocabulary terms for this set. Please check your network connection or try again.
               </p>
             </div>
           ) : filteredCards.length === 0 ? (
@@ -470,9 +473,9 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
               <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 text-slate-400 flex items-center justify-center mx-auto">
                 <Search className="w-6 h-6" />
               </div>
-              <h3 className="text-base sm:text-lg font-bold text-white">Không tìm thấy từ vựng phù hợp</h3>
+              <h3 className="text-base sm:text-lg font-bold text-white">No matching terms found</h3>
               <p className="text-xs sm:text-sm text-slate-400 max-w-xs mx-auto">
-                Không có từ nào khớp với từ khóa "{searchQuery}". Thử tìm bằng từ khác hoặc xóa bộ lọc.
+                No terms match "{searchQuery}". Try searching with another keyword or clear the filter.
               </p>
               <button
                 onClick={() => {
@@ -481,7 +484,7 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
                 }}
                 className="px-4 py-2 bg-[#4255ff] hover:bg-[#4255ff]/80 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
               >
-                Xóa bộ lọc tìm kiếm
+                Clear Search Filter
               </button>
             </div>
           ) : (
@@ -531,7 +534,7 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
                                 ? 'bg-indigo-600 text-white border-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.6)] scale-105'
                                 : 'bg-white/5 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-200 border-white/10'
                             }`}
-                            title={`Nghe phát âm ${card.term} (${accent})`}
+                            title={`Listen to ${card.term} (${accent})`}
                           >
                             <Volume2 className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isPlaying ? 'animate-bounce' : ''}`} />
                             <span className="text-[10px] font-bold uppercase hidden sm:inline">{accent}</span>
@@ -560,7 +563,7 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
 
                     {/* Right Column: Definition & Image Thumbnail */}
                     <div className="flex items-center justify-between md:justify-end gap-3 pl-10 md:pl-0 border-t md:border-t-0 border-white/5 pt-2.5 md:pt-0 flex-1 md:max-w-md">
-                      {/* Vietnamese Definition */}
+                      {/* Definition */}
                       <div className="text-xs sm:text-sm font-medium text-slate-200 leading-relaxed min-w-0 flex-1 md:text-right">
                         {card.definition}
                       </div>
@@ -570,7 +573,7 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
                         <div 
                           onClick={() => setSelectedImage(card.image_url)}
                           className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden relative border border-white/15 shrink-0 cursor-pointer group/img hover:border-[#b892ff]/60 transition-all shadow-sm"
-                          title="Click để phóng to ảnh"
+                          title="Click to enlarge image"
                         >
                           <Image
                             src={card.image_url}
@@ -594,7 +597,7 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
         {/* Modal Footer */}
         <div className="relative z-10 p-3.5 sm:p-4 bg-[#07061d]/90 border-t border-white/10 shrink-0 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
           <div className="text-slate-400 font-medium text-center sm:text-left">
-            💡 <span className="text-slate-300 font-semibold">Mẹo:</span> Nhấn biểu tượng loa để nghe phát âm, chuyển giữa giọng 🇺🇸 US và 🇬🇧 UK ở góc trên.
+            💡 <span className="text-slate-300 font-semibold">Tip:</span> Click the speaker icon to listen to pronunciation. Switch between 🇺🇸 US and 🇬🇧 UK accents at the top.
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
@@ -602,7 +605,7 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
               onClick={onClose}
               className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white font-bold transition-colors cursor-pointer active:scale-95"
             >
-              Đóng
+              Close
             </button>
             <button
               onClick={() => {
@@ -611,7 +614,7 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
               }}
               className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#4255ff] to-[#6d7bff] hover:from-[#5b6aff] hover:to-[#8a94ff] text-white font-black transition-all cursor-pointer shadow-md flex items-center gap-1.5 active:scale-95"
             >
-              <span>Học Flashcards</span>
+              <span>Study Flashcards</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -622,7 +625,7 @@ export default function SetWordsModal({ setId, onClose, initialSetInfo }: SetWor
       {/* Image Full Preview Modal if clicked */}
       {selectedImage && (
         <div 
-          className="fixed inset-0 z-60 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 cursor-pointer animate-in fade-in duration-150"
+          className="fixed inset-0 z-[110] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 cursor-pointer animate-in fade-in duration-150"
           onClick={() => setSelectedImage(null)}
         >
           <div className="relative max-w-2xl max-h-[80vh] w-full h-full flex items-center justify-center">

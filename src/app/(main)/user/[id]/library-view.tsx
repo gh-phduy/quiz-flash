@@ -138,7 +138,7 @@ export function LibraryView({
                             setInspectingSetInfo(set);
                           }}
                           className="px-2 py-0.5 text-[10px] sm:text-[11px] font-extrabold rounded-md bg-[#4255ff]/15 hover:bg-[#4255ff]/30 text-[#9fa6ff] border border-[#4255ff]/30 hover:border-[#4255ff]/60 shrink-0 flex items-center gap-1 transition-all cursor-pointer"
-                          title="Click để xem danh sách từ vựng"
+                          title="Click to view word list"
                         >
                           <Layers className="w-3 h-3" />
                           {set.cards?.[0]?.count || 0} Terms
@@ -172,7 +172,7 @@ export function LibraryView({
                           setInspectingSetInfo(set);
                         }}
                         className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/5 hover:bg-[#4255ff]/20 text-muted-foreground hover:text-white flex items-center justify-center transition-all shrink-0 border border-white/5 active:scale-95 cursor-pointer"
-                        title="Xem chi tiết từ vựng"
+                        title="View word list"
                       >
                         <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-[#9fa6ff]" />
                       </button>
@@ -232,7 +232,7 @@ export function LibraryView({
                           setInspectingSetInfo(set);
                         }}
                         className="px-2 py-0.5 text-[10px] sm:text-[11px] font-extrabold rounded-md bg-[#ff92d0]/15 hover:bg-[#ff92d0]/30 text-[#ff92d0] border border-[#ff92d0]/30 hover:border-[#ff92d0]/60 shrink-0 flex items-center gap-1 transition-all cursor-pointer"
-                        title="Click để xem danh sách từ vựng"
+                        title="Click to view word list"
                       >
                         <Bookmark className="w-3 h-3 fill-current" />
                         {set.cards?.[0]?.count || 0} Terms
@@ -266,7 +266,7 @@ export function LibraryView({
                         setInspectingSetInfo(set);
                       }}
                       className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/5 hover:bg-[#4255ff]/20 text-muted-foreground hover:text-white flex items-center justify-center transition-all shrink-0 border border-white/5 active:scale-95 cursor-pointer"
-                      title="Xem chi tiết từ vựng"
+                      title="View word list"
                     >
                       <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-[#9fa6ff]" />
                     </button>

@@ -240,7 +240,7 @@ export default function ExploreGrid({ sets, initialSavedSetIds = [] }: ExploreGr
                           setInspectingSetInfo(set);
                         }}
                         className="flex items-center gap-1 text-[10px] sm:text-xs font-mono font-extrabold text-[#9fa6ff] bg-[#4255ff]/15 hover:bg-[#4255ff]/30 border border-[#4255ff]/30 hover:border-[#4255ff]/60 px-2.5 py-0.5 rounded-lg shrink-0 transition-all cursor-pointer"
-                        title="Click để xem danh sách từ vựng"
+                        title="Click to view word list"
                       >
                         <Layers className="w-3 h-3" />
                         {set.cards?.[0]?.count || 0} terms
@@ -296,10 +296,10 @@ export default function ExploreGrid({ sets, initialSavedSetIds = [] }: ExploreGr
                           setInspectingSetInfo(set);
                         }}
                         className="h-9 sm:h-10 px-3 rounded-2xl bg-white/5 hover:bg-[#4255ff]/25 text-slate-300 hover:text-white border border-white/10 hover:border-[#b892ff]/40 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm hover:scale-105 active:scale-95"
-                        title="Xem chi tiết các từ trong set này"
+                        title="Preview words in this set"
                       >
                         <BookOpen className="w-4 h-4 text-[#9fa6ff]" />
-                        <span className="hidden sm:inline">Xem từ</span>
+                        <span className="hidden sm:inline">Words</span>
                       </button>
 
                       <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-r from-[#4255ff] to-[#6d7bff] flex items-center justify-center text-white shadow-[0_0_15px_rgba(66,85,255,0.4)] group-hover:scale-110 transition-transform pointer-events-none">
@@ -360,7 +360,7 @@ export default function ExploreGrid({ sets, initialSavedSetIds = [] }: ExploreGr
                       className="w-full mb-3 py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#4255ff]/25 to-[#b892ff]/25 hover:from-[#4255ff]/35 hover:to-[#b892ff]/35 border border-[#b892ff]/40 text-[#9fa6ff] hover:text-white text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-[0.98]"
                     >
                       <BookOpen className="w-4 h-4" />
-                      <span>Xem danh sách từ vựng ({set.cards?.[0]?.count || 0} từ)</span>
+                      <span>View Word List ({set.cards?.[0]?.count || 0} terms)</span>
                     </button>
 
                     {/* Author and Date Meta Row */}
