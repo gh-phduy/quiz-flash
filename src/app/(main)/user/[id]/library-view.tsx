@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Search, Pencil, Folder, Bookmark, Layers } from 'lucide-react';
+import { Search, Pencil, Folder, Bookmark, Layers, BookOpen } from 'lucide-react';
 import { UserAvatar } from '@/components/shared/user-avatar';
+import SetWordsModal from '@/components/shared/set-words-modal';
 
 export function getCefrBadge(title: string, description?: string) {
   const match = title.match(/\b(A1|A2|B1|B2|C1|C2)\b/i) || 
@@ -39,6 +40,8 @@ export function LibraryView({
 }) {
   const [filter, setFilter] = useState<'all' | 'created' | 'saved'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [inspectingSetId, setInspectingSetId] = useState<string | null>(null);
+  const [inspectingSetInfo, setInspectingSetInfo] = useState<any | null>(null);
 
   // Lọc dữ liệu theo search query
   const filteredSets = sets.filter(set => 
@@ -127,10 +130,19 @@ export function LibraryView({
                             {cefrBadge.label}
                           </span>
                         )}
-                        <span className="px-2 py-0.5 text-[10px] sm:text-[11px] font-extrabold rounded-md bg-[#4255ff]/15 text-[#9fa6ff] border border-[#4255ff]/30 shrink-0 flex items-center gap-1">
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setInspectingSetId(set.id);
+                            setInspectingSetInfo(set);
+                          }}
+                          className="px-2 py-0.5 text-[10px] sm:text-[11px] font-extrabold rounded-md bg-[#4255ff]/15 hover:bg-[#4255ff]/30 text-[#9fa6ff] border border-[#4255ff]/30 hover:border-[#4255ff]/60 shrink-0 flex items-center gap-1 transition-all cursor-pointer"
+                          title="Click để xem danh sách từ vựng"
+                        >
                           <Layers className="w-3 h-3" />
                           {set.cards?.[0]?.count || 0} Terms
-                        </span>
+                        </button>
                         <div className="w-px h-3 bg-white/10 hidden sm:block"></div>
                         <div className="flex items-center gap-1.5 text-white/80 text-xs">
                           <UserAvatar 
@@ -151,13 +163,28 @@ export function LibraryView({
                       )}
                     </Link>
                     
-                    <Link 
-                      href={`/edit-set/${set.id}`} 
-                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/5 hover:bg-[#4255ff]/20 text-muted-foreground hover:text-white flex items-center justify-center transition-all shrink-0 border border-white/5 active:scale-95"
-                      title="Edit this set"
-                    >
-                      <Pencil className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </Link>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setInspectingSetId(set.id);
+                          setInspectingSetInfo(set);
+                        }}
+                        className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/5 hover:bg-[#4255ff]/20 text-muted-foreground hover:text-white flex items-center justify-center transition-all shrink-0 border border-white/5 active:scale-95 cursor-pointer"
+                        title="Xem chi tiết từ vựng"
+                      >
+                        <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-[#9fa6ff]" />
+                      </button>
+
+                      <Link 
+                        href={`/edit-set/${set.id}`} 
+                        className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/5 hover:bg-[#4255ff]/20 text-muted-foreground hover:text-white flex items-center justify-center transition-all shrink-0 border border-white/5 active:scale-95"
+                        title="Edit this set"
+                      >
+                        <Pencil className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </Link>
+                    </div>
                   </div>
                 );
               })
@@ -197,10 +224,19 @@ export function LibraryView({
                           {cefrBadge.label}
                         </span>
                       )}
-                      <span className="px-2 py-0.5 text-[10px] sm:text-[11px] font-extrabold rounded-md bg-[#ff92d0]/15 text-[#ff92d0] border border-[#ff92d0]/30 shrink-0 flex items-center gap-1">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setInspectingSetId(set.id);
+                          setInspectingSetInfo(set);
+                        }}
+                        className="px-2 py-0.5 text-[10px] sm:text-[11px] font-extrabold rounded-md bg-[#ff92d0]/15 hover:bg-[#ff92d0]/30 text-[#ff92d0] border border-[#ff92d0]/30 hover:border-[#ff92d0]/60 shrink-0 flex items-center gap-1 transition-all cursor-pointer"
+                        title="Click để xem danh sách từ vựng"
+                      >
                         <Bookmark className="w-3 h-3 fill-current" />
                         {set.cards?.[0]?.count || 0} Terms
-                      </span>
+                      </button>
                       <div className="w-px h-3 bg-white/10 hidden sm:block"></div>
                       <div className="flex items-center gap-1.5 text-white/80 text-xs">
                         <UserAvatar 
@@ -221,13 +257,28 @@ export function LibraryView({
                     )}
                   </Link>
                   
-                  <Link 
-                    href={`/flashcards/${set.id}`} 
-                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/5 hover:bg-[#4255ff]/20 text-muted-foreground hover:text-white flex items-center justify-center transition-all shrink-0 border border-white/5 active:scale-95"
-                    title="Study this set"
-                  >
-                    <Pencil className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </Link>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setInspectingSetId(set.id);
+                        setInspectingSetInfo(set);
+                      }}
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/5 hover:bg-[#4255ff]/20 text-muted-foreground hover:text-white flex items-center justify-center transition-all shrink-0 border border-white/5 active:scale-95 cursor-pointer"
+                      title="Xem chi tiết từ vựng"
+                    >
+                      <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-[#9fa6ff]" />
+                    </button>
+
+                    <Link 
+                      href={`/flashcards/${set.id}`} 
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/5 hover:bg-[#4255ff]/20 text-muted-foreground hover:text-white flex items-center justify-center transition-all shrink-0 border border-white/5 active:scale-95"
+                      title="Study this set"
+                    >
+                      <Pencil className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </Link>
+                  </div>
                 </div>
               )})
             ) : (
@@ -238,6 +289,16 @@ export function LibraryView({
           </div>
         </div>
       )}
+
+      {/* Set Words Details Modal */}
+      <SetWordsModal
+        setId={inspectingSetId}
+        initialSetInfo={inspectingSetInfo}
+        onClose={() => {
+          setInspectingSetId(null);
+          setInspectingSetInfo(null);
+        }}
+      />
     </>
   );
 }

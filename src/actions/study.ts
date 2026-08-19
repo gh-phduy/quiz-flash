@@ -47,3 +47,53 @@ export async function getDailyGoals(targetUserId?: string) {
   const query = targetUserId ? `?targetUserId=${targetUserId}` : '';
   return await fetchFromBackend(`/study/goals${query}`, { method: 'GET' });
 }
+
+export async function getSetCards(setId: string) {
+  try {
+    const supabase = await createClient();
+    const [setRes, cardsRes] = await Promise.all([
+      supabase
+        .from('sets')
+        .select('id, title, description, is_public, user_id, created_at')
+        .eq('id', setId)
+        .single(),
+      supabase
+        .from('cards')
+        .select('id, term, definition, image_url, phonetic, phonetic_uk, part_of_speech, cefr_level, audio_url, order_index')
+        .eq('set_id', setId)
+        .order('order_index', { ascending: true })
+        .limit(500),
+    ]);
+
+    if (setRes.error) {
+      return { success: false, error: setRes.error.message, set: null, cards: [] };
+    }
+
+    let author = null;
+    if (setRes.data?.user_id) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, avatar_url')
+        .eq('id', setRes.data.user_id)
+        .single();
+      author = profile;
+    }
+
+    return {
+      success: true,
+      set: {
+        ...setRes.data,
+        author,
+      },
+      cards: cardsRes.data || [],
+      error: null,
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err?.message || 'Failed to fetch set cards',
+      set: null,
+      cards: [],
+    };
+  }
+}

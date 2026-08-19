@@ -19,6 +19,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { RankBadge, getRankFromPoints } from '@/components/shared/rank-badge';
+import SetWordsModal from '@/components/shared/set-words-modal';
 
 export function getCefrBadge(title: string, description?: string) {
   const match = title.match(/\b(A1|A2|B1|B2|C1|C2)\b/i) || 
@@ -54,6 +55,9 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
   const [activeTab, setActiveTab] = useState<'created' | 'saved'>('created');
   const [savedSetIds, setSavedSetIds] = useState<Set<string>>(new Set(initialSavedSetIds));
   const [isLoading, setIsLoading] = useState<string | null>(null);
+
+  const [inspectingSetId, setInspectingSetId] = useState<string | null>(null);
+  const [inspectingSetInfo, setInspectingSetInfo] = useState<any | null>(null);
 
   // Mode Selection State
   const [selectedMode, setSelectedMode] = useState<{ id: string; name: string; href: string } | null>(null);
@@ -423,10 +427,19 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
                           {cefrBadge.label}
                         </span>
                       )}
-                      <span className="flex items-center gap-1 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-md shrink-0 text-[#9fa6ff] bg-[#4255ff]/15 border border-[#4255ff]/30">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setInspectingSetId(set.id);
+                          setInspectingSetInfo(set);
+                        }}
+                        className="flex items-center gap-1 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-md shrink-0 text-[#9fa6ff] bg-[#4255ff]/15 hover:bg-[#4255ff]/30 border border-[#4255ff]/30 hover:border-[#4255ff]/60 transition-all cursor-pointer"
+                        title="Click để xem danh sách từ vựng"
+                      >
                         <Layers className="w-3 h-3" />
                         {set.cards?.[0]?.count || 0} terms
-                      </span>
+                      </button>
                     </div>
 
                     {set.description && (
@@ -460,9 +473,25 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
                       </span>
                     </div>
                     
-                    <span className="font-mono text-[10px] sm:text-[11px] shrink-0">
-                      {formatDistanceToNow(new Date(set.created_at), { addSuffix: true })}
-                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setInspectingSetId(set.id);
+                          setInspectingSetInfo(set);
+                        }}
+                        className="px-2 py-1 rounded-lg bg-white/5 hover:bg-[#4255ff]/25 text-slate-300 hover:text-white border border-white/10 hover:border-[#b892ff]/40 text-[10px] sm:text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer shadow-sm active:scale-95"
+                        title="Xem chi tiết các từ trong set này"
+                      >
+                        <BookOpen className="w-3 h-3 text-[#9fa6ff]" />
+                        <span>Xem từ</span>
+                      </button>
+
+                      <span className="font-mono text-[10px] sm:text-[11px]">
+                        {formatDistanceToNow(new Date(set.created_at), { addSuffix: true })}
+                      </span>
+                    </div>
                   </div>
                 </DialogTrigger>
 
@@ -507,6 +536,20 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
                         {set.description}
                       </p>
                     )}
+
+                    {/* Preview Words Button inside Modal */}
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setInspectingSetId(set.id);
+                        setInspectingSetInfo(set);
+                      }}
+                      className="w-full mb-3 py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#4255ff]/25 to-[#b892ff]/25 hover:from-[#4255ff]/35 hover:to-[#b892ff]/35 border border-[#b892ff]/40 text-[#9fa6ff] hover:text-white text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-[0.98]"
+                    >
+                      <BookOpen className="w-4 h-4" />
+                      <span>Xem danh sách từ vựng ({set.cards?.[0]?.count || 0} từ)</span>
+                    </button>
 
                     {/* Author & Time Info */}
                     <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-xs text-slate-400">
@@ -775,6 +818,16 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Set Words Details Modal */}
+      <SetWordsModal
+        setId={inspectingSetId}
+        initialSetInfo={inspectingSetInfo}
+        onClose={() => {
+          setInspectingSetId(null);
+          setInspectingSetInfo(null);
+        }}
+      />
     </div>
   );
 }
