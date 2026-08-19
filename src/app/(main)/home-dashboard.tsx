@@ -59,6 +59,8 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
   const [selectedMode, setSelectedMode] = useState<{ id: string; name: string; href: string } | null>(null);
   const [isModeDialogOpen, setIsModeDialogOpen] = useState(false);
   const [dialogSearchQuery, setDialogSearchQuery] = useState('');
+  const [dialogTab, setDialogTab] = useState<'all' | 'oxford' | 'created' | 'saved'>('all');
+  const [dialogCefr, setDialogCefr] = useState<string>('all');
 
   // Ref for dialog header initial focus
   const headerRef = useRef<HTMLDivElement>(null);
@@ -75,6 +77,8 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
   const handleModeClick = (mode: { id: string; name: string; href: string }) => {
     setSelectedMode(mode);
     setDialogSearchQuery('');
+    setDialogTab('all');
+    setDialogCefr('all');
     setIsModeDialogOpen(true);
   };
 
@@ -92,16 +96,47 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
 
   const displayedSets = activeTab === 'created' ? sets : currentSavedSets;
 
-  const allDialogSets = [...sets, ...currentSavedSets].filter((v, i, a) => a.findIndex(t => (t.id === v.id)) === i);
-  const filteredDialogSets = allDialogSets.filter(set => 
-    set.title.toLowerCase().includes(dialogSearchQuery.toLowerCase()) || 
-    set.description?.toLowerCase().includes(dialogSearchQuery.toLowerCase())
-  );
-  
-  const filteredSuggestedSets = (suggestedPublicSets || []).filter(set => 
-    set.title.toLowerCase().includes(dialogSearchQuery.toLowerCase()) || 
-    set.description?.toLowerCase().includes(dialogSearchQuery.toLowerCase())
-  );
+  // Build complete combined sets for mode dialog
+  const allAvailableSetsMap = new Map<string, any>();
+  sets.forEach(s => allAvailableSetsMap.set(s.id, { ...s, _source: 'created' }));
+  currentSavedSets.forEach(s => {
+    if (!allAvailableSetsMap.has(s.id)) allAvailableSetsMap.set(s.id, { ...s, _source: 'saved' });
+  });
+  suggestedPublicSets.forEach(s => {
+    if (!allAvailableSetsMap.has(s.id)) allAvailableSetsMap.set(s.id, { ...s, _source: 'public' });
+  });
+
+  const allAvailableSets = Array.from(allAvailableSetsMap.values());
+  const oxfordSetsCount = allAvailableSets.filter(s => s.title.toLowerCase().includes('oxford') || s.is_public).length;
+
+  const filteredModalSets = allAvailableSets.filter(set => {
+    // 1. Tab filter
+    if (dialogTab === 'created' && set.user_id !== user?.id) return false;
+    if (dialogTab === 'saved' && !savedSetIds.has(set.id)) return false;
+    if (dialogTab === 'oxford') {
+      const isOxford = set.title.toLowerCase().includes('oxford') || (set.is_public && set.user_id !== user?.id);
+      if (!isOxford) return false;
+    }
+
+    // 2. CEFR filter
+    const cefr = getCefrBadge(set.title, set.description);
+    if (dialogCefr !== 'all') {
+      if (!cefr || cefr.level !== dialogCefr) return false;
+    }
+
+    // 3. Search filter
+    if (dialogSearchQuery.trim()) {
+      const q = dialogSearchQuery.toLowerCase();
+      const matchTitle = set.title.toLowerCase().includes(q);
+      const matchDesc = set.description?.toLowerCase().includes(q);
+      const matchCefr = cefr?.level.toLowerCase().includes(q);
+      if (!matchTitle && !matchDesc && !matchCefr) return false;
+    }
+
+    return true;
+  });
+
+  const CEFR_MODAL_LEVELS = ['all', 'A1', 'A2', 'B1', 'B2', 'C1'];
 
   const displayName = profile?.full_name || profile?.email?.split('@')[0] || user?.user_metadata?.full_name || 'Student';
 
@@ -545,32 +580,113 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
 
       {/* Mode Selection Dialog */}
       <Dialog open={isModeDialogOpen} onOpenChange={setIsModeDialogOpen}>
-        <DialogContent initialFocus={headerRef} className="bg-background text-foreground border border-white/10 sm:max-w-xl w-[92vw] rounded-2xl shadow-2xl">
+        <DialogContent initialFocus={headerRef} className="bg-gradient-to-b from-[#0c0d28] via-[#0a0927] to-[#07061d] border border-[#b892ff]/40 text-white sm:max-w-2xl md:max-w-3xl w-[95vw] rounded-3xl shadow-[0_0_60px_rgba(66,85,255,0.3)] backdrop-blur-2xl p-5 sm:p-7 flex flex-col max-h-[90vh] overflow-hidden">
           {/* Hidden focus trap to prevent auto-focusing the search input on open */}
           <div ref={headerRef} tabIndex={-1} className="sr-only" aria-hidden="true" />
-          <DialogHeader className="outline-none">
-            <DialogTitle className="text-2xl font-bold text-center mb-2 bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
+          
+          <DialogHeader className="outline-none text-left mb-3">
+            <DialogTitle className="text-xl sm:text-2xl font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-[#9fa6ff] via-[#b892ff] to-[#ff92d0] flex items-center gap-2">
               Play {selectedMode?.name}
             </DialogTitle>
-            <p className="text-center text-muted-foreground text-sm mb-4">Select a flashcard set to begin</p>
+            <p className="text-xs sm:text-sm text-slate-400 font-medium">
+              Choose any flashcard set to start playing or practicing right away
+            </p>
           </DialogHeader>
 
-          {/* Search Input for Dialog */}
-          <div className="px-1 mb-4 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search your sets..."
-              value={dialogSearchQuery}
-              onChange={(e) => setDialogSearchQuery(e.target.value)}
-              className="w-full bg-card/50 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-muted-foreground focus:outline-none focus:border-[#4255ff]/50 focus:bg-card/80 transition-all"
-            />
+          {/* Modal Tab Filter Pills */}
+          <div className="flex items-center gap-1.5 p-1 bg-white/5 border border-white/10 rounded-2xl mb-3 overflow-x-auto scrollbar-none">
+            <button
+              onClick={() => setDialogTab('all')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                dialogTab === 'all'
+                  ? 'bg-gradient-to-r from-[#4255ff] to-[#6d7bff] text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              All Sets ({allAvailableSets.length})
+            </button>
+            <button
+              onClick={() => setDialogTab('oxford')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                dialogTab === 'oxford'
+                  ? 'bg-gradient-to-r from-[#4255ff] to-[#6d7bff] text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Oxford & Public ({oxfordSetsCount})
+            </button>
+            <button
+              onClick={() => setDialogTab('created')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                dialogTab === 'created'
+                  ? 'bg-gradient-to-r from-[#4255ff] to-[#6d7bff] text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Your Sets ({sets.length})
+            </button>
+            <button
+              onClick={() => setDialogTab('saved')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                dialogTab === 'saved'
+                  ? 'bg-gradient-to-r from-[#4255ff] to-[#6d7bff] text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Saved ({currentSavedSets.length})
+            </button>
           </div>
 
-          <div className="flex flex-col gap-3 max-h-[340px] overflow-y-auto pr-2 custom-scrollbar">
-            {filteredDialogSets.length > 0 ? (
-              filteredDialogSets.map((set) => {
+          {/* Search & CEFR Level Filter Toolbar */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-3">
+            {/* Search Input */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Search by title, topic, or level..."
+                value={dialogSearchQuery}
+                onChange={(e) => setDialogSearchQuery(e.target.value)}
+                className="w-full bg-[#07061d]/90 border border-white/15 rounded-xl pl-9 pr-8 py-2 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#b892ff]/60 focus:ring-1 focus:ring-[#b892ff]/30 transition-all"
+              />
+              {dialogSearchQuery && (
+                <button
+                  onClick={() => setDialogSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs bg-slate-800 rounded-full w-4 h-4 flex items-center justify-center cursor-pointer"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+
+            {/* CEFR Level Filter Pills */}
+            <div className="flex items-center gap-1 overflow-x-auto pb-0.5 scrollbar-none shrink-0">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 mr-0.5">
+                Level:
+              </span>
+              {CEFR_MODAL_LEVELS.map(level => (
+                <button
+                  key={level}
+                  onClick={() => setDialogCefr(level)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-extrabold uppercase transition-all shrink-0 cursor-pointer ${
+                    dialogCefr === level
+                      ? 'bg-[#4255ff] text-white shadow-sm border border-[#b892ff]/40'
+                      : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-white/5'
+                  }`}
+                >
+                  {level === 'all' ? 'All' : level}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Sets List Scroll Container */}
+          <div className="flex flex-col gap-2.5 overflow-y-auto pr-1 flex-1 custom-scrollbar max-h-[50vh] sm:max-h-[55vh]">
+            {filteredModalSets.length > 0 ? (
+              filteredModalSets.map((set) => {
                 const cefrBadge = getCefrBadge(set.title, set.description);
+                const authorName = set.author?.full_name || (set.author?.email ? set.author.email.split('@')[0] : (set.user_id ? 'User' : 'QuizFlash'));
+
                 return (
                   <button
                     key={set.id}
@@ -584,96 +700,76 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
                       }
                     }}
                     onClick={() => handleSetClickForMode(set.id)}
-                    className="flex items-center justify-between p-4 bg-card/50 hover:bg-card/80 border border-white/5 hover:border-[#b892ff]/50 rounded-xl transition-all text-left cursor-pointer group"
+                    className="flex items-center justify-between p-3.5 sm:p-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#b892ff]/50 rounded-2xl transition-all text-left cursor-pointer group active:scale-[0.99] gap-3"
                   >
-                    <div className="flex flex-col overflow-hidden pr-4 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="font-bold text-white text-base truncate group-hover:text-[#b892ff] transition-colors" title={set.title}>
-                          {set.title}
-                        </span>
+                    <div className="flex flex-col overflow-hidden min-w-0 flex-1">
+                      {/* Badge Row */}
+                      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                         {cefrBadge && (
-                          <span className={`text-[10px] uppercase font-extrabold px-1.5 py-0.5 rounded border ${cefrBadge.bg} ${cefrBadge.text} ${cefrBadge.border} shrink-0`}>
-                            {cefrBadge.level}
+                          <span className={`text-[10px] sm:text-[11px] uppercase font-black px-2 py-0.5 rounded-md border ${cefrBadge.bg} ${cefrBadge.text} ${cefrBadge.border} shadow-sm shrink-0`}>
+                            {cefrBadge.label}
                           </span>
                         )}
+                        <span className="flex items-center gap-1 text-[10px] sm:text-[11px] font-mono font-bold text-[#9fa6ff] bg-[#4255ff]/15 border border-[#4255ff]/30 px-2 py-0.5 rounded-md shrink-0">
+                          <Layers className="w-3 h-3" />
+                          {set.cards?.[0]?.count || 0} terms
+                        </span>
                         {set.user_id === user?.id ? (
-                          <span className="text-[10px] uppercase font-bold tracking-wider text-[#b892ff] bg-[#b892ff]/10 border border-[#b892ff]/20 px-2 py-0.5 rounded-full shrink-0">Yours</span>
+                          <span className="text-[10px] uppercase font-bold tracking-wider text-[#b892ff] bg-[#b892ff]/10 border border-[#b892ff]/20 px-2 py-0.5 rounded-full shrink-0">
+                            Yours
+                          </span>
+                        ) : savedSetIds.has(set.id) ? (
+                          <span className="text-[10px] uppercase font-bold tracking-wider text-pink-400 bg-pink-400/10 border border-pink-400/20 px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
+                            <Bookmark className="w-3 h-3 fill-current" /> Saved
+                          </span>
                         ) : (
-                          <span className="text-[10px] uppercase font-bold tracking-wider text-[#b892ff] bg-[#b892ff]/10 border border-[#b892ff]/20 px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
-                            <Bookmark className="w-3 h-3" /> Saved
+                          <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-full shrink-0">
+                            Public
                           </span>
                         )}
                       </div>
-                      {set.description && <span className="text-sm text-muted-foreground truncate" title={set.description}>{set.description}</span>}
+
+                      {/* Full Set Title */}
+                      <span className="font-bold text-white text-sm sm:text-base leading-snug group-hover:text-[#9fa6ff] transition-colors break-words" title={set.title}>
+                        {set.title}
+                      </span>
+
+                      {/* Full Description */}
+                      {set.description && (
+                        <p className="text-xs text-slate-300 line-clamp-2 mt-1 leading-relaxed font-normal" title={set.description}>
+                          {set.description}
+                        </p>
+                      )}
+
+                      {/* Author and Date */}
+                      <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-2">
+                        <span className="truncate">By {authorName}</span>
+                        {set.created_at && (
+                          <>
+                            <span>•</span>
+                            <span className="font-mono">{formatDistanceToNow(new Date(set.created_at), { addSuffix: true })}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
-                    <span className="text-xs font-bold text-[#b892ff] bg-[#b892ff]/10 px-3 py-1 rounded-full shrink-0">
-                      {set.cards?.[0]?.count || 0} Terms
-                    </span>
+
+                    {/* Right Play Action Pill */}
+                    <div className="shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-r from-[#4255ff] to-[#6d7bff] flex items-center justify-center text-white shadow-[0_0_15px_rgba(66,85,255,0.4)] group-hover:scale-110 transition-transform">
+                      <span className="text-xs font-bold uppercase hidden sm:inline">Play</span>
+                      <span className="sm:hidden text-xs">▶</span>
+                    </div>
                   </button>
                 );
               })
-            ) : dialogSearchQuery ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground text-sm">No sets found matching "{dialogSearchQuery}"</p>
-              </div>
             ) : (
-              <div className="flex flex-col gap-6 pt-2">
-                <div className="text-center py-6 bg-card/10 rounded-2xl border border-white/5 border-dashed">
-                  <p className="text-muted-foreground mb-4 text-sm">You don't have any flashcard sets yet.</p>
-                  <Link 
-                    href="/create-set"
-                    onClick={() => setIsModeDialogOpen(false)}
-                    className="inline-block px-5 py-2.5 bg-[#4255ff] text-white font-bold rounded-xl hover:bg-[#5b6aff] transition shadow-lg hover:shadow-[#4255ff]/20 hover:-translate-y-0.5"
-                  >
-                    Create a new set
-                  </Link>
-                </div>
-
-                {filteredSuggestedSets && filteredSuggestedSets.length > 0 && (
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-center gap-3 mb-1">
-                      <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-white/10"></div>
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Or try these public sets</span>
-                      <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-white/10"></div>
-                    </div>
-                    {filteredSuggestedSets.map((set) => {
-                      const cefrBadge = getCefrBadge(set.title, set.description);
-                      return (
-                        <button
-                          key={set.id}
-                          title={set.title}
-                          onMouseEnter={() => {
-                            if (selectedMode) {
-                              const path = selectedMode.href === '/learn' 
-                                ? `/flashcards/${set.id}/learn` 
-                                : `${selectedMode.href.startsWith('/') ? selectedMode.href : `/${selectedMode.href}`}/${set.id}`;
-                              router.prefetch(path);
-                            }
-                          }}
-                          onClick={() => handleSetClickForMode(set.id)}
-                          className="flex items-center justify-between p-4 bg-card/30 hover:bg-card/60 border border-white/5 hover:border-[#b892ff]/40 rounded-xl transition-all text-left cursor-pointer group"
-                        >
-                          <div className="flex flex-col overflow-hidden pr-4 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                              <span className="font-bold text-white text-base truncate group-hover:text-[#b892ff] transition-colors" title={set.title}>{set.title}</span>
-                              {cefrBadge && (
-                                <span className={`text-[10px] uppercase font-extrabold px-1.5 py-0.5 rounded border ${cefrBadge.bg} ${cefrBadge.text} ${cefrBadge.border} shrink-0`}>
-                                  {cefrBadge.level}
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-xs text-muted-foreground truncate">
-                              By {set.author?.full_name || set.author?.email?.split('@')[0] || 'Community'}
-                            </span>
-                          </div>
-                          <span className="text-xs font-bold text-white/40 bg-white/5 px-3 py-1 rounded-full shrink-0 group-hover:bg-[#b892ff]/10 group-hover:text-[#b892ff] transition-colors">
-                            {set.cards?.[0]?.count || 0} Terms
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+              <div className="text-center py-10 bg-white/5 border border-white/10 rounded-2xl p-6">
+                <BookOpen className="w-8 h-8 text-slate-400 mx-auto mb-2 opacity-50" />
+                <p className="text-slate-300 font-bold text-sm mb-1">No flashcard sets found</p>
+                <p className="text-xs text-slate-400">
+                  {dialogSearchQuery
+                    ? `No sets matched "${dialogSearchQuery}" with the current filters.`
+                    : "No sets available in this category."}
+                </p>
               </div>
             )}
           </div>

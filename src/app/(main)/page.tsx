@@ -22,7 +22,8 @@ export default async function Home() {
       { data: profileData },
       { data: setsData },
       { data: userSavedSets },
-      { count: dueReviewsCount }
+      { count: dueReviewsCount },
+      { data: pubSetsData }
     ] = await Promise.all([
       // 1. Fetch user profile
       supabase
@@ -50,7 +51,15 @@ export default async function Home() {
         .from('card_reviews')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .lte('next_review_date', todayStr)
+        .lte('next_review_date', todayStr),
+
+      // 5. Fetch all public sets (Oxford A1-C1 & community sets)
+      supabase
+        .from('sets')
+        .select('*, cards(count)')
+        .eq('is_public', true)
+        .order('created_at', { ascending: false })
+        .limit(200)
     ]);
 
     profile = profileData;
@@ -80,31 +89,39 @@ export default async function Home() {
     
     dueCount = dueReviewsCount || 0;
 
-    // Fetch suggested public sets (if user has very few sets)
-    if (sets.length + savedSets.length < 3) {
-      const { data: pubSets } = await supabase
-        .from('sets')
-        .select('*, cards(count)')
-        .eq('is_public', true)
-        .neq('user_id', user.id)
-        .limit(20);
+    // Process public sets with authors
+    if (pubSetsData && pubSetsData.length > 0) {
+      const userIds = [...new Set(pubSetsData.map((s: any) => s.user_id))].filter(Boolean);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, email, avatar_url, full_name')
+        .in('id', userIds);
         
-      if (pubSets && pubSets.length > 0) {
-        const sortedPubSets = pubSets
-          .sort((a: any, b: any) => (b.cards?.[0]?.count || 0) - (a.cards?.[0]?.count || 0))
-          .slice(0, 3);
-          
-        const userIds = [...new Set(sortedPubSets.map((s: any) => s.user_id))].filter(Boolean);
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, email, avatar_url, full_name')
-          .in('id', userIds);
-          
-        suggestedPublicSets = sortedPubSets.map((set: any) => ({
-          ...set,
-          author: profiles?.find((p: any) => p.id === set.user_id) || null
-        }));
-      }
+      suggestedPublicSets = pubSetsData.map((set: any) => ({
+        ...set,
+        author: profiles?.find((p: any) => p.id === set.user_id) || null
+      }));
+    }
+  } else {
+    // Guest mode: fetch public sets
+    const { data: pubSetsData } = await supabase
+      .from('sets')
+      .select('*, cards(count)')
+      .eq('is_public', true)
+      .order('created_at', { ascending: false })
+      .limit(200);
+
+    if (pubSetsData && pubSetsData.length > 0) {
+      const userIds = [...new Set(pubSetsData.map((s: any) => s.user_id))].filter(Boolean);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, email, avatar_url, full_name')
+        .in('id', userIds);
+        
+      suggestedPublicSets = pubSetsData.map((set: any) => ({
+        ...set,
+        author: profiles?.find((p: any) => p.id === set.user_id) || null
+      }));
     }
   }
 
