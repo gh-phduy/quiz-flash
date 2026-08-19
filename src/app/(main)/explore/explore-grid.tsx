@@ -89,6 +89,25 @@ export default function ExploreGrid({ sets, initialSavedSetIds = [] }: ExploreGr
     setIsLoading(null);
   };
 
+  const getCefrBadge = (title: string, description?: string) => {
+    const match = title.match(/\b(A1|A2|B1|B2|C1|C2)\b/i) || 
+      (description ? description.match(/\b(A1|A2|B1|B2|C1|C2)\b/i) : null);
+    
+    if (!match) return null;
+    const level = match[1].toUpperCase();
+
+    const configs: Record<string, { label: string; bg: string; text: string; border: string }> = {
+      'A1': { label: 'Level A1', bg: 'bg-emerald-500/15', text: 'text-emerald-300', border: 'border-emerald-500/30' },
+      'A2': { label: 'Level A2', bg: 'bg-teal-500/15', text: 'text-teal-300', border: 'border-teal-500/30' },
+      'B1': { label: 'Level B1', bg: 'bg-cyan-500/15', text: 'text-cyan-300', border: 'border-cyan-500/30' },
+      'B2': { label: 'Level B2', bg: 'bg-blue-500/15', text: 'text-blue-300', border: 'border-blue-500/30' },
+      'C1': { label: 'Level C1', bg: 'bg-purple-500/15', text: 'text-purple-300', border: 'border-purple-500/30' },
+      'C2': { label: 'Level C2', bg: 'bg-rose-500/15', text: 'text-rose-300', border: 'border-rose-500/30' },
+    };
+
+    return { level, ...(configs[level] || { label: `Level ${level}`, bg: 'bg-indigo-500/15', text: 'text-indigo-300', border: 'border-indigo-500/30' }) };
+  };
+
   return (
     <div className="w-full max-w-7xl mx-auto py-6 sm:py-10 px-4 sm:px-6 font-sans">
       {/* Gamer Hero Header */}
@@ -163,117 +182,198 @@ export default function ExploreGrid({ sets, initialSavedSetIds = [] }: ExploreGr
       {/* Grid */}
       {filteredSets.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6">
-          {filteredSets.map((set) => (
-            <Dialog key={set.id}>
-              <DialogTrigger 
-                render={<div />}
-                nativeButton={false}
-                className="cursor-pointer group relative bg-[#0c0d28]/70 backdrop-blur-xl border border-white/10 hover:border-[#b892ff]/40 rounded-3xl p-5 sm:p-6 transition-all duration-300 hover:shadow-[0_0_30px_rgba(184,146,255,0.18)] hover:-translate-y-1 flex flex-col w-full text-left justify-between overflow-hidden"
-              >
-                {/* Ambient Card Background Glow */}
-                <div className="absolute top-0 right-0 w-36 h-36 bg-[#b892ff]/10 rounded-full blur-3xl pointer-events-none group-hover:bg-[#b892ff]/20 transition-all" />
+          {filteredSets.map((set) => {
+            const cefrBadge = getCefrBadge(set.title, set.description);
+            const authorName = set.author?.full_name || (set.author?.email ? set.author.email.split('@')[0] : (set.user_id ? 'Anonymous' : 'QuizFlash'));
 
-                <div className="relative z-10 flex-1">
-                  {/* Top Row: Title + Bookmark */}
-                  <div className="flex justify-between items-start gap-3 mb-2 w-full">
-                    <h3 className="text-base sm:text-xl font-extrabold text-white group-hover:text-[#9fa6ff] transition-colors line-clamp-2 leading-snug">
-                      {set.title}
-                    </h3>
-                    
-                    <button 
-                      onClick={(e) => handleToggleSave(e, set.id)}
-                      disabled={isLoading === set.id}
-                      className={`p-1.5 transition-all duration-300 rounded-xl hover:scale-110 shrink-0 ${
-                        savedSets.has(set.id) 
-                          ? 'text-amber-400 bg-amber-400/10 border border-amber-400/20' 
-                          : 'text-slate-400 hover:text-white bg-white/5 border border-white/5'
-                      }`}
-                      title={savedSets.has(set.id) ? "Unsave set" : "Save set"}
-                    >
-                      <Bookmark className={`w-4 h-4 sm:w-5 sm:h-5 ${savedSets.has(set.id) ? 'fill-current' : ''}`} />
-                    </button>
-                  </div>
+            return (
+              <Dialog key={set.id}>
+                <DialogTrigger 
+                  render={<div />}
+                  nativeButton={false}
+                  title={`Click to study: ${set.title}`}
+                  className="cursor-pointer group relative bg-[#0c0d28]/70 backdrop-blur-xl border border-white/10 hover:border-[#b892ff]/40 rounded-3xl p-5 sm:p-6 transition-all duration-300 hover:shadow-[0_0_30px_rgba(184,146,255,0.18)] hover:-translate-y-1 flex flex-col w-full text-left justify-between overflow-hidden"
+                >
+                  {/* Ambient Card Background Glow */}
+                  <div className="absolute top-0 right-0 w-36 h-36 bg-[#b892ff]/10 rounded-full blur-3xl pointer-events-none group-hover:bg-[#b892ff]/20 transition-all" />
 
-                  {/* Terms Count Tag */}
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="flex items-center gap-1 text-[10px] sm:text-xs font-mono font-extrabold text-[#9fa6ff] bg-[#4255ff]/15 border border-[#4255ff]/30 px-2.5 py-0.5 rounded-lg shrink-0">
-                      {set.cards?.[0]?.count || 0} terms
-                    </span>
-                  </div>
-                  
-                  {set.description && (
-                    <p className="text-slate-300 text-xs sm:text-sm line-clamp-2 mb-4 leading-relaxed">
-                      {set.description}
-                    </p>
-                  )}
-                </div>
+                  <div className="relative z-10 flex-1">
+                    {/* Top Row: Title + Bookmark */}
+                    <div className="flex justify-between items-start gap-3 mb-2 w-full">
+                      <h3 
+                        className="text-base sm:text-lg font-extrabold text-white group-hover:text-[#9fa6ff] transition-colors line-clamp-2 leading-snug"
+                        title={set.title}
+                      >
+                        {set.title}
+                      </h3>
+                      
+                      <button 
+                        onClick={(e) => handleToggleSave(e, set.id)}
+                        disabled={isLoading === set.id}
+                        className={`p-1.5 transition-all duration-300 rounded-xl hover:scale-110 shrink-0 ${
+                          savedSets.has(set.id) 
+                            ? 'text-amber-400 bg-amber-400/10 border border-amber-400/20' 
+                            : 'text-slate-400 hover:text-white bg-white/5 border border-white/5'
+                        }`}
+                        title={savedSets.has(set.id) ? "Unsave set" : "Save set"}
+                      >
+                        <Bookmark className={`w-4 h-4 sm:w-5 sm:h-5 ${savedSets.has(set.id) ? 'fill-current' : ''}`} />
+                      </button>
+                    </div>
 
-                <div className="relative z-10 mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    {set.author?.avatar_url ? (
-                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden relative shadow-sm border border-[#b892ff]/40 shrink-0">
-                        <Image 
-                          src={set.author.avatar_url} 
-                          alt="Avatar" 
-                          fill 
-                          className="object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center border border-white/20 shadow-sm shrink-0">
-                        <span className="text-white text-xs font-bold uppercase">
-                          {((set.author?.full_name || set.author?.email || (set.user_id ? 'Anonymous' : 'QuizFlash'))[0])}
+                    {/* Terms Count Tag + CEFR Level Tag */}
+                    <div className="flex items-center gap-2 mb-3 flex-wrap">
+                      {cefrBadge && (
+                        <span className={`text-[10px] sm:text-xs font-bold uppercase px-2 py-0.5 rounded-lg border ${cefrBadge.bg} ${cefrBadge.text} ${cefrBadge.border} shadow-sm shrink-0`}>
+                          {cefrBadge.label}
                         </span>
-                      </div>
-                    )}
-                    
-                    <div className="flex flex-col justify-center min-w-0">
-                      <span className="text-xs sm:text-sm text-white font-bold truncate max-w-[120px] sm:max-w-[150px] leading-tight">
-                        {set.author?.full_name || (set.author?.email ? set.author.email.split('@')[0] : (set.user_id ? 'Anonymous' : 'QuizFlash'))}
+                      )}
+                      <span className="flex items-center gap-1 text-[10px] sm:text-xs font-mono font-extrabold text-[#9fa6ff] bg-[#4255ff]/15 border border-[#4255ff]/30 px-2.5 py-0.5 rounded-lg shrink-0">
+                        <Layers className="w-3 h-3" />
+                        {set.cards?.[0]?.count || 0} terms
                       </span>
-                      <div className="flex items-center gap-1 text-[10px] text-slate-400 font-mono mt-0.5">
-                        <Clock className="w-3 h-3 text-slate-400 shrink-0" />
-                        <span className="truncate">{formatDistanceToNow(new Date(set.created_at), { addSuffix: true })}</span>
-                      </div>
                     </div>
+                    
+                    {set.description && (
+                      <p 
+                        className="text-slate-300 text-xs sm:text-sm line-clamp-2 mb-4 leading-relaxed font-medium"
+                        title={set.description}
+                      >
+                        {set.description}
+                      </p>
+                    )}
                   </div>
-                  
-                  <div className="flex items-center gap-2 shrink-0">
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-r from-[#4255ff] to-[#6d7bff] flex items-center justify-center text-white shadow-[0_0_15px_rgba(66,85,255,0.4)] group-hover:scale-110 transition-transform pointer-events-none">
-                      <Play className="w-4 h-4 fill-current ml-0.5" />
-                    </div>
-                  </div>
-                </div>
-              </DialogTrigger>
 
-              <DialogContent className="sm:max-w-md bg-[#0c0d28] border border-[#b892ff]/30 text-white rounded-3xl p-5 sm:p-6 shadow-2xl">
-                <DialogHeader className="mb-3">
-                  <DialogTitle className="text-xl sm:text-2xl font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-[#9fa6ff] to-[#b892ff]">
-                    🎮 Choose Practice Mode
-                  </DialogTitle>
-                </DialogHeader>
-                
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {GAME_MODES.map((mode) => (
-                    <button
-                      key={mode.id}
-                      onClick={() => !mode.disabled && router.push(mode.href === '/learn' ? `/flashcards/${set.id}/learn` : `${mode.href}/${set.id}`)}
-                      disabled={mode.disabled}
-                      className={`group relative overflow-hidden bg-gradient-to-br ${mode.bg} backdrop-blur-xl border ${mode.border} ${mode.disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-card/80 hover:-translate-y-1 cursor-pointer'} p-3.5 rounded-2xl transition-all duration-300 flex flex-col items-center justify-center text-center`}
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-slate-950/60 border border-white/10 flex items-center justify-center mb-2 shadow-inner">
-                        <div className="scale-75">
-                          {mode.icon}
+                  <div className="relative z-10 mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {set.author?.avatar_url ? (
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden relative shadow-sm border border-[#b892ff]/40 shrink-0">
+                          <Image 
+                            src={set.author.avatar_url} 
+                            alt="Avatar" 
+                            fill 
+                            className="object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center border border-white/20 shadow-sm shrink-0">
+                          <span className="text-white text-xs font-bold uppercase">
+                            {authorName[0]}
+                          </span>
+                        </div>
+                      )}
+                      
+                      <div className="flex flex-col justify-center min-w-0">
+                        <span className="text-xs sm:text-sm text-white font-bold truncate max-w-[120px] sm:max-w-[150px] leading-tight">
+                          {authorName}
+                        </span>
+                        <div className="flex items-center gap-1 text-[10px] text-slate-400 font-mono mt-0.5">
+                          <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                          <span className="truncate">{formatDistanceToNow(new Date(set.created_at), { addSuffix: true })}</span>
                         </div>
                       </div>
-                      <h3 className="text-xs sm:text-sm font-bold text-white mb-0.5">{mode.name}</h3>
-                      <p className="text-[9px] sm:text-[10px] text-slate-400 font-medium leading-tight">{mode.desc}</p>
-                    </button>
-                  ))}
-                </div>
-              </DialogContent>
-            </Dialog>
-          ))}
+                    </div>
+                    
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-r from-[#4255ff] to-[#6d7bff] flex items-center justify-center text-white shadow-[0_0_15px_rgba(66,85,255,0.4)] group-hover:scale-110 transition-transform pointer-events-none">
+                        <Play className="w-4 h-4 fill-current ml-0.5" />
+                      </div>
+                    </div>
+                  </div>
+                </DialogTrigger>
+
+                <DialogContent className="w-[95vw] sm:max-w-lg md:max-w-xl bg-gradient-to-b from-[#0c0d28] via-[#0b0a26] to-[#07061d] border border-[#b892ff]/40 text-white rounded-3xl p-5 sm:p-6 shadow-[0_0_50px_rgba(66,85,255,0.25)] backdrop-blur-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
+                  <DialogHeader className="mb-3 text-left">
+                    <DialogTitle className="text-lg sm:text-xl font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-[#9fa6ff] via-[#b892ff] to-[#ff92d0] flex items-center gap-2">
+                      🎮 Choose Practice Mode
+                    </DialogTitle>
+                  </DialogHeader>
+
+                  {/* Full Set Information Preview Banner */}
+                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/10 via-white/5 to-transparent border border-white/15 p-4 sm:p-5 mb-4 shadow-inner">
+                    {/* Ambient Glow */}
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#4255ff]/15 rounded-full blur-2xl pointer-events-none" />
+
+                    {/* Badges Row */}
+                    <div className="flex items-center gap-2 flex-wrap mb-2.5">
+                      {cefrBadge && (
+                        <span className={`px-2.5 py-0.5 rounded-lg text-xs font-black uppercase border ${cefrBadge.bg} ${cefrBadge.text} ${cefrBadge.border} shadow-sm`}>
+                          {cefrBadge.label}
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1 text-xs font-mono font-extrabold text-[#9fa6ff] bg-[#4255ff]/20 border border-[#4255ff]/40 px-2.5 py-0.5 rounded-lg">
+                        <Layers className="w-3.5 h-3.5" />
+                        {set.cards?.[0]?.count || 0} terms
+                      </span>
+                      <span className="px-2 py-0.5 rounded-lg text-[11px] font-bold text-slate-300 bg-white/5 border border-white/10">
+                        Public Deck
+                      </span>
+                    </div>
+
+                    {/* Full Set Title (Uncut, Full Display) */}
+                    <h2 className="text-base sm:text-xl font-black text-white leading-snug tracking-tight mb-2">
+                      {set.title}
+                    </h2>
+
+                    {/* Full Description (Uncut) */}
+                    {set.description && (
+                      <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium bg-black/30 p-3 rounded-xl border border-white/10 mb-3 whitespace-pre-wrap">
+                        {set.description}
+                      </p>
+                    )}
+
+                    {/* Author and Date Meta Row */}
+                    <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-xs text-slate-400">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {set.author?.avatar_url ? (
+                          <div className="w-5 h-5 rounded-full overflow-hidden relative border border-[#b892ff]/40 shrink-0">
+                            <Image src={set.author.avatar_url} alt="Avatar" fill className="object-cover" />
+                          </div>
+                        ) : (
+                          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-[10px] font-bold text-white shrink-0">
+                            {authorName[0]}
+                          </div>
+                        )}
+                        <span className="font-semibold text-slate-200 truncate max-w-[140px] sm:max-w-[200px]">
+                          By {authorName}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 text-[11px] font-mono shrink-0 text-slate-400">
+                        <Clock className="w-3 h-3" />
+                        <span>{formatDistanceToNow(new Date(set.created_at), { addSuffix: true })}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Mode Selection Subtitle */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">Select Game Mode</span>
+                    <div className="h-px flex-1 bg-white/10" />
+                  </div>
+                  
+                  {/* Grid of 6 Game Modes */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3">
+                    {GAME_MODES.map((mode) => (
+                      <button
+                        key={mode.id}
+                        onClick={() => !mode.disabled && router.push(mode.href === '/learn' ? `/flashcards/${set.id}/learn` : `${mode.href}/${set.id}`)}
+                        disabled={mode.disabled}
+                        className={`group relative overflow-hidden bg-gradient-to-br ${mode.bg} backdrop-blur-xl border ${mode.border} ${mode.disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-card/80 hover:-translate-y-1 hover:shadow-lg cursor-pointer active:scale-[0.98]'} p-3.5 sm:p-4 rounded-2xl transition-all duration-300 flex flex-col items-center justify-center text-center`}
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-slate-950/70 border border-white/10 flex items-center justify-center mb-2 shadow-inner group-hover:scale-110 transition-transform">
+                          <div className="scale-80">
+                            {mode.icon}
+                          </div>
+                        </div>
+                        <h3 className="text-xs sm:text-sm font-bold text-white mb-0.5">{mode.name}</h3>
+                        <p className="text-[9px] sm:text-[10px] text-slate-400 font-medium leading-tight">{mode.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </DialogContent>
+              </Dialog>
+            );
+          })}
         </div>
       ) : (
         <div className="w-full py-20 flex flex-col items-center justify-center text-center bg-[#0c0d28]/50 border border-white/10 rounded-3xl p-8">

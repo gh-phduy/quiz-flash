@@ -2,8 +2,27 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Search, Pencil, Folder, Bookmark } from 'lucide-react';
+import { Search, Pencil, Folder, Bookmark, Layers } from 'lucide-react';
 import { UserAvatar } from '@/components/shared/user-avatar';
+
+export function getCefrBadge(title: string, description?: string) {
+  const match = title.match(/\b(A1|A2|B1|B2|C1|C2)\b/i) || 
+    (description ? description.match(/\b(A1|A2|B1|B2|C1|C2)\b/i) : null);
+  
+  if (!match) return null;
+  const level = match[1].toUpperCase();
+
+  const configs: Record<string, { label: string; bg: string; text: string; border: string }> = {
+    'A1': { label: 'Level A1', bg: 'bg-emerald-500/15', text: 'text-emerald-300', border: 'border-emerald-500/30' },
+    'A2': { label: 'Level A2', bg: 'bg-teal-500/15', text: 'text-teal-300', border: 'border-teal-500/30' },
+    'B1': { label: 'Level B1', bg: 'bg-cyan-500/15', text: 'text-cyan-300', border: 'border-cyan-500/30' },
+    'B2': { label: 'Level B2', bg: 'bg-blue-500/15', text: 'text-blue-300', border: 'border-blue-500/30' },
+    'C1': { label: 'Level C1', bg: 'bg-purple-500/15', text: 'text-purple-300', border: 'border-purple-500/30' },
+    'C2': { label: 'Level C2', bg: 'bg-rose-500/15', text: 'text-rose-300', border: 'border-rose-500/30' },
+  };
+
+  return { level, ...(configs[level] || { label: `Level ${level}`, bg: 'bg-indigo-500/15', text: 'text-indigo-300', border: 'border-indigo-500/30' }) };
+}
 
 export function LibraryView({ 
   sets, 
@@ -94,40 +113,54 @@ export function LibraryView({
 
           <div className="flex flex-col gap-3">
             {filteredSets.length > 0 ? (
-              filteredSets.map((set: any) => (
-                <div 
-                  key={set.id}
-                  className="group flex items-center justify-between p-4 sm:p-5 bg-[#0a092d]/60 backdrop-blur-xl hover:bg-[#0a092d]/90 border border-white/5 hover:border-[#9fa6ff]/30 transition-all duration-300 rounded-2xl sm:rounded-3xl shadow-lg active:scale-[0.99]"
-                >
-                  <Link href={`/flashcards/${set.id}`} className="flex-1 flex flex-col justify-center min-w-0 pr-3">
-                    <div className="flex items-center gap-2.5 text-xs font-bold text-muted-foreground mb-1.5 flex-wrap">
-                      <span className="px-2 py-0.5 text-[10px] sm:text-[11px] font-extrabold rounded-md bg-[#4255ff]/15 text-[#9fa6ff] border border-[#4255ff]/30 shrink-0">
-                        {set.cards?.[0]?.count || 0} Terms
-                      </span>
-                      <div className="w-px h-3 bg-white/10 hidden sm:block"></div>
-                      <div className="flex items-center gap-1.5 text-white/80 text-xs">
-                        <UserAvatar 
-                          src={avatarUrl}
-                          alt="Avatar"
-                          className="w-4 h-4 sm:w-5 sm:h-5 rounded-full border border-border shrink-0 bg-gray-600"
-                        />
-                        <span className="font-semibold truncate max-w-[120px]">{displayName}</span>
-                      </div>
-                    </div>
-                    <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-[#9fa6ff] transition-colors leading-snug line-clamp-2">
-                      {set.title}
-                    </h3>
-                  </Link>
-                  
-                  <Link 
-                    href={`/edit-set/${set.id}`} 
-                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/5 hover:bg-[#4255ff]/20 text-muted-foreground hover:text-white flex items-center justify-center transition-all shrink-0 border border-white/5 active:scale-95"
-                    title="Edit this set"
+              filteredSets.map((set: any) => {
+                const cefrBadge = getCefrBadge(set.title, set.description);
+                return (
+                  <div 
+                    key={set.id}
+                    className="group flex items-center justify-between p-4 sm:p-5 bg-[#0a092d]/60 backdrop-blur-xl hover:bg-[#0a092d]/90 border border-white/5 hover:border-[#9fa6ff]/30 transition-all duration-300 rounded-2xl sm:rounded-3xl shadow-lg active:scale-[0.99]"
                   >
-                    <Pencil className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </Link>
-                </div>
-              ))
+                    <Link href={`/flashcards/${set.id}`} title={set.title} className="flex-1 flex flex-col justify-center min-w-0 pr-3">
+                      <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground mb-1.5 flex-wrap">
+                        {cefrBadge && (
+                          <span className={`px-2 py-0.5 text-[10px] sm:text-[11px] font-extrabold rounded-md border ${cefrBadge.bg} ${cefrBadge.text} ${cefrBadge.border} shrink-0`}>
+                            {cefrBadge.label}
+                          </span>
+                        )}
+                        <span className="px-2 py-0.5 text-[10px] sm:text-[11px] font-extrabold rounded-md bg-[#4255ff]/15 text-[#9fa6ff] border border-[#4255ff]/30 shrink-0 flex items-center gap-1">
+                          <Layers className="w-3 h-3" />
+                          {set.cards?.[0]?.count || 0} Terms
+                        </span>
+                        <div className="w-px h-3 bg-white/10 hidden sm:block"></div>
+                        <div className="flex items-center gap-1.5 text-white/80 text-xs">
+                          <UserAvatar 
+                            src={avatarUrl}
+                            alt="Avatar"
+                            className="w-4 h-4 sm:w-5 sm:h-5 rounded-full border border-border shrink-0 bg-gray-600"
+                          />
+                          <span className="font-semibold truncate max-w-[120px]">{displayName}</span>
+                        </div>
+                      </div>
+                      <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-[#9fa6ff] transition-colors leading-snug line-clamp-2" title={set.title}>
+                        {set.title}
+                      </h3>
+                      {set.description && (
+                        <p className="text-xs text-slate-400 line-clamp-1 mt-0.5" title={set.description}>
+                          {set.description}
+                        </p>
+                      )}
+                    </Link>
+                    
+                    <Link 
+                      href={`/edit-set/${set.id}`} 
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/5 hover:bg-[#4255ff]/20 text-muted-foreground hover:text-white flex items-center justify-center transition-all shrink-0 border border-white/5 active:scale-95"
+                      title="Edit this set"
+                    >
+                      <Pencil className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </Link>
+                  </div>
+                );
+              })
             ) : (
               <div className="text-muted-foreground font-semibold py-8 px-4 text-center bg-card/40 border border-white/5 rounded-2xl text-xs sm:text-sm">
                 {searchQuery ? "No created sets found matching your search." : "You don't have any created flashcard sets yet."}
@@ -150,14 +183,20 @@ export function LibraryView({
               filteredSavedSets.map((set: any) => {
                 const authorAvatar = set.author?.avatar_url || null;
                 const authorName = set.author?.full_name || (set.author?.email ? set.author.email.split('@')[0] : (set.user_id ? 'Anonymous' : 'QuizFlash'));
+                const cefrBadge = getCefrBadge(set.title, set.description);
                 
                 return (
                 <div 
                   key={set.id}
                   className="group flex items-center justify-between p-4 sm:p-5 bg-[#0a092d]/60 backdrop-blur-xl hover:bg-[#0a092d]/90 border border-white/5 hover:border-[#9fa6ff]/30 transition-all duration-300 rounded-2xl sm:rounded-3xl shadow-lg active:scale-[0.99]"
                 >
-                  <Link href={`/flashcards/${set.id}`} className="flex-1 flex flex-col justify-center min-w-0 pr-3">
-                    <div className="flex items-center gap-2.5 text-xs font-bold text-muted-foreground mb-1.5 flex-wrap">
+                  <Link href={`/flashcards/${set.id}`} title={set.title} className="flex-1 flex flex-col justify-center min-w-0 pr-3">
+                    <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground mb-1.5 flex-wrap">
+                      {cefrBadge && (
+                        <span className={`px-2 py-0.5 text-[10px] sm:text-[11px] font-extrabold rounded-md border ${cefrBadge.bg} ${cefrBadge.text} ${cefrBadge.border} shrink-0`}>
+                          {cefrBadge.label}
+                        </span>
+                      )}
                       <span className="px-2 py-0.5 text-[10px] sm:text-[11px] font-extrabold rounded-md bg-[#ff92d0]/15 text-[#ff92d0] border border-[#ff92d0]/30 shrink-0 flex items-center gap-1">
                         <Bookmark className="w-3 h-3 fill-current" />
                         {set.cards?.[0]?.count || 0} Terms
@@ -172,9 +211,14 @@ export function LibraryView({
                         <span className="font-semibold truncate max-w-[120px]">{authorName}</span>
                       </div>
                     </div>
-                    <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-[#9fa6ff] transition-colors leading-snug line-clamp-2">
+                    <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-[#9fa6ff] transition-colors leading-snug line-clamp-2" title={set.title}>
                       {set.title}
                     </h3>
+                    {set.description && (
+                      <p className="text-xs text-slate-400 line-clamp-1 mt-0.5" title={set.description}>
+                        {set.description}
+                      </p>
+                    )}
                   </Link>
                   
                   <Link 

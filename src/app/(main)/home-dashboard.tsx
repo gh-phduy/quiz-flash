@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import {
   Search, Layers, BookOpen, FileText, Copy, Bookmark,
-  Plus, Users, Flame, Mic, Headphones, Keyboard
+  Plus, Users, Flame, Mic, Headphones, Keyboard, Clock
 } from 'lucide-react';
 import { saveSetToLibrary, unsaveSetFromLibrary } from '@/actions/collaboration';
 import { toast } from 'sonner';
@@ -19,6 +19,25 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { RankBadge, getRankFromPoints } from '@/components/shared/rank-badge';
+
+export function getCefrBadge(title: string, description?: string) {
+  const match = title.match(/\b(A1|A2|B1|B2|C1|C2)\b/i) || 
+    (description ? description.match(/\b(A1|A2|B1|B2|C1|C2)\b/i) : null);
+  
+  if (!match) return null;
+  const level = match[1].toUpperCase();
+
+  const configs: Record<string, { label: string; bg: string; text: string; border: string }> = {
+    'A1': { label: 'Level A1', bg: 'bg-emerald-500/15', text: 'text-emerald-300', border: 'border-emerald-500/30' },
+    'A2': { label: 'Level A2', bg: 'bg-teal-500/15', text: 'text-teal-300', border: 'border-teal-500/30' },
+    'B1': { label: 'Level B1', bg: 'bg-cyan-500/15', text: 'text-cyan-300', border: 'border-cyan-500/30' },
+    'B2': { label: 'Level B2', bg: 'bg-blue-500/15', text: 'text-blue-300', border: 'border-blue-500/30' },
+    'C1': { label: 'Level C1', bg: 'bg-purple-500/15', text: 'text-purple-300', border: 'border-purple-500/30' },
+    'C2': { label: 'Level C2', bg: 'bg-rose-500/15', text: 'text-rose-300', border: 'border-rose-500/30' },
+  };
+
+  return { level, ...(configs[level] || { label: `Level ${level}`, bg: 'bg-indigo-500/15', text: 'text-indigo-300', border: 'border-indigo-500/30' }) };
+}
 
 interface HomeDashboardProps {
   user: any;
@@ -325,103 +344,186 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
       {/* Sets Grid */}
       {displayedSets.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-          {displayedSets.map((set) => (
-            <Dialog key={set.id}>
-              <DialogTrigger 
-                render={<div />}
-                nativeButton={false}
-                className="cursor-pointer group relative rounded-2xl sm:rounded-3xl p-5 sm:p-6 transition-all duration-300 flex flex-col w-full text-left min-h-[190px] sm:h-[230px] bg-[#0a092d]/50 backdrop-blur-xl border border-white/5 hover:bg-[#0a092d]/80 hover:border-[#9fa6ff]/30 hover:shadow-[0_0_30px_rgba(159,166,255,0.15)] active:scale-[0.99]"
-              >
-                <div className="flex-1">
-                  <div className="flex justify-between items-start gap-3 mb-3 w-full">
-                    <div className="flex items-center gap-2 flex-wrap min-w-0">
-                      <h3 className="text-lg sm:text-xl font-bold transition-colors line-clamp-2 leading-snug text-white group-hover:text-[#9fa6ff]">
+          {displayedSets.map((set) => {
+            const cefrBadge = getCefrBadge(set.title, set.description);
+            const authorName = set.author?.full_name || (set.author?.email ? set.author.email.split('@')[0] : (set.user_id ? 'User' : 'QuizFlash'));
+
+            return (
+              <Dialog key={set.id}>
+                <DialogTrigger 
+                  render={<div />}
+                  nativeButton={false}
+                  title={`Click to study: ${set.title}`}
+                  className="cursor-pointer group relative rounded-2xl sm:rounded-3xl p-5 sm:p-6 transition-all duration-300 flex flex-col w-full text-left min-h-[190px] sm:h-[230px] bg-[#0a092d]/50 backdrop-blur-xl border border-white/5 hover:bg-[#0a092d]/80 hover:border-[#9fa6ff]/30 hover:shadow-[0_0_30px_rgba(159,166,255,0.15)] active:scale-[0.99] justify-between overflow-hidden"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start gap-3 mb-2 w-full">
+                      <h3 
+                        className="text-base sm:text-lg font-bold transition-colors line-clamp-2 leading-snug text-white group-hover:text-[#9fa6ff]"
+                        title={set.title}
+                      >
                         {set.title}
                       </h3>
-                      <span className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md shrink-0 text-[#9fa6ff] bg-[#4255ff]/15 border border-[#4255ff]/30">
+                      
+                      {activeTab === 'saved' && (
+                        <button 
+                          onClick={(e) => handleToggleSave(e, set.id)}
+                          disabled={isLoading === set.id}
+                          className={`p-1.5 transition-all duration-300 rounded-lg hover:scale-110 shrink-0 ${
+                            savedSetIds.has(set.id) 
+                              ? 'text-[#ff92d0] hover:text-[#ff92d0]/80' 
+                              : 'text-muted-foreground hover:text-white'
+                          }`}
+                          title={savedSetIds.has(set.id) ? "Unsave set" : "Save set"}
+                        >
+                          <Bookmark className={`w-5 h-5 ${savedSetIds.has(set.id) ? 'fill-current' : ''}`} />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Terms Count Tag + CEFR Level Tag */}
+                    <div className="flex items-center gap-2 mb-2.5 flex-wrap">
+                      {cefrBadge && (
+                        <span className={`text-[10px] sm:text-xs font-bold uppercase px-2 py-0.5 rounded-lg border ${cefrBadge.bg} ${cefrBadge.text} ${cefrBadge.border} shadow-sm shrink-0`}>
+                          {cefrBadge.label}
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-md shrink-0 text-[#9fa6ff] bg-[#4255ff]/15 border border-[#4255ff]/30">
+                        <Layers className="w-3 h-3" />
                         {set.cards?.[0]?.count || 0} terms
                       </span>
                     </div>
-                    
-                    {activeTab === 'saved' && (
-                      <button 
-                        onClick={(e) => handleToggleSave(e, set.id)}
-                        disabled={isLoading === set.id}
-                        className={`p-1.5 transition-all duration-300 rounded-lg hover:scale-110 shrink-0 ${
-                          savedSetIds.has(set.id) 
-                            ? 'text-[#ff92d0] hover:text-[#ff92d0]/80' 
-                            : 'text-muted-foreground hover:text-white'
-                        }`}
-                        title={savedSetIds.has(set.id) ? "Unsave set" : "Save set"}
+
+                    {set.description && (
+                      <p 
+                        className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mb-3 font-medium"
+                        title={set.description}
                       >
-                        <Bookmark className={`w-5 h-5 ${savedSetIds.has(set.id) ? 'fill-current' : ''}`} />
-                      </button>
+                        {set.description}
+                      </p>
                     )}
                   </div>
 
-                  {set.description && (
-                    <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mb-4 font-medium">
-                      {set.description}
-                    </p>
-                  )}
-                </div>
-
-                {/* Card Footer */}
-                <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-white/5 text-[11px] sm:text-xs text-muted-foreground mt-auto">
-                  <div className="flex items-center gap-2 min-w-0">
-                    {set.author?.avatar_url ? (
-                      <Image 
-                        src={set.author.avatar_url} 
-                        alt="Author" 
-                        width={20} 
-                        height={20} 
-                        className="rounded-full object-cover shrink-0"
-                      />
-                     ) : (
-                      <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold shrink-0">
-                        {(set.author?.full_name || set.author?.email || (set.user_id ? 'User' : 'QuizFlash'))[0].toUpperCase()}
-                      </div>
-                    )}
-                    <span className="font-medium truncate max-w-[100px] sm:max-w-[120px]">
-                      {set.author?.full_name || set.author?.email?.split('@')[0] || (set.user_id ? 'User' : 'QuizFlash')}
+                  {/* Card Footer */}
+                  <div className="flex items-center justify-between pt-3 sm:pt-4 border-t border-white/5 text-[11px] sm:text-xs text-muted-foreground mt-auto">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {set.author?.avatar_url ? (
+                        <Image 
+                          src={set.author.avatar_url} 
+                          alt="Author" 
+                          width={20} 
+                          height={20} 
+                          className="rounded-full object-cover shrink-0"
+                        />
+                       ) : (
+                        <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold shrink-0">
+                          {authorName[0].toUpperCase()}
+                        </div>
+                      )}
+                      <span className="font-medium truncate max-w-[100px] sm:max-w-[120px]">
+                        {authorName}
+                      </span>
+                    </div>
+                    
+                    <span className="font-mono text-[10px] sm:text-[11px] shrink-0">
+                      {formatDistanceToNow(new Date(set.created_at), { addSuffix: true })}
                     </span>
                   </div>
-                  
-                  <span className="font-mono text-[10px] sm:text-[11px] shrink-0">
-                    {formatDistanceToNow(new Date(set.created_at), { addSuffix: true })}
-                  </span>
-                </div>
-              </DialogTrigger>
+                </DialogTrigger>
 
-              {/* Mode Selector Dialog */}
-              <DialogContent className="w-[92vw] sm:max-w-md bg-[#0d0c22] border-white/10 text-white rounded-3xl p-5 sm:p-6">
-                <DialogHeader className="space-y-2">
-                  <DialogTitle className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-                    Choose Mode
-                  </DialogTitle>
-                  <p className="text-xs sm:text-sm text-muted-foreground font-medium">
-                    Select how you want to study <strong className="text-white">{set.title}</strong>
-                  </p>
-                </DialogHeader>
+                {/* Mode Selector Dialog with Full Set Information */}
+                <DialogContent className="w-[95vw] sm:max-w-lg md:max-w-xl bg-gradient-to-b from-[#0c0d28] via-[#0b0a26] to-[#07061d] border border-[#b892ff]/40 text-white rounded-3xl p-5 sm:p-6 shadow-[0_0_50px_rgba(66,85,255,0.25)] backdrop-blur-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
+                  <DialogHeader className="mb-3 text-left">
+                    <DialogTitle className="text-lg sm:text-xl font-black uppercase tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-[#9fa6ff] via-[#b892ff] to-[#ff92d0] flex items-center gap-2">
+                      🎮 Choose Practice Mode
+                    </DialogTitle>
+                  </DialogHeader>
 
-                <div className="grid grid-cols-2 gap-2.5 sm:gap-3 my-4">
-                  {GAME_MODES.map((mode) => (
-                    <button
-                      key={mode.id}
-                      onClick={() => handleSetClickForMode(set.id)}
-                      disabled={mode.disabled}
-                      className="p-3.5 sm:p-4 rounded-2xl bg-white/5 border border-white/10 hover:border-white/20 hover:bg-white/10 flex flex-col items-center gap-2 text-center transition-all cursor-pointer group active:scale-95"
-                    >
-                      <div className="p-2.5 rounded-xl bg-white/5 group-hover:scale-110 transition-transform">
-                        {mode.icon}
+                  {/* Full Set Information Preview Banner */}
+                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/10 via-white/5 to-transparent border border-white/15 p-4 sm:p-5 mb-4 shadow-inner">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#4255ff]/15 rounded-full blur-2xl pointer-events-none" />
+
+                    {/* Badges Row */}
+                    <div className="flex items-center gap-2 flex-wrap mb-2.5">
+                      {cefrBadge && (
+                        <span className={`px-2.5 py-0.5 rounded-lg text-xs font-black uppercase border ${cefrBadge.bg} ${cefrBadge.text} ${cefrBadge.border} shadow-sm`}>
+                          {cefrBadge.label}
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1 text-xs font-mono font-bold text-[#9fa6ff] bg-[#4255ff]/20 border border-[#4255ff]/40 px-2.5 py-0.5 rounded-lg">
+                        <Layers className="w-3.5 h-3.5" />
+                        {set.cards?.[0]?.count || 0} terms
+                      </span>
+                      {set.user_id === user?.id && (
+                        <span className="px-2 py-0.5 rounded-lg text-[10px] uppercase font-bold tracking-wider text-[#b892ff] bg-[#b892ff]/10 border border-[#b892ff]/20">
+                          Yours
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Full Set Title (Uncut) */}
+                    <h2 className="text-base sm:text-xl font-black text-white leading-snug tracking-tight mb-2">
+                      {set.title}
+                    </h2>
+
+                    {/* Full Description (Uncut) */}
+                    {set.description && (
+                      <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium bg-black/30 p-3 rounded-xl border border-white/10 mb-3 whitespace-pre-wrap">
+                        {set.description}
+                      </p>
+                    )}
+
+                    {/* Author & Time Info */}
+                    <div className="flex items-center justify-between pt-2.5 border-t border-white/10 text-xs text-slate-400">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {set.author?.avatar_url ? (
+                          <div className="w-5 h-5 rounded-full overflow-hidden relative border border-[#b892ff]/40 shrink-0">
+                            <Image src={set.author.avatar_url} alt="Avatar" fill className="object-cover" />
+                          </div>
+                        ) : (
+                          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-[10px] font-bold text-white shrink-0">
+                            {authorName[0].toUpperCase()}
+                          </div>
+                        )}
+                        <span className="font-semibold text-slate-200 truncate max-w-[140px] sm:max-w-[200px]">
+                          By {authorName}
+                        </span>
                       </div>
-                      <span className="text-xs sm:text-sm font-bold">{mode.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </DialogContent>
-            </Dialog>
-          ))}
+                      <div className="flex items-center gap-1 text-[11px] font-mono shrink-0 text-slate-400">
+                        <Clock className="w-3 h-3" />
+                        <span>{formatDistanceToNow(new Date(set.created_at), { addSuffix: true })}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Mode Selection Subtitle */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">Select Game Mode</span>
+                    <div className="h-px flex-1 bg-white/10" />
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3">
+                    {GAME_MODES.map((mode) => (
+                      <button
+                        key={mode.id}
+                        onClick={() => handleSetClickForMode(set.id)}
+                        disabled={mode.disabled}
+                        className={`group relative overflow-hidden bg-gradient-to-br ${mode.bg} backdrop-blur-xl border ${mode.border} ${mode.disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-card/80 hover:-translate-y-1 hover:shadow-lg cursor-pointer active:scale-[0.98]'} p-3.5 sm:p-4 rounded-2xl transition-all duration-300 flex flex-col items-center justify-center text-center`}
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-slate-950/70 border border-white/10 flex items-center justify-center mb-2 shadow-inner group-hover:scale-110 transition-transform">
+                          <div className="scale-80">
+                            {mode.icon}
+                          </div>
+                        </div>
+                        <h3 className="text-xs sm:text-sm font-bold text-white mb-0.5">{mode.name}</h3>
+                        <p className="text-[9px] sm:text-[10px] text-slate-400 font-medium leading-tight">{mode.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </DialogContent>
+              </Dialog>
+            );
+          })}
         </div>
       ) : (
         <div className="text-center py-12 sm:py-16 bg-card/30 border border-white/5 rounded-3xl p-6 sm:p-8">
@@ -467,38 +569,49 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
 
           <div className="flex flex-col gap-3 max-h-[340px] overflow-y-auto pr-2 custom-scrollbar">
             {filteredDialogSets.length > 0 ? (
-              filteredDialogSets.map((set) => (
-                <button
-                  key={set.id}
-                  onMouseEnter={() => {
-                    if (selectedMode) {
-                      const path = selectedMode.href === '/learn' 
-                        ? `/flashcards/${set.id}/learn` 
-                        : `${selectedMode.href.startsWith('/') ? selectedMode.href : `/${selectedMode.href}`}/${set.id}`;
-                      router.prefetch(path);
-                    }
-                  }}
-                  onClick={() => handleSetClickForMode(set.id)}
-                  className="flex items-center justify-between p-4 bg-card/50 hover:bg-card/80 border border-white/5 hover:border-[#b892ff]/50 rounded-xl transition-all text-left cursor-pointer group"
-                >
-                  <div className="flex flex-col overflow-hidden pr-4">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-bold text-white text-base truncate group-hover:text-[#b892ff] transition-colors">{set.title}</span>
-                      {set.user_id === user?.id ? (
-                        <span className="text-[10px] uppercase font-bold tracking-wider text-[#b892ff] bg-[#b892ff]/10 border border-[#b892ff]/20 px-2 py-0.5 rounded-full shrink-0">Yours</span>
-                      ) : (
-                        <span className="text-[10px] uppercase font-bold tracking-wider text-[#b892ff] bg-[#b892ff]/10 border border-[#b892ff]/20 px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
-                          <Bookmark className="w-3 h-3" /> Saved
+              filteredDialogSets.map((set) => {
+                const cefrBadge = getCefrBadge(set.title, set.description);
+                return (
+                  <button
+                    key={set.id}
+                    title={set.title}
+                    onMouseEnter={() => {
+                      if (selectedMode) {
+                        const path = selectedMode.href === '/learn' 
+                          ? `/flashcards/${set.id}/learn` 
+                          : `${selectedMode.href.startsWith('/') ? selectedMode.href : `/${selectedMode.href}`}/${set.id}`;
+                        router.prefetch(path);
+                      }
+                    }}
+                    onClick={() => handleSetClickForMode(set.id)}
+                    className="flex items-center justify-between p-4 bg-card/50 hover:bg-card/80 border border-white/5 hover:border-[#b892ff]/50 rounded-xl transition-all text-left cursor-pointer group"
+                  >
+                    <div className="flex flex-col overflow-hidden pr-4 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="font-bold text-white text-base truncate group-hover:text-[#b892ff] transition-colors" title={set.title}>
+                          {set.title}
                         </span>
-                      )}
+                        {cefrBadge && (
+                          <span className={`text-[10px] uppercase font-extrabold px-1.5 py-0.5 rounded border ${cefrBadge.bg} ${cefrBadge.text} ${cefrBadge.border} shrink-0`}>
+                            {cefrBadge.level}
+                          </span>
+                        )}
+                        {set.user_id === user?.id ? (
+                          <span className="text-[10px] uppercase font-bold tracking-wider text-[#b892ff] bg-[#b892ff]/10 border border-[#b892ff]/20 px-2 py-0.5 rounded-full shrink-0">Yours</span>
+                        ) : (
+                          <span className="text-[10px] uppercase font-bold tracking-wider text-[#b892ff] bg-[#b892ff]/10 border border-[#b892ff]/20 px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
+                            <Bookmark className="w-3 h-3" /> Saved
+                          </span>
+                        )}
+                      </div>
+                      {set.description && <span className="text-sm text-muted-foreground truncate" title={set.description}>{set.description}</span>}
                     </div>
-                    {set.description && <span className="text-sm text-muted-foreground truncate">{set.description}</span>}
-                  </div>
-                  <span className="text-xs font-bold text-[#b892ff] bg-[#b892ff]/10 px-3 py-1 rounded-full shrink-0">
-                    {set.cards?.[0]?.count || 0} Terms
-                  </span>
-                </button>
-              ))
+                    <span className="text-xs font-bold text-[#b892ff] bg-[#b892ff]/10 px-3 py-1 rounded-full shrink-0">
+                      {set.cards?.[0]?.count || 0} Terms
+                    </span>
+                  </button>
+                );
+              })
             ) : dialogSearchQuery ? (
               <div className="text-center py-8">
                 <p className="text-muted-foreground text-sm">No sets found matching "{dialogSearchQuery}"</p>
@@ -523,31 +636,42 @@ export default function HomeDashboard({ user, profile, sets, savedSets, initialS
                       <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Or try these public sets</span>
                       <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-white/10"></div>
                     </div>
-                    {filteredSuggestedSets.map((set) => (
-                      <button
-                        key={set.id}
-                        onMouseEnter={() => {
-                          if (selectedMode) {
-                            const path = selectedMode.href === '/learn' 
-                              ? `/flashcards/${set.id}/learn` 
-                              : `${selectedMode.href.startsWith('/') ? selectedMode.href : `/${selectedMode.href}`}/${set.id}`;
-                            router.prefetch(path);
-                          }
-                        }}
-                        onClick={() => handleSetClickForMode(set.id)}
-                        className="flex items-center justify-between p-4 bg-card/30 hover:bg-card/60 border border-white/5 hover:border-[#b892ff]/40 rounded-xl transition-all text-left cursor-pointer group"
-                      >
-                        <div className="flex flex-col overflow-hidden pr-4">
-                          <span className="font-bold text-white text-base truncate group-hover:text-[#b892ff] transition-colors">{set.title}</span>
-                          <span className="text-xs text-muted-foreground mt-0.5 truncate">
-                            By {set.author?.full_name || set.author?.email?.split('@')[0] || 'Community'}
+                    {filteredSuggestedSets.map((set) => {
+                      const cefrBadge = getCefrBadge(set.title, set.description);
+                      return (
+                        <button
+                          key={set.id}
+                          title={set.title}
+                          onMouseEnter={() => {
+                            if (selectedMode) {
+                              const path = selectedMode.href === '/learn' 
+                                ? `/flashcards/${set.id}/learn` 
+                                : `${selectedMode.href.startsWith('/') ? selectedMode.href : `/${selectedMode.href}`}/${set.id}`;
+                              router.prefetch(path);
+                            }
+                          }}
+                          onClick={() => handleSetClickForMode(set.id)}
+                          className="flex items-center justify-between p-4 bg-card/30 hover:bg-card/60 border border-white/5 hover:border-[#b892ff]/40 rounded-xl transition-all text-left cursor-pointer group"
+                        >
+                          <div className="flex flex-col overflow-hidden pr-4 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                              <span className="font-bold text-white text-base truncate group-hover:text-[#b892ff] transition-colors" title={set.title}>{set.title}</span>
+                              {cefrBadge && (
+                                <span className={`text-[10px] uppercase font-extrabold px-1.5 py-0.5 rounded border ${cefrBadge.bg} ${cefrBadge.text} ${cefrBadge.border} shrink-0`}>
+                                  {cefrBadge.level}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-xs text-muted-foreground truncate">
+                              By {set.author?.full_name || set.author?.email?.split('@')[0] || 'Community'}
+                            </span>
+                          </div>
+                          <span className="text-xs font-bold text-white/40 bg-white/5 px-3 py-1 rounded-full shrink-0 group-hover:bg-[#b892ff]/10 group-hover:text-[#b892ff] transition-colors">
+                            {set.cards?.[0]?.count || 0} Terms
                           </span>
-                        </div>
-                        <span className="text-xs font-bold text-white/40 bg-white/5 px-3 py-1 rounded-full shrink-0 group-hover:bg-[#b892ff]/10 group-hover:text-[#b892ff] transition-colors">
-                          {set.cards?.[0]?.count || 0} Terms
-                        </span>
-                      </button>
-                    ))}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
